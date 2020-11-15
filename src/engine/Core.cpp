@@ -56,6 +56,8 @@ int Core::run() {
 	while (!glfwWindowShouldClose(glfwWindow)) {
 		glfwPollEvents();
 
+		// TODO: calculate dt
+
 		// update systems
 		for (auto& system : systems) {
 			if (system->run(dt)) {

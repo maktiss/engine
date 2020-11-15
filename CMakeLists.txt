@@ -31,6 +31,7 @@ target_link_libraries(
 	Vulkan::Vulkan
 	glfw
 	spdlog
+	${CMAKE_DL_LIBS}
 )
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
