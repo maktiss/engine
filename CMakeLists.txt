@@ -7,7 +7,7 @@ find_package(glfw3 REQUIRED)
 include(CTest)
 enable_testing()
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 
 add_executable(
 	${PROJECT_NAME}
@@ -17,6 +17,7 @@ add_executable(
 	src/engine/systems/SystemBase.hpp
 	src/engine/systems/RenderingSystem.cpp
 	src/engine/systems/RenderingSystem.hpp
+	src/engine/utils/IO.hpp
 )
 
 target_include_directories(

@@ -46,6 +46,138 @@ int RenderingSystem::init() {
 	}
 
 
+	// FIXME testing
+
+	{
+		if (Engine::Utils::readFile("assets/shaders/triangle.vsh.spv", vshCode)) {
+			spdlog::error("Failed to read triangle.vsh.spv");
+			return 1;
+		}
+		if (Engine::Utils::readFile("assets/shaders/triangle.fsh.spv", fshCode)) {
+			spdlog::error("Failed to read triangle.fsh.spv");
+			return 1;
+		}
+
+		spdlog::info("{}, {}", vshCode.size(), fshCode.size());
+
+		vk::ShaderModule vsShaderModule;
+		vk::ShaderModule fsShaderModule;
+
+		vk::ShaderModuleCreateInfo shaderModuleCreateInfo {};
+		shaderModuleCreateInfo.codeSize = vshCode.size();
+		shaderModuleCreateInfo.pCode	= reinterpret_cast<const uint32_t*>(vshCode.data());
+
+		auto result = vkDevice.createShaderModule(&shaderModuleCreateInfo, nullptr, &vsShaderModule);
+		if (result != vk::Result::eSuccess) {
+			spdlog::error("Failed to create shader module. Error code: ", result);
+			return 1;
+		}
+
+		shaderModuleCreateInfo.codeSize = fshCode.size();
+		shaderModuleCreateInfo.pCode	= reinterpret_cast<const uint32_t*>(fshCode.data());
+
+		result = vkDevice.createShaderModule(&shaderModuleCreateInfo, nullptr, &fsShaderModule);
+		if (result != vk::Result::eSuccess) {
+			spdlog::error("Failed to create shader module. Error code: ", result);
+			return 1;
+		}
+
+		vk::PipelineShaderStageCreateInfo vsPipelineShaderStageCreateInfo {};
+		vsPipelineShaderStageCreateInfo.stage  = vk::ShaderStageFlagBits::eVertex;
+		vsPipelineShaderStageCreateInfo.module = vsShaderModule;
+		vsPipelineShaderStageCreateInfo.pName  = "main";
+
+		vk::PipelineShaderStageCreateInfo fsPipelineShaderStageCreateInfo {};
+		fsPipelineShaderStageCreateInfo.stage  = vk::ShaderStageFlagBits::eFragment;
+		fsPipelineShaderStageCreateInfo.module = fsShaderModule;
+		fsPipelineShaderStageCreateInfo.pName  = "main";
+
+		vk::PipelineShaderStageCreateInfo shaderStages[] = { vsPipelineShaderStageCreateInfo,
+															 fsPipelineShaderStageCreateInfo };
+
+		vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {};
+		pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
+		pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount   = 0;
+
+		vk::PipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo {};
+		pipelineInputAssemblyStateCreateInfo.topology				= vk::PrimitiveTopology::eTriangleList;
+		pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = false;
+
+		vk::Viewport viewport {};
+		viewport.x		  = 0.0f;
+		viewport.y		  = 0.0f;
+		viewport.width	  = vkSwapchainInfo.extent.width;
+		viewport.height	  = vkSwapchainInfo.extent.height;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+
+		vk::Rect2D scissor {};
+		scissor.offset = vk::Offset2D(0, 0);
+		scissor.extent = vkSwapchainInfo.extent;
+
+		vk::PipelineViewportStateCreateInfo pipelineViewportStateCreateInfo {};
+		pipelineViewportStateCreateInfo.viewportCount = 1;
+		pipelineViewportStateCreateInfo.pViewports	  = &viewport;
+		pipelineViewportStateCreateInfo.scissorCount  = 1;
+		pipelineViewportStateCreateInfo.pScissors	  = &scissor;
+
+		vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {};
+		pipelineRasterizationStateCreateInfo.depthClampEnable		 = false;
+		pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;
+		pipelineRasterizationStateCreateInfo.polygonMode			 = vk::PolygonMode::eFill;
+		pipelineRasterizationStateCreateInfo.cullMode				 = vk::CullModeFlagBits::eBack;
+		pipelineRasterizationStateCreateInfo.frontFace				 = vk::FrontFace::eClockwise;
+		pipelineRasterizationStateCreateInfo.depthBiasEnable		 = false;
+		pipelineRasterizationStateCreateInfo.lineWidth				 = 1.0f;
+
+		vk::PipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {};
+		pipelineMultisampleStateCreateInfo.sampleShadingEnable	= false;
+		pipelineMultisampleStateCreateInfo.rasterizationSamples = vk::SampleCountFlagBits::e1;
+
+		vk::PipelineColorBlendAttachmentState pipelineColorBlendAttachmentState {};
+		pipelineColorBlendAttachmentState.colorWriteMask =
+			vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
+			vk::ColorComponentFlagBits::eA;
+		pipelineColorBlendAttachmentState.blendEnable = false;
+
+		vk::PipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo {};
+		pipelineColorBlendStateCreateInfo.logicOpEnable	  = false;
+		pipelineColorBlendStateCreateInfo.attachmentCount = 1;
+		pipelineColorBlendStateCreateInfo.pAttachments	  = &pipelineColorBlendAttachmentState;
+
+		vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {};
+
+		result = vkDevice.createPipelineLayout(&pipelineLayoutCreateInfo, nullptr, &vkPipelineLayout);
+		if (result != vk::Result::eSuccess) {
+			spdlog::error("Failed to create pipeline layout. Error code: ", result);
+			return 1;
+		}
+
+		vk::GraphicsPipelineCreateInfo graphicsPipelineCreateInfo {};
+		graphicsPipelineCreateInfo.stageCount = 2;
+		graphicsPipelineCreateInfo.pStages	  = shaderStages;
+
+		graphicsPipelineCreateInfo.pVertexInputState   = &pipelineVertexInputStateCreateInfo;
+		graphicsPipelineCreateInfo.pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo;
+		graphicsPipelineCreateInfo.pViewportState	   = &pipelineViewportStateCreateInfo;
+		graphicsPipelineCreateInfo.pRasterizationState = &pipelineRasterizationStateCreateInfo;
+		graphicsPipelineCreateInfo.pMultisampleState   = &pipelineMultisampleStateCreateInfo;
+		graphicsPipelineCreateInfo.pDepthStencilState  = nullptr;
+		graphicsPipelineCreateInfo.pColorBlendState	   = &pipelineColorBlendStateCreateInfo;
+		graphicsPipelineCreateInfo.pDynamicState	   = nullptr;
+
+		graphicsPipelineCreateInfo.layout = vkPipelineLayout;
+
+		graphicsPipelineCreateInfo.renderPass = vkRenderPass;
+		graphicsPipelineCreateInfo.subpass	  = 0;
+
+		result = vkDevice.createGraphicsPipelines(nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &vkPipeline);
+		if (result != vk::Result::eSuccess) {
+			spdlog::error("Failed to create graphics pipeline. Error code: ", result);
+			return 1;
+		}
+	}
+
 	return 0;
 }
 
@@ -69,7 +201,7 @@ int RenderingSystem::run(double dt) {
 		renderPassBeginInfo.renderArea.extent = vkSwapchainInfo.extent;
 		renderPassBeginInfo.renderArea.offset = vk::Offset2D(0, 0);
 
-		vk::ClearValue clearValue = { std::array<float, 4> { 0.1f, 0.1f, 0.1f, 1.0f } };
+		vk::ClearValue clearValue = { std::array<float, 4> { 0.0f, 0.0f, 0.0f, 1.0f } };
 
 		renderPassBeginInfo.clearValueCount = 1;
 		renderPassBeginInfo.pClearValues	= &clearValue;
@@ -77,10 +209,18 @@ int RenderingSystem::run(double dt) {
 
 		commandBuffer.beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
 
+		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkPipeline);
+
+		commandBuffer.draw(3, 1, 0, 0);
 
 		commandBuffer.endRenderPass();
 
-		commandBuffer.end();
+
+		result = commandBuffer.end();
+		if (result != vk::Result::eSuccess) {
+			spdlog::error("Failed to record command buffer. Error code: {}", result);
+			return 1;
+		}
 	}
 
 	if (present()) {
@@ -218,7 +358,7 @@ int RenderingSystem::createSwapchain() {
 
 	// TODO: choose the best format
 	auto surfaceFormat = swapchainSupportInfo.formats[0];
-	auto presentMode   = vk::PresentModeKHR::eFifo;
+	auto presentMode   = vk::PresentModeKHR::eImmediate;
 
 	auto extent = swapchainSupportInfo.capabilities.maxImageExtent;
 
@@ -292,7 +432,7 @@ int RenderingSystem::createSwapchain() {
 
 		result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkSwapchainInfo.imageViews[i]);
 		if (result != vk::Result::eSuccess) {
-			spdlog::critical("Failed to create swapchain image view. Error code: {}", result);
+			spdlog::error("Failed to create swapchain image view. Error code: {}", result);
 			return 1;
 		}
 	}
@@ -334,7 +474,7 @@ int RenderingSystem::createSwapchain() {
 
 	result = vkDevice.createRenderPass(&renderPassCreateInfo, nullptr, &vkRenderPass);
 	if (result != vk::Result::eSuccess) {
-		spdlog::critical("Failed to create render pass. Error code: {}", result);
+		spdlog::error("Failed to create render pass. Error code: {}", result);
 		return 1;
 	}
 
@@ -353,7 +493,7 @@ int RenderingSystem::createSwapchain() {
 
 		result = vkDevice.createFramebuffer(&framebufferCreateInfo, nullptr, &vkSwapchainInfo.framebuffers[i]);
 		if (result != vk::Result::eSuccess) {
-			spdlog::critical("Failed to create framebuffer. Error code: {}", result);
+			spdlog::error("Failed to create framebuffer. Error code: {}", result);
 			return 1;
 		}
 	}
@@ -367,7 +507,7 @@ int RenderingSystem::createSwapchain() {
 
 	result = vkDevice.createCommandPool(&commandPoolCreateInfo, nullptr, &vkCommandPool);
 	if (result != vk::Result::eSuccess) {
-		spdlog::critical("Failed to create command pool. Error code: {}", result);
+		spdlog::error("Failed to create command pool. Error code: {}", result);
 		return 1;
 	}
 
@@ -383,7 +523,7 @@ int RenderingSystem::createSwapchain() {
 
 	result = vkDevice.allocateCommandBuffers(&commandBufferAllocateInfo, vkCommandBuffers.data());
 	if (result != vk::Result::eSuccess) {
-		spdlog::critical("Failed to allocate command buffers. Error code: {}", result);
+		spdlog::error("Failed to allocate command buffers. Error code: {}", result);
 		return 1;
 	}
 
@@ -394,13 +534,13 @@ int RenderingSystem::createSwapchain() {
 
 	result = vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &vkImageAvailableSemaphore);
 	if (result != vk::Result::eSuccess) {
-		spdlog::critical("Failed to create rendering semaphore. Error code: {}", result);
+		spdlog::error("Failed to create rendering semaphore. Error code: {}", result);
 		return 1;
 	}
 
 	result = vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &vkRenderingFinishedSemaphore);
 	if (result != vk::Result::eSuccess) {
-		spdlog::critical("Failed to create rendering semaphore. Error code: {}", result);
+		spdlog::error("Failed to create rendering semaphore. Error code: {}", result);
 		return 1;
 	}
 
@@ -414,7 +554,7 @@ int RenderingSystem::present() {
 	auto result			= vkDevice.acquireNextImageKHR(
 		vkSwapchainInfo.swapchain, UINT64_MAX, vkImageAvailableSemaphore, nullptr, &imageIndex);
 	if (result != vk::Result::eSuccess) {
-		spdlog::critical("Failed to aquire next image to present. Error code: {}", result);
+		spdlog::error("Failed to aquire next image to present. Error code: {}", result);
 		return 1;
 	}
 
@@ -433,7 +573,7 @@ int RenderingSystem::present() {
 
 	result = vkGraphicsQueue.submit(1, &submitInfo, nullptr);
 	if (result != vk::Result::eSuccess) {
-		spdlog::critical("Failed to submit graphics command buffer. Error code: {}", result);
+		spdlog::error("Failed to submit graphics command buffer. Error code: {}", result);
 		return 1;
 	}
 
@@ -447,7 +587,7 @@ int RenderingSystem::present() {
 
 	result = vkPresentQueue.presentKHR(&presentInfo);
 	if (result != vk::Result::eSuccess) {
-		spdlog::critical("Failed to present image. Error code: {}", result);
+		spdlog::error("Failed to present image. Error code: {}", result);
 		return 1;
 	}
 

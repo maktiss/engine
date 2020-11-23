@@ -2,11 +2,14 @@
 
 #include "SystemBase.hpp"
 
+#include "engine/utils/IO.hpp"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include <spdlog/spdlog.h>
 
+#define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
 
 #include <vector>
@@ -29,6 +32,13 @@ private:
 		std::vector<vk::SurfaceFormatKHR> formats;
 		std::vector<vk::PresentModeKHR> presentModes;
 	};
+
+
+
+	// FIXME test
+	std::vector<uint8_t> vshCode;
+	std::vector<uint8_t> fshCode;
+
 
 private:
 	GLFWwindow* glfwWindow = nullptr;
@@ -60,6 +70,9 @@ private:
 
 	vk::Semaphore vkImageAvailableSemaphore;
 	vk::Semaphore vkRenderingFinishedSemaphore;
+
+	vk::PipelineLayout vkPipelineLayout;
+	vk::Pipeline vkPipeline;
 
 	std::vector<const char*> requiredInstanceExtensionNames = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
 	std::vector<const char*> requiredDeviceExtensionNames	= { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
