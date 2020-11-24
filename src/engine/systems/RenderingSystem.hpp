@@ -15,6 +15,15 @@
 #include <vector>
 
 
+#define RETURN_IF_VK_ERROR(result, msg) { \
+	auto resultValue = result; \
+	if (resultValue != vk::Result::eSuccess) { \
+		spdlog::error("[vulkan] {}. Error code: {} ({})", msg, result, vk::to_string(result)); \
+		return 1; \
+	} \
+}
+
+
 namespace Engine::Systems {
 class RenderingSystem : public SystemBase {
 private:
@@ -32,7 +41,6 @@ private:
 		std::vector<vk::SurfaceFormatKHR> formats;
 		std::vector<vk::PresentModeKHR> presentModes;
 	};
-
 
 
 	// FIXME test
@@ -74,7 +82,7 @@ private:
 	vk::PipelineLayout vkPipelineLayout;
 	vk::Pipeline vkPipeline;
 
-	std::vector<const char*> requiredInstanceExtensionNames = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
+	std::vector<const char*> requiredInstanceExtensionNames = {};
 	std::vector<const char*> requiredDeviceExtensionNames	= { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
 	std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };

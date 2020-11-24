@@ -67,20 +67,14 @@ int RenderingSystem::init() {
 		shaderModuleCreateInfo.codeSize = vshCode.size();
 		shaderModuleCreateInfo.pCode	= reinterpret_cast<const uint32_t*>(vshCode.data());
 
-		auto result = vkDevice.createShaderModule(&shaderModuleCreateInfo, nullptr, &vsShaderModule);
-		if (result != vk::Result::eSuccess) {
-			spdlog::error("Failed to create shader module. Error code: ", result);
-			return 1;
-		}
+		RETURN_IF_VK_ERROR(vkDevice.createShaderModule(&shaderModuleCreateInfo, nullptr, &vsShaderModule),
+						   "Failed to create shader module");
 
 		shaderModuleCreateInfo.codeSize = fshCode.size();
 		shaderModuleCreateInfo.pCode	= reinterpret_cast<const uint32_t*>(fshCode.data());
 
-		result = vkDevice.createShaderModule(&shaderModuleCreateInfo, nullptr, &fsShaderModule);
-		if (result != vk::Result::eSuccess) {
-			spdlog::error("Failed to create shader module. Error code: ", result);
-			return 1;
-		}
+		RETURN_IF_VK_ERROR(vkDevice.createShaderModule(&shaderModuleCreateInfo, nullptr, &fsShaderModule),
+						   "Failed to create shader module");
 
 		vk::PipelineShaderStageCreateInfo vsPipelineShaderStageCreateInfo {};
 		vsPipelineShaderStageCreateInfo.stage  = vk::ShaderStageFlagBits::eVertex;
@@ -147,11 +141,8 @@ int RenderingSystem::init() {
 
 		vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {};
 
-		result = vkDevice.createPipelineLayout(&pipelineLayoutCreateInfo, nullptr, &vkPipelineLayout);
-		if (result != vk::Result::eSuccess) {
-			spdlog::error("Failed to create pipeline layout. Error code: ", result);
-			return 1;
-		}
+		RETURN_IF_VK_ERROR(vkDevice.createPipelineLayout(&pipelineLayoutCreateInfo, nullptr, &vkPipelineLayout),
+						   "Failed to create pipeline layout");
 
 		vk::GraphicsPipelineCreateInfo graphicsPipelineCreateInfo {};
 		graphicsPipelineCreateInfo.stageCount = 2;
@@ -171,11 +162,9 @@ int RenderingSystem::init() {
 		graphicsPipelineCreateInfo.renderPass = vkRenderPass;
 		graphicsPipelineCreateInfo.subpass	  = 0;
 
-		result = vkDevice.createGraphicsPipelines(nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &vkPipeline);
-		if (result != vk::Result::eSuccess) {
-			spdlog::error("Failed to create graphics pipeline. Error code: ", result);
-			return 1;
-		}
+		RETURN_IF_VK_ERROR(
+			vkDevice.createGraphicsPipelines(nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &vkPipeline),
+			"Failed to create graphics pipeline");
 	}
 
 	return 0;
@@ -189,11 +178,7 @@ int RenderingSystem::run(double dt) {
 
 		vk::CommandBufferBeginInfo commandBufferBeginInfo {};
 
-		auto result = commandBuffer.begin(&commandBufferBeginInfo);
-		if (result != vk::Result::eSuccess) {
-			spdlog::error("Failed to record command buffer. Error code: {}", result);
-			return 1;
-		}
+		RETURN_IF_VK_ERROR(commandBuffer.begin(&commandBufferBeginInfo), "Failed to record command buffer");
 
 		vk::RenderPassBeginInfo renderPassBeginInfo {};
 		renderPassBeginInfo.renderPass		  = vkRenderPass;
@@ -216,11 +201,7 @@ int RenderingSystem::run(double dt) {
 		commandBuffer.endRenderPass();
 
 
-		result = commandBuffer.end();
-		if (result != vk::Result::eSuccess) {
-			spdlog::error("Failed to record command buffer. Error code: {}", result);
-			return 1;
-		}
+		RETURN_IF_VK_ERROR(commandBuffer.end(), "Failed to record command buffer");
 	}
 
 	if (present()) {
@@ -257,18 +238,15 @@ int RenderingSystem::initVkInstance() {
 		instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
 	}
 
-	auto result = vk::createInstance(&instanceCreateInfo, nullptr, &vkInstance);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to init Vulkan instance. Error code: {}", result);
-		return 1;
-	}
+	RETURN_IF_VK_ERROR(vk::createInstance(&instanceCreateInfo, nullptr, &vkInstance), "Failed to init Vulkan instance");
 
 	return 0;
 }
 
 int RenderingSystem::enumeratePhysicalDevices() {
 	uint32_t deviceCount = 0;
-	vkInstance.enumeratePhysicalDevices(&deviceCount, nullptr);
+	RETURN_IF_VK_ERROR(vkInstance.enumeratePhysicalDevices(&deviceCount, nullptr),
+					   "Failed to enumerate physical devices");
 
 	if (deviceCount == 0) {
 		spdlog::error("No compatible GPUs have been found");
@@ -276,7 +254,8 @@ int RenderingSystem::enumeratePhysicalDevices() {
 	}
 
 	std::vector<vk::PhysicalDevice> physicalDevices(deviceCount);
-	vkInstance.enumeratePhysicalDevices(&deviceCount, physicalDevices.data());
+	RETURN_IF_VK_ERROR(vkInstance.enumeratePhysicalDevices(&deviceCount, physicalDevices.data()),
+					   "Failed to enumerate physical devices");
 
 	for (auto physicalDevice : physicalDevices) {
 		if (isPhysicalDeviceSupported(physicalDevice)) {
@@ -340,11 +319,8 @@ int RenderingSystem::createLogicalDevice() {
 	deviceCreateInfo.enabledExtensionCount	 = requiredDeviceExtensionNames.size();
 	deviceCreateInfo.ppEnabledExtensionNames = requiredDeviceExtensionNames.data();
 
-	auto result = getActivePhysicalDevice().createDevice(&deviceCreateInfo, nullptr, &vkDevice);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to create Vulkan device. Error code: {}", result);
-		return 1;
-	}
+	RETURN_IF_VK_ERROR(getActivePhysicalDevice().createDevice(&deviceCreateInfo, nullptr, &vkDevice),
+					   "Failed to create Vulkan device");
 
 	vkDevice.getQueue(queueFamilies.graphicsFamily, 0, &vkGraphicsQueue);
 	vkDevice.getQueue(queueFamilies.presentFamily, 0, &vkPresentQueue);
@@ -391,19 +367,19 @@ int RenderingSystem::createSwapchain() {
 	swapchainCreateInfo.presentMode = presentMode;
 	swapchainCreateInfo.clipped		= true;
 
-	auto result = vkDevice.createSwapchainKHR(&swapchainCreateInfo, nullptr, &vkSwapchainInfo.swapchain);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to create Vulkan swapchain. Error code: ", result);
-		return 1;
-	}
+	RETURN_IF_VK_ERROR(vkDevice.createSwapchainKHR(&swapchainCreateInfo, nullptr, &vkSwapchainInfo.swapchain),
+					   "Failed to create Vulkan swapchain");
 
 
 	// retrieve swapchain images
 
 	uint32_t swapchainImageCount = 0;
-	vkDevice.getSwapchainImagesKHR(vkSwapchainInfo.swapchain, &swapchainImageCount, nullptr);
+	RETURN_IF_VK_ERROR(vkDevice.getSwapchainImagesKHR(vkSwapchainInfo.swapchain, &swapchainImageCount, nullptr),
+					   "Failed to retrieve swapchain images");
 	vkSwapchainInfo.images.resize(swapchainImageCount);
-	vkDevice.getSwapchainImagesKHR(vkSwapchainInfo.swapchain, &swapchainImageCount, vkSwapchainInfo.images.data());
+	RETURN_IF_VK_ERROR(
+		vkDevice.getSwapchainImagesKHR(vkSwapchainInfo.swapchain, &swapchainImageCount, vkSwapchainInfo.images.data()),
+		"Failed to retrieve swapchain images");
 
 	vkSwapchainInfo.imageFormat = surfaceFormat.format;
 	vkSwapchainInfo.extent		= extent;
@@ -430,11 +406,8 @@ int RenderingSystem::createSwapchain() {
 		imageViewCreateInfo.subresourceRange.layerCount		= 1;
 		imageViewCreateInfo.subresourceRange.levelCount		= 1;
 
-		result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkSwapchainInfo.imageViews[i]);
-		if (result != vk::Result::eSuccess) {
-			spdlog::error("Failed to create swapchain image view. Error code: {}", result);
-			return 1;
-		}
+		RETURN_IF_VK_ERROR(vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkSwapchainInfo.imageViews[i]),
+						   "Failed to create swapchain image view");
 	}
 
 
@@ -472,11 +445,8 @@ int RenderingSystem::createSwapchain() {
 	renderPassCreateInfo.subpassCount	 = 1;
 	renderPassCreateInfo.pSubpasses		 = &subpassDescription;
 
-	result = vkDevice.createRenderPass(&renderPassCreateInfo, nullptr, &vkRenderPass);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to create render pass. Error code: {}", result);
-		return 1;
-	}
+	RETURN_IF_VK_ERROR(vkDevice.createRenderPass(&renderPassCreateInfo, nullptr, &vkRenderPass),
+					   "Failed to create render pass");
 
 
 	// create framebuffer
@@ -491,11 +461,9 @@ int RenderingSystem::createSwapchain() {
 		framebufferCreateInfo.height		  = vkSwapchainInfo.extent.height;
 		framebufferCreateInfo.layers		  = 1;
 
-		result = vkDevice.createFramebuffer(&framebufferCreateInfo, nullptr, &vkSwapchainInfo.framebuffers[i]);
-		if (result != vk::Result::eSuccess) {
-			spdlog::error("Failed to create framebuffer. Error code: {}", result);
-			return 1;
-		}
+		RETURN_IF_VK_ERROR(
+			vkDevice.createFramebuffer(&framebufferCreateInfo, nullptr, &vkSwapchainInfo.framebuffers[i]),
+			"Failed to create framebuffer");
 	}
 
 
@@ -505,11 +473,8 @@ int RenderingSystem::createSwapchain() {
 	commandPoolCreateInfo.queueFamilyIndex = queueFamilies.graphicsFamily;
 	commandPoolCreateInfo.flags			   = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
 
-	result = vkDevice.createCommandPool(&commandPoolCreateInfo, nullptr, &vkCommandPool);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to create command pool. Error code: {}", result);
-		return 1;
-	}
+	RETURN_IF_VK_ERROR(vkDevice.createCommandPool(&commandPoolCreateInfo, nullptr, &vkCommandPool),
+					   "Failed to create command pool");
 
 
 	// allocate command buffers
@@ -521,28 +486,19 @@ int RenderingSystem::createSwapchain() {
 	commandBufferAllocateInfo.level				 = vk::CommandBufferLevel::ePrimary;
 	commandBufferAllocateInfo.commandBufferCount = vkCommandBuffers.size();
 
-	result = vkDevice.allocateCommandBuffers(&commandBufferAllocateInfo, vkCommandBuffers.data());
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to allocate command buffers. Error code: {}", result);
-		return 1;
-	}
+	RETURN_IF_VK_ERROR(vkDevice.allocateCommandBuffers(&commandBufferAllocateInfo, vkCommandBuffers.data()),
+					   "Failed to allocate command buffers");
 
 
 	// create rendering semaphores
 
 	vk::SemaphoreCreateInfo semaphoreCreateInfo {};
 
-	result = vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &vkImageAvailableSemaphore);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to create rendering semaphore. Error code: {}", result);
-		return 1;
-	}
+	RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &vkImageAvailableSemaphore),
+					   "Failed to create rendering semaphore");
 
-	result = vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &vkRenderingFinishedSemaphore);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to create rendering semaphore. Error code: {}", result);
-		return 1;
-	}
+	RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &vkRenderingFinishedSemaphore),
+					   "Failed to create rendering semaphore");
 
 
 	return 0;
@@ -551,12 +507,9 @@ int RenderingSystem::createSwapchain() {
 
 int RenderingSystem::present() {
 	uint32_t imageIndex = 0;
-	auto result			= vkDevice.acquireNextImageKHR(
-		vkSwapchainInfo.swapchain, UINT64_MAX, vkImageAvailableSemaphore, nullptr, &imageIndex);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to aquire next image to present. Error code: {}", result);
-		return 1;
-	}
+	RETURN_IF_VK_ERROR(vkDevice.acquireNextImageKHR(
+						   vkSwapchainInfo.swapchain, UINT64_MAX, vkImageAvailableSemaphore, nullptr, &imageIndex),
+					   "Failed to aquire next image to present");
 
 	vk::SubmitInfo submitInfo {};
 	submitInfo.waitSemaphoreCount = 1;
@@ -571,11 +524,7 @@ int RenderingSystem::present() {
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores	= &vkRenderingFinishedSemaphore;
 
-	result = vkGraphicsQueue.submit(1, &submitInfo, nullptr);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to submit graphics command buffer. Error code: {}", result);
-		return 1;
-	}
+	RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, nullptr), "Failed to submit graphics command buffer");
 
 
 	vk::PresentInfoKHR presentInfo {};
@@ -585,13 +534,10 @@ int RenderingSystem::present() {
 	presentInfo.pSwapchains		   = &vkSwapchainInfo.swapchain;
 	presentInfo.pImageIndices	   = &imageIndex;
 
-	result = vkPresentQueue.presentKHR(&presentInfo);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to present image. Error code: {}", result);
-		return 1;
-	}
+	RETURN_IF_VK_ERROR(vkPresentQueue.presentKHR(&presentInfo), "Failed to present image");
 
-	vkPresentQueue.waitIdle();
+	// FIXME: more optimal way
+	RETURN_IF_VK_ERROR(vkPresentQueue.waitIdle(), "Failed to wait for presenting to finish");
 
 	return 0;
 }
@@ -635,10 +581,13 @@ RenderingSystem::QueueFamilyIndices RenderingSystem::getQueueFamilies(vk::Physic
 
 bool RenderingSystem::checkDeviceExtensionsSupport(vk::PhysicalDevice physicalDevice) const {
 	uint32_t extensionCount = 0;
-	physicalDevice.enumerateDeviceExtensionProperties(nullptr, &extensionCount, nullptr);
+	RETURN_IF_VK_ERROR(physicalDevice.enumerateDeviceExtensionProperties(nullptr, &extensionCount, nullptr),
+					   "Failed to enumerate device extension properties");
 
 	std::vector<vk::ExtensionProperties> availableExtensions(extensionCount);
-	physicalDevice.enumerateDeviceExtensionProperties(nullptr, &extensionCount, availableExtensions.data());
+	RETURN_IF_VK_ERROR(
+		physicalDevice.enumerateDeviceExtensionProperties(nullptr, &extensionCount, availableExtensions.data()),
+		"Failed to enumerate device extension properties");
 
 	for (auto requiredDeviceExtensionName : requiredDeviceExtensionNames) {
 		auto found = false;
