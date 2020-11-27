@@ -217,10 +217,13 @@ int RenderingSystem::run(double dt) {
 
 		auto meshInfo = Engine::Managers::MeshManager::getMeshInfo(meshHandle);
 
-		auto buffer = meshInfo.vertexBuffer.getVkBuffer();
-		commandBuffer.bindVertexBuffers(0, 1, &buffer, offsets);
+		auto vertexBuffer = meshInfo.vertexBuffer.getVkBuffer();
+		commandBuffer.bindVertexBuffers(0, 1, &vertexBuffer, offsets);
 
-		commandBuffer.draw(meshInfo.vertexCount, 1, 0, 0);
+		auto indexBuffer = meshInfo.indexBuffer.getVkBuffer();
+		commandBuffer.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint16);
+
+		commandBuffer.drawIndexed(meshInfo.indexCount, 1, 0, 0, 0);
 
 
 		commandBuffer.endRenderPass();

@@ -39,6 +39,55 @@ vk::Result Buffer::write(void* data) {
 	return vk::Result::eSuccess;
 }
 
+vk::Result Buffer::writeStaged(vk::Device device, vk::Queue transferQueue, vk::CommandPool commandPool, void* data) {
+	Engine::Graphics::Buffer stagingBuffer = { vk::BufferUsageFlagBits::eTransferSrc,
+													 VMA_MEMORY_USAGE_CPU_TO_GPU };
+
+	stagingBuffer.allocate(vmaAllocator, vkBufferSize);
+	// RETURN_IF_VK_ERROR(stagingBuffer.allocate(), "Failed to allocate buffer");
+	stagingBuffer.write(data);
+	// RETURN_IF_VK_ERROR(stagingBuffer.write(mesh.getVertexBuffer().data()), "Failed to write buffer");
+
+	vk::CommandBufferAllocateInfo commandBufferAllocateInfo {};
+	commandBufferAllocateInfo.level				 = vk::CommandBufferLevel::ePrimary;
+	commandBufferAllocateInfo.commandPool		 = commandPool;
+	commandBufferAllocateInfo.commandBufferCount = 1;
+
+	vk::CommandBuffer stagingCommandBuffer;
+	device.allocateCommandBuffers(&commandBufferAllocateInfo, &stagingCommandBuffer);
+	// RETURN_IF_VK_ERROR(vkDevice.allocateCommandBuffers(&commandBufferAllocateInfo, &stagingCommandBuffer),
+	// 				"Failed to allocate staging command buffer");
+
+	vk::CommandBufferBeginInfo commandBufferBeginInfo {};
+	commandBufferBeginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+
+	stagingCommandBuffer.begin(&commandBufferBeginInfo);
+	// RETURN_IF_VK_ERROR(stagingCommandBuffer.begin(&commandBufferBeginInfo), "Failed to record command
+	// buffer");
+
+	vk::BufferCopy bufferCopy {};
+	bufferCopy.size = vkBufferSize;
+	stagingCommandBuffer.copyBuffer(
+		stagingBuffer.getVkBuffer(), vkBuffer, 1, &bufferCopy);
+
+	stagingCommandBuffer.end();
+
+	vk::SubmitInfo submitInfo {};
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers	  = &stagingCommandBuffer;
+	transferQueue.submit(1, &submitInfo, nullptr);
+	// RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, nullptr), "Failed to submit staging command
+	// buffer");
+	transferQueue.waitIdle();
+	// RETURN_IF_VK_ERROR(vkGraphicsQueue.waitIdle(), "Failed to wait for staging command buffer to complete");
+
+	stagingBuffer.destroy();
+
+	return vk::Result::eSuccess;
+}
+
+
+
 void Buffer::destroy() {
 	if (vmaAllocator != nullptr) {
 		vmaDestroyBuffer(vmaAllocator, vkBuffer, vmaAllocation);

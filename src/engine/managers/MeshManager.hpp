@@ -20,10 +20,9 @@ public:
 			vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, VMA_MEMORY_USAGE_GPU_ONLY
 		};
 		Engine::Graphics::Buffer indexBuffer = {
-			vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, VMA_MEMORY_USAGE_GPU_ONLY
+			vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, VMA_MEMORY_USAGE_GPU_ONLY
 		};
 
-		uint32_t vertexCount = 0;
 		uint32_t indexCount	 = 0;
 	};
 

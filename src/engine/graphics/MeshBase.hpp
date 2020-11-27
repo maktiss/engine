@@ -39,7 +39,7 @@ public:
 		return getVertexBuffer().size() * getVertexSize();
 	}
 
-	inline auto getInfexBufferSize() {
+	inline auto getIndexBufferSize() {
 		return getIndexBuffer().size() * sizeof(uint16_t);
 	}
 
