@@ -3,7 +3,7 @@
 
 namespace Engine::Systems {
 int RenderingSystem::init() {
-	spdlog::info("RenderingSystem: Initialization...");
+	spdlog::info("Initializing RenderingSystem...");
 
 
 	// add required glfw extensions
@@ -41,6 +41,10 @@ int RenderingSystem::init() {
 		return 1;
 	}
 
+	if (initVulkanMemoryAllocator()) {
+		return 1;
+	}
+
 	if (createSwapchain()) {
 		return 1;
 	}
@@ -57,8 +61,6 @@ int RenderingSystem::init() {
 			spdlog::error("Failed to read triangle.fsh.spv");
 			return 1;
 		}
-
-		spdlog::info("{}, {}", vshCode.size(), fshCode.size());
 
 		vk::ShaderModule vsShaderModule;
 		vk::ShaderModule fsShaderModule;
@@ -90,8 +92,14 @@ int RenderingSystem::init() {
 															 fsPipelineShaderStageCreateInfo };
 
 		vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {};
-		pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
-		pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount   = 0;
+
+		auto vertexInputAttributeDescriptions = Engine::Graphics::Mesh::getVertexInputAttributeDescriptions();
+		pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = vertexInputAttributeDescriptions.size();
+		pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions	   = vertexInputAttributeDescriptions.data();
+
+		auto vertexInputBindingDescriptions = Engine::Graphics::Mesh::getVertexInputBindingDescriptions();
+		pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = vertexInputBindingDescriptions.size();
+		pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions	 = vertexInputBindingDescriptions.data();
 
 		vk::PipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo {};
 		pipelineInputAssemblyStateCreateInfo.topology				= vk::PrimitiveTopology::eTriangleList;
@@ -120,7 +128,7 @@ int RenderingSystem::init() {
 		pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;
 		pipelineRasterizationStateCreateInfo.polygonMode			 = vk::PolygonMode::eFill;
 		pipelineRasterizationStateCreateInfo.cullMode				 = vk::CullModeFlagBits::eBack;
-		pipelineRasterizationStateCreateInfo.frontFace				 = vk::FrontFace::eClockwise;
+		pipelineRasterizationStateCreateInfo.frontFace				 = vk::FrontFace::eCounterClockwise;
 		pipelineRasterizationStateCreateInfo.depthBiasEnable		 = false;
 		pipelineRasterizationStateCreateInfo.lineWidth				 = 1.0f;
 
@@ -167,6 +175,15 @@ int RenderingSystem::init() {
 			"Failed to create graphics pipeline");
 	}
 
+	Engine::Managers::MeshManager::setVkDevice(vkDevice);
+	Engine::Managers::MeshManager::setVkCommandPool(vkCommandPool);
+	Engine::Managers::MeshManager::setVkTransferQueue(vkGraphicsQueue);
+	Engine::Managers::MeshManager::setVulkanMemoryAllocator(vmaAllocator);
+
+	Engine::Managers::MeshManager::init();
+
+	meshHandle = Engine::Managers::MeshManager::createObject(0);
+
 	return 0;
 }
 
@@ -196,7 +213,15 @@ int RenderingSystem::run(double dt) {
 
 		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkPipeline);
 
-		commandBuffer.draw(3, 1, 0, 0);
+		vk::DeviceSize offsets[] = { 0 };
+
+		auto meshInfo = Engine::Managers::MeshManager::getMeshInfo(meshHandle);
+
+		auto buffer = meshInfo.vertexBuffer.getVkBuffer();
+		commandBuffer.bindVertexBuffers(0, 1, &buffer, offsets);
+
+		commandBuffer.draw(meshInfo.vertexCount, 1, 0, 0);
+
 
 		commandBuffer.endRenderPass();
 
@@ -325,6 +350,22 @@ int RenderingSystem::createLogicalDevice() {
 	vkDevice.getQueue(queueFamilies.graphicsFamily, 0, &vkGraphicsQueue);
 	vkDevice.getQueue(queueFamilies.presentFamily, 0, &vkPresentQueue);
 
+	return 0;
+}
+
+
+int RenderingSystem::initVulkanMemoryAllocator() {
+	VmaAllocatorCreateInfo vmaAllocatorCreateInfo {};
+	vmaAllocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_2;
+	vmaAllocatorCreateInfo.instance			= vkInstance;
+	vmaAllocatorCreateInfo.device			= VkDevice(vkDevice);
+	vmaAllocatorCreateInfo.physicalDevice	= VkPhysicalDevice(getActivePhysicalDevice());
+
+	auto result = vmaCreateAllocator(&vmaAllocatorCreateInfo, &vmaAllocator);
+	if (result != VK_SUCCESS) {
+		spdlog::error("Failed to initialize Vulkan Memory Allocator. Error code: {}", result);
+		return 1;
+	}
 	return 0;
 }
 

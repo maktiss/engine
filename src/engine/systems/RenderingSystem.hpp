@@ -2,6 +2,10 @@
 
 #include "SystemBase.hpp"
 
+// FIXME: test
+#include "engine/graphics/Mesh.hpp"
+#include "engine/graphics/Buffer.hpp"
+
 #include "engine/utils/IO.hpp"
 
 #define GLFW_INCLUDE_VULKAN
@@ -11,6 +15,8 @@
 
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
+
+#include "vk_mem_alloc.h"
 
 #include <vector>
 
@@ -46,6 +52,8 @@ private:
 	// FIXME test
 	std::vector<uint8_t> vshCode;
 	std::vector<uint8_t> fshCode;
+
+	Engine::Managers::MeshManager::Handle meshHandle;
 
 
 private:
@@ -90,7 +98,14 @@ private:
 	std::vector<vk::PhysicalDevice> vkSupportedPhysicalDevices;
 	uint32_t activePhysicalDeviceIndex = 0;
 
+	VmaAllocator vmaAllocator = nullptr;
+
 public:
+	~RenderingSystem() {
+		Engine::Managers::MeshManager::destroy();
+		vmaDestroyAllocator(vmaAllocator);
+	}
+
 	int init() override;
 	int run(double dt) override;
 
@@ -101,6 +116,8 @@ private:
 	int enumeratePhysicalDevices();
 
 	int createLogicalDevice();
+
+	int initVulkanMemoryAllocator();
 
 	int createSwapchain();
 

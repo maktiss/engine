@@ -1,5 +1,9 @@
 #pragma once
 
+#include "engine/managers/MeshManager.hpp"
+
+#include <memory>
+
 
 namespace Engine::Systems {
 class SystemBase {

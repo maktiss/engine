@@ -13,11 +13,10 @@ add_executable(
 	${PROJECT_NAME}
 	src/main.cpp
 	src/engine/Core.cpp
-	src/engine/Core.hpp
-	src/engine/systems/SystemBase.hpp
+	src/engine/graphics/Buffer.cpp
+	src/engine/managers/MeshManager.cpp
 	src/engine/systems/RenderingSystem.cpp
-	src/engine/systems/RenderingSystem.hpp
-	src/engine/utils/IO.hpp
+	src/engine/utils/VkMemAllocImpl.cpp
 )
 
 target_include_directories(
