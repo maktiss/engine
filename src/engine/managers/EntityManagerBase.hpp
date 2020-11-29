@@ -3,6 +3,7 @@
 #include <array>
 #include <stdint.h>
 #include <tuple>
+#include <variant>
 #include <vector>
 
 
@@ -118,8 +119,8 @@ public:
 
 
 	template <typename ComponentType>
-	static inline auto& getComponentArray() {
-		return std::get<ComponentType>(componentArrays);
+	static inline std::vector<ComponentType>& getComponentArray() {
+		return std::get<std::vector<ComponentType>>(componentArrays);
 	}
 
 	template <uint32_t Index>
@@ -129,7 +130,14 @@ public:
 
 
 	template <typename... RequiredComponentTypes, typename Func>
-	static void forEach(Func func) {
+	static void forEach(Func&& func) {
+		auto ranges = getValidRanges<RequiredComponentTypes...>();
+
+		for (auto range : ranges) {
+			for (uint i = range.first; i < range.second; i++) {
+				func(getComponent<RequiredComponentTypes>(i)...);
+			}
+		}
 	}
 
 
@@ -141,6 +149,51 @@ private:
 	static void reserve(uint32_t size) {
 		((std::get<std::vector<ComponentTypes>>(componentArrays).resize(size)), ...);
 		referenceCounts.resize(size);
+	}
+
+
+	template <typename... RequiredComponentTypes>
+	static Ranges getValidRanges() {
+		Ranges ranges;
+
+		auto leastSignificantTypeIndex = getLeastSignificantTypeIndex<RequiredComponentTypes...>();
+
+		std::array<uint32_t, sizeof...(RequiredComponentTypes)> requiredTypeIndices { (
+			getComponentTypeIndex<RequiredComponentTypes>(), ...) };
+
+		std::array<uint32_t, sizeof...(ComponentTypes)> componentTypeIterators { 0 };
+		for (uint currentRangeIndex = 0; currentRangeIndex < componentRanges[leastSignificantTypeIndex].size();
+			 currentRangeIndex++) {
+			std::pair range = componentRanges[leastSignificantTypeIndex][currentRangeIndex];
+
+			for (auto requiredTypeIndex : requiredTypeIndices) {
+				auto comparableRange = componentRanges[requiredTypeIndex][componentTypeIterators[requiredTypeIndex]];
+				range.first			 = std::max(range.first, comparableRange.first);
+				range.second		 = std::min(range.second, comparableRange.second);
+			}
+
+			if (range.first < range.second) {
+				ranges.push_back(range);
+			}
+
+
+			for (auto requiredTypeIndex : requiredTypeIndices) {
+				if (range.second >=
+					componentRanges[requiredTypeIndex][componentTypeIterators[requiredTypeIndex]].second) {
+
+					componentTypeIterators[requiredTypeIndex]++;
+
+					// stop searching if there are no more ranges of required type left
+					if (componentTypeIterators[requiredTypeIndex] >=
+						componentRanges[leastSignificantTypeIndex].size()) {
+						currentRangeIndex = componentRanges[leastSignificantTypeIndex].size();
+						break;
+					}
+				}
+			}
+		}
+
+		return ranges;
 	}
 
 
@@ -254,6 +307,8 @@ private:
 	// moves component data only and does not change signature!
 	static void moveEntity(uint32_t from, uint32_t to) {
 		moveEntityImpl(from, to, std::make_index_sequence<getComponentTypeCount()>());
+
+		// FIXME: update handles
 	}
 
 	template <std::size_t... Indices>
@@ -265,31 +320,18 @@ private:
 	template <typename... RequiredComponentTypes>
 	static uint32_t getLeastSignificantTypeIndex() {
 		uint32_t index = 0;
-		((index = std::max(index, getComponentTypeIndex<RequiredComponentTypes>)), ...);
+		((index = std::max(index, getComponentTypeIndex<RequiredComponentTypes>())), ...);
 
 		return index;
 	}
 
 	static constexpr uint32_t getComponentTypeCount() {
-		// return std::tuple_size<std::tuple<ComponentTypes...>>::value;
 		return sizeof...(ComponentTypes);
 	}
 
 	template <typename ComponentType>
 	static constexpr uint32_t getComponentTypeIndex() {
-		std::tuple<ComponentTypes...> componentTypes;
-
-		// check if ComponentType is a valid type
-		std::get<ComponentType>(componentTypes);
-
-		return getComponentTypeIndexImpl<ComponentType>(std::make_index_sequence<getComponentTypeCount()>());
-	}
-
-	template <typename ComponentType, std::size_t... Indices>
-	static constexpr uint32_t getComponentTypeIndexImpl(std::index_sequence<Indices...>) {
-		std::tuple<ComponentTypes...> componentTypes;
-
-		return ((typeid(std::get<Indices>(componentTypes)) == typeid(ComponentType) ? Indices : 0) + ...);
+		return std::variant<ComponentTypes...>(ComponentType()).index();
 	}
 
 
