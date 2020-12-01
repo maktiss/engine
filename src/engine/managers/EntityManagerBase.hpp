@@ -37,7 +37,12 @@ public:
 
 		template <typename ComponentType>
 		inline ComponentType& getComponent() {
-			return getComponent<ComponentType>(index);
+			return EntityManagerBase::getComponent<ComponentType>(index);
+		}
+
+		template <typename... RequiredComponentTypes, typename Func>
+		inline void apply(Func&& func) {
+			EntityManagerBase::apply<RequiredComponentTypes...>(index, func);
 		}
 	};
 
@@ -138,6 +143,12 @@ public:
 				func(getComponent<RequiredComponentTypes>(i)...);
 			}
 		}
+	}
+
+
+	template <typename... RequiredComponentTypes, typename Func>
+	static void apply(uint32_t index, Func&& func) {
+		func(getComponent<RequiredComponentTypes>(index)...);
 	}
 
 
@@ -336,7 +347,17 @@ private:
 
 	template <typename ComponentType>
 	static constexpr uint32_t getComponentTypeIndex() {
-		return std::variant<ComponentTypes...>(ComponentType()).index();
+		// return std::variant<ComponentTypes...>(ComponentType()).index();
+		return getComponentTypeIndexImpl<ComponentType>(std::make_index_sequence<sizeof...(ComponentTypes)>());
+	}
+
+	template <typename ComponentType, std::size_t... Indices>
+	static constexpr uint32_t getComponentTypeIndexImpl(std::index_sequence<Indices...>) {
+		return ((std::is_same<typename std::tuple_element<Indices, std::tuple<ComponentTypes...>>::type,
+							  ComponentType>::value
+					 ? Indices
+					 : 0) +
+				...);
 	}
 
 
