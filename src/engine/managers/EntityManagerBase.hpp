@@ -193,6 +193,11 @@ private:
 			}
 		}
 
+		// make sure first fallback entity won't be used
+		if (ranges.size() > 0) {
+			ranges[0].first = std::max(1U, ranges[0].first);
+		}
+
 		return ranges;
 	}
 
