@@ -33,7 +33,7 @@ void MeshManager::postLoad(Handle handle) {
 
 		indexBufferSize = mesh.getIndexBufferSize();
 		indexBufferData = mesh.getIndexBuffer().data();
-		indexCount		 = mesh.getIndexBuffer().size();
+		indexCount		= mesh.getIndexBuffer().size();
 	});
 
 	meshInfo.vertexBuffer.allocate(vmaAllocator, vertexBufferSize);

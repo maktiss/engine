@@ -23,7 +23,7 @@ public:
 			vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, VMA_MEMORY_USAGE_GPU_ONLY
 		};
 
-		uint32_t indexCount	 = 0;
+		uint32_t indexCount = 0;
 	};
 
 private:
@@ -39,9 +39,7 @@ public:
 	static int init() {
 		spdlog::info("Initializing MeshManager...");
 
-		ResourceManagerBase::init();
-
-		return 0;
+		return ResourceManagerBase::init();
 	};
 
 	static void setVkDevice(vk::Device device) {
@@ -66,6 +64,30 @@ public:
 
 	static inline MeshInfo& getMeshInfo(Handle handle) {
 		return meshInfos[handle.getIndex()];
+	}
+
+	static inline std::string getMeshTypeString(Handle handle) {
+		std::string string;
+		apply(handle, [&string](auto& mesh) {
+			string = mesh.getMeshTypeString();
+		});
+
+		return string;
+	}
+
+	static inline std::string getMeshTypeString(uint32_t typeIndex) {
+		return getMeshTypeStringImpl(typeIndex, std::make_index_sequence<getTypeCount()>());
+	}
+
+	template <std::size_t... Indices>
+	static inline std::string getMeshTypeStringImpl(uint32_t typeIndex, std::index_sequence<Indices...>) {
+		std::string meshTypeString;
+
+		((meshTypeString = Indices == typeIndex ? std::get<Indices>(getTypeTuple()).getMeshTypeString() : ""), ...);
+
+		assert(!meshTypeString.empty());
+
+		return meshTypeString;
 	}
 
 	static void destroy() {

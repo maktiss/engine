@@ -3,6 +3,7 @@
 #include "MeshBase.hpp"
 
 #include <array>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -31,6 +32,10 @@ public:
 		};
 
 		getIndexBuffer() = { 0, 1, 2 };
+	}
+
+	static const std::string getMeshTypeString() {
+		return "MESH_TYPE_STATIC";
 	}
 
 

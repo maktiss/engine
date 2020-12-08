@@ -31,6 +31,11 @@ target_link_libraries(
 	Vulkan::Vulkan
 	glfw
 	spdlog
+	glslang
+	SPIRV
+	SPIRV-Tools
+	SPIRV-Tools-opt
+	shaderc_combined
 	${CMAKE_DL_LIBS}
 )
 

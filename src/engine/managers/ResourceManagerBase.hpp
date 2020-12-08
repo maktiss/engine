@@ -86,7 +86,7 @@ public:
 	static Handle createObject(uint32_t typeIndex) {
 		auto id = getNextFreeId();
 
-		auto newSize = createObjectImpl(typeIndex, std::make_index_sequence<getNumTypes()>());
+		auto newSize = createObjectImpl(typeIndex, std::make_index_sequence<getTypeCount()>());
 
 		if (newSize == 0) {
 			// TODO: error: typeIndex out of range
@@ -107,10 +107,36 @@ public:
 		return objectInfos.size();
 	}
 
+	static inline uint32_t getTypeIndex(Handle handle) {
+		return objectInfos[handle.getId()].typeIndex;
+	}
+
+	static constexpr uint32_t getTypeCount() {
+		return sizeof...(ManageableTypes);
+	}
+
 	template <typename Func>
-	static void apply(Handle handle, Func func) {
+	static void apply(Handle handle, Func&& func) {
 		applyImpl(
-			objectInfos[handle.getId()], func, std::make_index_sequence<getNumTypes()>());
+			objectInfos[handle.getId()], func, std::make_index_sequence<getTypeCount()>());
+	}
+
+	static constexpr auto getTypeTuple() {
+		return std::tuple<ManageableTypes...>();
+	}
+
+	template <typename Type>
+	static constexpr uint32_t getTypeIndex() {
+		return getTypeIndexImpl<Type>(std::make_index_sequence<sizeof...(ManageableTypes)>());
+	}
+
+	template <typename Type, std::size_t... Indices>
+	static constexpr uint32_t getTypeIndexImpl(std::index_sequence<Indices...>) {
+		return ((std::is_same<typename std::tuple_element<Indices, std::tuple<ManageableTypes...>>::type,
+							  Type>::value
+					 ? Indices
+					 : 0) +
+				...);
 	}
 
 private:
@@ -131,12 +157,12 @@ private:
 
 
 	template <typename Func, std::size_t... Indices>
-	static void applyImpl(ObjectInfo objectInfo, Func func, std::index_sequence<Indices...>) {
+	static void applyImpl(ObjectInfo objectInfo, Func&& func, std::index_sequence<Indices...>) {
 		(applyImpl<Indices>(objectInfo, func), ...);
 	}
 
 	template <std::size_t Index, typename Func>
-	static void applyImpl(ObjectInfo objectInfo, Func func) {
+	static void applyImpl(ObjectInfo objectInfo, Func&& func) {
 		if (Index == objectInfo.typeIndex) {
 			func(std::get<Index>(objects)[objectInfo.localIndex]);
 		}
@@ -163,10 +189,6 @@ private:
 
 	static inline void decrementReferenceCounter(uint32_t index) {
 		referenceCounts[index]--;
-	}
-
-	static constexpr uint32_t getNumTypes() {
-		return std::tuple_size<decltype(objects)>::value;
 	}
 };
 
