@@ -3,6 +3,8 @@
 #include "MaterialManager.hpp"
 #include "MeshManager.hpp"
 
+#include "engine/utils/IO.hpp"
+
 #include <spdlog/spdlog.h>
 
 #define VULKAN_HPP_NO_EXCEPTIONS 1
@@ -133,18 +135,44 @@ public:
 
 		for (uint i = 0; i < 6; i++) {
 			if (!glslSourceFilenames[i].empty()) {
-				std::ifstream file(glslSourceFilenames[i], std::ios::ate);
-
-				if (!file) {
+				if (Engine::Utils::readTextFile(glslSourceFilenames[i], glslSources[i])) {
 					spdlog::error("Failed to open shader '{}' for compilation", glslSourceFilenames[i]);
 					return 1;
 				}
 
-				uint64_t fileSize = file.tellg();
-				file.seekg(0);
+				std::string directoryName =
+					glslSourceFilenames[i].substr(0, glslSourceFilenames[i].find_last_of("\\/"));
 
-				glslSources[i].resize(fileSize);
-				file.read(glslSources[i].data(), fileSize);
+				if (!directoryName.empty()) {
+					directoryName += "/";
+				}
+
+				// preprocess #include directives
+				int position = 0;
+				while ((position = glslSources[i].find("#include", position)) != -1) {
+					auto includeLineLength = glslSources[i].find("\n", position) - position;
+
+					auto filenamePosition = glslSources[i].find("\"", position);
+					auto filenameLength	  = glslSources[i].find("\"", filenamePosition + 1) - filenamePosition - 1;
+
+					if (position + includeLineLength < filenamePosition) {
+						spdlog::error("Failed preprocess shader '{}': include errors detected",
+									  glslSourceFilenames[i]);
+						return 1;
+					}
+
+					std::string filename = directoryName + glslSources[i].substr(filenamePosition + 1, filenameLength);
+
+					std::string includeSource;
+					if (Engine::Utils::readTextFile(filename, includeSource)) {
+						spdlog::error("Failed preprocess shader '{}': cannot open '{}' to include",
+									  glslSourceFilenames[i],
+									  filename);
+						return 1;
+					}
+
+					glslSources[i].replace(position, includeLineLength, includeSource);
+				}
 			}
 		}
 
@@ -266,6 +294,21 @@ public:
 
 	static constexpr uint32_t getRenderPassStringCount() {
 		return DerivedManager::getRenderPassStrings().size();
+	}
+
+	// Returns render pass index given it's string
+	static constexpr uint32_t getRenderPassIndex(const char* renderPassString) {
+		constexpr auto& renderPassStrings = DerivedManager::getRenderPassStrings();
+		uint32_t index					  = -1;
+		for (uint i = 0; i < renderPassStrings.size(); i++) {
+			if (strcmp(renderPassString, renderPassStrings[i]) == 0) {
+				index = i;
+				break;
+			}
+		}
+
+		assert(index != -1);
+		return index;
 	}
 
 
