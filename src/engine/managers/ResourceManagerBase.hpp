@@ -13,8 +13,8 @@ template <typename DerivedManager, typename... ManageableTypes>
 class ResourceManagerBase {
 public:
 	class Handle {
-		uint32_t index = 0;
-		uint32_t id	   = 0;
+		uint32_t index {};
+		uint32_t id {};
 
 	public:
 		Handle() {};
@@ -38,16 +38,25 @@ public:
 		inline uint32_t getId() {
 			return id;
 		}
+
+		template <typename Func>
+		void apply(Func&& func) {
+			ResourceManagerBase::apply(*this, func);
+		}
+
+		void update() {
+			ResourceManagerBase::update(*this);
+		}
 	};
 
 private:
 	struct ObjectInfo {
-		uint32_t index = 0;
-		bool isLoaded  = false;
+		uint32_t index {};
+		bool isLoaded {};
 
 		// position within tuple of vertors
-		uint32_t typeIndex	= 0;
-		uint32_t localIndex = 0;
+		uint32_t typeIndex {};
+		uint32_t localIndex {};
 	};
 
 private:
@@ -74,7 +83,7 @@ public:
 
 		if (!objectInfo.isLoaded) {
 			load(id);
-			DerivedManager::postLoad(handle);
+			DerivedManager::update(handle);
 		}
 
 		return handle;
@@ -92,7 +101,7 @@ public:
 			// TODO: error: typeIndex out of range
 		}
 
-		objectInfos[id] = { referenceCounts.size(), true, typeIndex, newSize - 1};
+		objectInfos[id] = { referenceCounts.size(), true, typeIndex, newSize - 1 };
 
 		referenceCounts.push_back(0);
 
@@ -117,8 +126,7 @@ public:
 
 	template <typename Func>
 	static void apply(Handle handle, Func&& func) {
-		applyImpl(
-			objectInfos[handle.getId()], func, std::make_index_sequence<getTypeCount()>());
+		applyImpl(objectInfos[handle.getId()], func, std::make_index_sequence<getTypeCount()>());
 	}
 
 	static constexpr auto getTypeTuple() {
@@ -132,11 +140,14 @@ public:
 
 	template <typename Type, std::size_t... Indices>
 	static constexpr uint32_t getTypeIndexImpl(std::index_sequence<Indices...>) {
-		return ((std::is_same<typename std::tuple_element<Indices, std::tuple<ManageableTypes...>>::type,
-							  Type>::value
+		return ((std::is_same<typename std::tuple_element<Indices, std::tuple<ManageableTypes...>>::type, Type>::value
 					 ? Indices
 					 : 0) +
 				...);
+	}
+
+	static void update(Handle handle) {
+		DerivedManager::update(handle);
 	}
 
 private:
@@ -193,13 +204,13 @@ private:
 };
 
 template <typename DerivedManager, typename... ManageableTypes>
-std::tuple<std::vector<ManageableTypes>...> ResourceManagerBase<DerivedManager, ManageableTypes...>::objects;
+std::tuple<std::vector<ManageableTypes>...> ResourceManagerBase<DerivedManager, ManageableTypes...>::objects {};
 
 template <typename DerivedManager, typename... ManageableTypes>
 std::unordered_map<uint32_t, typename ResourceManagerBase<DerivedManager, ManageableTypes...>::ObjectInfo>
-	ResourceManagerBase<DerivedManager, ManageableTypes...>::objectInfos;
+	ResourceManagerBase<DerivedManager, ManageableTypes...>::objectInfos {};
 
 template <typename DerivedManager, typename... ManageableTypes>
-std::vector<int32_t> ResourceManagerBase<DerivedManager, ManageableTypes...>::referenceCounts;
+std::vector<int32_t> ResourceManagerBase<DerivedManager, ManageableTypes...>::referenceCounts {};
 
 } // namespace Engine::Managers
