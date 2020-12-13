@@ -2,22 +2,32 @@
 
 
 namespace Engine::Managers {
+std::vector<MeshManager::MeshInfo> MeshManager::meshInfos {};
 
-std::vector<MeshManager::MeshInfo> MeshManager::meshInfos;
+vk::Device MeshManager::vkDevice {};
+VmaAllocator MeshManager::vmaAllocator {};
 
-vk::Device MeshManager::vkDevice;
-VmaAllocator MeshManager::vmaAllocator;
+vk::Queue MeshManager::vkTransferQueue {};
+vk::CommandPool MeshManager::vkCommandPool {};
 
-vk::Queue MeshManager::vkTransferQueue;
-vk::CommandPool MeshManager::vkCommandPool;
+
+int MeshManager::init() {
+	spdlog::info("Initializing MeshManager...");
+
+	assert(vkDevice != vk::Device());
+	assert(vmaAllocator != nullptr);
+	assert(vkTransferQueue != vk::Queue());
+	assert(vkCommandPool != vk::CommandPool());
+
+	return ResourceManagerBase::init();
+};
 
 
 void MeshManager::postCreate(Handle handle) {
 	meshInfos.push_back({});
-	postLoad(handle);
 }
 
-void MeshManager::postLoad(Handle handle) {
+void MeshManager::update(Handle handle) {
 	auto& meshInfo = getMeshInfo(handle);
 
 	vk::DeviceSize vertexBufferSize;

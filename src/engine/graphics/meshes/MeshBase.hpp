@@ -3,6 +3,8 @@
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
 
+#include "vk_mem_alloc.h"
+
 #include <glm/glm.hpp>
 
 #include <map>
@@ -20,11 +22,12 @@
 	}
 
 
-namespace Engine::Graphics {
+namespace Engine::Graphics::Meshes {
 template <typename MeshType>
 class MeshBase {
 public:
 	std::vector<uint16_t> indexBuffer;
+
 
 public:
 	inline auto& getVertexBuffer() {

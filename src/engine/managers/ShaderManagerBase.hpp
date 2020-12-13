@@ -370,16 +370,16 @@ private:
 
 
 template <typename DerivedManager, typename... ShaderTypes>
-std::tuple<std::vector<ShaderTypes>...> ShaderManagerBase<DerivedManager, ShaderTypes...>::shaderObjectArrays;
+std::tuple<std::vector<ShaderTypes>...> ShaderManagerBase<DerivedManager, ShaderTypes...>::shaderObjectArrays {};
 
 template <typename DerivedManager, typename... ShaderTypes>
 std::vector<std::vector<typename ShaderManagerBase<DerivedManager, ShaderTypes...>::ShaderInfo>>
-	ShaderManagerBase<DerivedManager, ShaderTypes...>::shaderInfoArrays;
+	ShaderManagerBase<DerivedManager, ShaderTypes...>::shaderInfoArrays {};
 
 template <typename DerivedManager, typename... ShaderTypes>
-std::array<uint32_t, sizeof...(ShaderTypes)> ShaderManagerBase<DerivedManager, ShaderTypes...>::shaderTypeOffsets;
+std::array<uint32_t, sizeof...(ShaderTypes)> ShaderManagerBase<DerivedManager, ShaderTypes...>::shaderTypeOffsets {};
 
 
 template <typename DerivedManager, typename... ShaderTypes>
-vk::Device ShaderManagerBase<DerivedManager, ShaderTypes...>::vkDevice;
+vk::Device ShaderManagerBase<DerivedManager, ShaderTypes...>::vkDevice {};
 } // namespace Engine::Managers

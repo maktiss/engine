@@ -3,6 +3,7 @@
 #include "engine/managers/MaterialManager.hpp"
 #include "engine/managers/MeshManager.hpp"
 #include "engine/managers/ShaderManager.hpp"
+#include "engine/managers/TextureManager.hpp"
 
 #include <memory>
 

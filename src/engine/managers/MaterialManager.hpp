@@ -12,7 +12,7 @@ public:
 
 	}
 	
-	static void postLoad(Handle handle) {
+	static void update(Handle handle) {
 
 	}
 
