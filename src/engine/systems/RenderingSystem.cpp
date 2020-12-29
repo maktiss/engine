@@ -559,7 +559,7 @@ int RenderingSystem::createSwapchain() {
 	swapchainCreateInfo.imageColorSpace	 = surfaceFormat.colorSpace;
 	swapchainCreateInfo.imageExtent		 = extent;
 	swapchainCreateInfo.imageArrayLayers = 1;
-	swapchainCreateInfo.imageUsage		 = vk::ImageUsageFlagBits::eTransferDst;
+	swapchainCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 
 	auto queueFamilies			  = getQueueFamilies(getActivePhysicalDevice());
 	uint32_t queueFamilyIndices[] = { queueFamilies.graphicsFamily, queueFamilies.presentFamily };
@@ -591,34 +591,7 @@ int RenderingSystem::createSwapchain() {
 		vkDevice.getSwapchainImagesKHR(vkSwapchainInfo.swapchain, &swapchainImageCount, vkSwapchainInfo.images.data()),
 		"Failed to retrieve swapchain images");
 
-	vkSwapchainInfo.imageFormat = surfaceFormat.format;
-	vkSwapchainInfo.extent		= extent;
-
-
-	// create swapchain image views
-
-	vkSwapchainInfo.imageViews.resize(swapchainImageCount);
-	for (uint i = 0; i < vkSwapchainInfo.imageViews.size(); i++) {
-		vk::ImageViewCreateInfo imageViewCreateInfo {};
-		imageViewCreateInfo.image = vkSwapchainInfo.images[i];
-
-		imageViewCreateInfo.viewType = vk::ImageViewType::e2D;
-		imageViewCreateInfo.format	 = vkSwapchainInfo.imageFormat;
-
-		imageViewCreateInfo.components.r = vk::ComponentSwizzle::eIdentity;
-		imageViewCreateInfo.components.g = vk::ComponentSwizzle::eIdentity;
-		imageViewCreateInfo.components.b = vk::ComponentSwizzle::eIdentity;
-		imageViewCreateInfo.components.a = vk::ComponentSwizzle::eIdentity;
-
-		imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eColor;
-		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-		imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
-		imageViewCreateInfo.subresourceRange.layerCount		= 1;
-		imageViewCreateInfo.subresourceRange.levelCount		= 1;
-
-		RETURN_IF_VK_ERROR(vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkSwapchainInfo.imageViews[i]),
-						   "Failed to create swapchain image view");
-	}
+	vkSwapchainInfo.extent = extent;
 
 
 	// create command pools
@@ -632,17 +605,6 @@ int RenderingSystem::createSwapchain() {
 		RETURN_IF_VK_ERROR(vkDevice.createCommandPool(&commandPoolCreateInfo, nullptr, &vkCommandPools[i]),
 						   "Failed to create command pool");
 	}
-
-
-	// create rendering semaphores
-
-	vk::SemaphoreCreateInfo semaphoreCreateInfo {};
-
-	RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &vkImageAvailableSemaphore),
-					   "Failed to create rendering semaphore");
-
-	RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &vkRenderingFinishedSemaphore),
-					   "Failed to create rendering semaphore");
 
 
 	return 0;

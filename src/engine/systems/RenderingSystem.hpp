@@ -73,15 +73,9 @@ private:
 		vk::SwapchainKHR swapchain;
 
 		std::vector<vk::Image> images;
-		vk::Format imageFormat;
 		vk::Extent2D extent;
-
-		std::vector<vk::ImageView> imageViews;
-
-		std::vector<vk::Framebuffer> framebuffers;
 	} vkSwapchainInfo;
 
-	// vk::RenderPass vkRenderPass;
 
 	uint framesInFlightCount = 3;
 	uint threadCount = 1;
@@ -105,12 +99,6 @@ private:
 	std::vector<vk::Fence> vkImageBlitCommandBufferFences {};
 
 	Engine::Managers::TextureManager::Handle finalTextureHandle {};
-
-	vk::Semaphore vkImageAvailableSemaphore;
-	vk::Semaphore vkRenderingFinishedSemaphore;
-
-	// vk::PipelineLayout vkPipelineLayout;
-	// vk::Pipeline vkPipeline;
 
 	std::vector<const char*> requiredInstanceExtensionNames = {};
 	std::vector<const char*> requiredDeviceExtensionNames	= { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
