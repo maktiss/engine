@@ -104,16 +104,15 @@ int RenderingSystem::init() {
 
 	// Allocate command buffers for every renderer
 
-	// TODO: renderers array size
+	// FIXME: renderers array size
 	uint renderersCount = 1;
-	vkCommandBuffers.resize(renderersCount * framesInFlightCount * (1 + threadCount));
+	vkCommandBuffers.resize(framesInFlightCount * renderersCount * (1 + threadCount));
 
-	for (uint rendererIndex = 0; rendererIndex < renderersCount; rendererIndex++) {
-		uint commandBufferOffset = rendererIndex * framesInFlightCount * (1 + threadCount);
-
-		for (uint frameIndex = 0; frameIndex < framesInFlightCount; frameIndex++) {
+	for (uint frameIndex = 0; frameIndex < framesInFlightCount; frameIndex++) {
+		for (uint rendererIndex = 0; rendererIndex < renderersCount; rendererIndex++) {
 			for (uint threadIndex = 0; threadIndex < 1 + threadCount; threadIndex++) {
-				uint commandPoolIndex = getCommandPoolIndex(frameIndex, threadIndex);
+				uint commandPoolIndex	= getCommandPoolIndex(frameIndex, threadIndex);
+				uint commandBufferIndex = getCommandBufferIndex(frameIndex, rendererIndex, threadIndex);
 
 				vk::CommandBufferAllocateInfo commandBufferAllocateInfo {};
 				commandBufferAllocateInfo.commandPool		 = vkCommandPools[commandPoolIndex];
@@ -123,8 +122,7 @@ int RenderingSystem::init() {
 
 
 				RETURN_IF_VK_ERROR(
-					vkDevice.allocateCommandBuffers(&commandBufferAllocateInfo,
-													&vkCommandBuffers[commandBufferOffset + commandPoolIndex]),
+					vkDevice.allocateCommandBuffers(&commandBufferAllocateInfo, &vkCommandBuffers[commandBufferIndex]),
 					"Failed to allocate command buffer");
 			}
 		}
@@ -166,6 +164,24 @@ int RenderingSystem::init() {
 						   "Failed to create rendering semaphore");
 	}
 
+
+	// Create command buffer fences
+
+	vk::FenceCreateInfo fenceCreateInfo {};
+	fenceCreateInfo.flags = vk::FenceCreateFlagBits::eSignaled;
+
+	vkCommandBufferFences.resize(vkCommandBuffers.size() / (1 + threadCount));
+	for (auto& fence : vkCommandBufferFences) {
+		RETURN_IF_VK_ERROR(vkDevice.createFence(&fenceCreateInfo, nullptr, &fence),
+						   "Failed to create command buffer fence");
+	}
+
+	vkImageBlitCommandBufferFences.resize(framesInFlightCount);
+	for (auto& fence : vkImageBlitCommandBufferFences) {
+		RETURN_IF_VK_ERROR(vkDevice.createFence(&fenceCreateInfo, nullptr, &fence),
+						   "Failed to create image blit command buffer fence");
+	}
+
 	return 0;
 }
 
@@ -173,14 +189,39 @@ int RenderingSystem::run(double dt) {
 	currentFrameInFlight  = (currentFrameInFlight + 1) % framesInFlightCount;
 	auto commandPoolIndex = getCommandPoolIndex(currentFrameInFlight, 0);
 
+
+	// Wait for rendering command buffers to finish
+
+	uint32_t fenceCount = vkCommandPools.size() / (framesInFlightCount * (1 + threadCount));
+	RETURN_IF_VK_ERROR(
+		vkDevice.waitForFences(fenceCount, &vkCommandBufferFences[currentFrameInFlight * fenceCount], true, UINT64_MAX),
+		"Failed to wait for command buffer fences");
+	RETURN_IF_VK_ERROR(vkDevice.resetFences(fenceCount, &vkCommandBufferFences[currentFrameInFlight * fenceCount]),
+					   "Failed to reset command buffer fences");
+
+
+	// Wait for image blit command buffers to finish
+
+	RETURN_IF_VK_ERROR(
+		vkDevice.waitForFences(1, &vkImageBlitCommandBufferFences[currentFrameInFlight], true, UINT64_MAX),
+		"Failed to wait for image blit command buffer fences");
+	RETURN_IF_VK_ERROR(vkDevice.resetFences(fenceCount, &vkImageBlitCommandBufferFences[currentFrameInFlight]),
+					   "Failed to reset image blit command buffer fences");
+
+
+	// Reset command buffers
+
 	vkDevice.resetCommandPool(vkCommandPools[commandPoolIndex]);
+
 
 	// FIXME indexed renderers
 	for (uint rendererIndex = 0; rendererIndex < 1; rendererIndex++) {
 		auto& renderer = forwardRenderer;
 
-		auto& commandBuffer =
-			vkCommandBuffers[rendererIndex * framesInFlightCount * (1 + threadCount) + commandPoolIndex];
+		auto commandBufferIndex = getCommandBufferIndex(currentFrameInFlight, rendererIndex, 0);
+
+		auto& commandBuffer		 = vkCommandBuffers[commandBufferIndex];
+		auto& commandBufferFence = vkCommandBufferFences[commandBufferIndex / (1 + threadCount)];
 
 
 		vk::CommandBufferBeginInfo commandBufferBeginInfo {};
@@ -223,7 +264,8 @@ int RenderingSystem::run(double dt) {
 		// submitInfo.signalSemaphoreCount = 1;
 		// submitInfo.pSignalSemaphores	= &vkRenderingFinishedSemaphore;
 
-		RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, nullptr), "Failed to submit graphics command buffer");
+		RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, commandBufferFence),
+						   "Failed to submit graphics command buffer");
 	}
 
 
@@ -272,26 +314,26 @@ int RenderingSystem::present() {
 
 	// TODO set image layout helper function
 	vk::ImageMemoryBarrier imageMemoryBarrier0 {};
-	imageMemoryBarrier0.oldLayout					 = vk::ImageLayout::ePresentSrcKHR;
-	imageMemoryBarrier0.newLayout					 = vk::ImageLayout::eTransferDstOptimal;
-	imageMemoryBarrier0.srcAccessMask				 = {};
-	imageMemoryBarrier0.dstAccessMask				 = vk::AccessFlagBits::eTransferWrite;
-	imageMemoryBarrier0.image						 = dstImage;
-	imageMemoryBarrier0.subresourceRange.aspectMask	 = vk::ImageAspectFlagBits::eColor;
+	imageMemoryBarrier0.oldLayout					  = vk::ImageLayout::ePresentSrcKHR;
+	imageMemoryBarrier0.newLayout					  = vk::ImageLayout::eTransferDstOptimal;
+	imageMemoryBarrier0.srcAccessMask				  = {};
+	imageMemoryBarrier0.dstAccessMask				  = vk::AccessFlagBits::eTransferWrite;
+	imageMemoryBarrier0.image						  = dstImage;
+	imageMemoryBarrier0.subresourceRange.aspectMask	  = vk::ImageAspectFlagBits::eColor;
 	imageMemoryBarrier0.subresourceRange.baseMipLevel = 0;
-	imageMemoryBarrier0.subresourceRange.levelCount	 = 1;
-	imageMemoryBarrier0.subresourceRange.layerCount	 = 1;
+	imageMemoryBarrier0.subresourceRange.levelCount	  = 1;
+	imageMemoryBarrier0.subresourceRange.layerCount	  = 1;
 
 	vk::ImageMemoryBarrier imageMemoryBarrier1 {};
-	imageMemoryBarrier1.oldLayout					 = vk::ImageLayout::eTransferDstOptimal;
-	imageMemoryBarrier1.newLayout					 = vk::ImageLayout::ePresentSrcKHR;
-	imageMemoryBarrier1.srcAccessMask				 = vk::AccessFlagBits::eTransferWrite;
-	imageMemoryBarrier1.dstAccessMask				 = vk::AccessFlagBits::eMemoryRead;
-	imageMemoryBarrier1.image						 = dstImage;
-	imageMemoryBarrier1.subresourceRange.aspectMask	 = vk::ImageAspectFlagBits::eColor;
+	imageMemoryBarrier1.oldLayout					  = vk::ImageLayout::eTransferDstOptimal;
+	imageMemoryBarrier1.newLayout					  = vk::ImageLayout::ePresentSrcKHR;
+	imageMemoryBarrier1.srcAccessMask				  = vk::AccessFlagBits::eTransferWrite;
+	imageMemoryBarrier1.dstAccessMask				  = vk::AccessFlagBits::eMemoryRead;
+	imageMemoryBarrier1.image						  = dstImage;
+	imageMemoryBarrier1.subresourceRange.aspectMask	  = vk::ImageAspectFlagBits::eColor;
 	imageMemoryBarrier1.subresourceRange.baseMipLevel = 0;
-	imageMemoryBarrier1.subresourceRange.levelCount	 = 1;
-	imageMemoryBarrier1.subresourceRange.layerCount	 = 1;
+	imageMemoryBarrier1.subresourceRange.levelCount	  = 1;
+	imageMemoryBarrier1.subresourceRange.layerCount	  = 1;
 
 
 	// Write image blit command buffer
@@ -345,7 +387,8 @@ int RenderingSystem::present() {
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores	= &imageBlitFinishedSemaphore;
 
-	RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, nullptr), "Failed to submit graphics command buffer");
+	RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, vkImageBlitCommandBufferFences[currentFrameInFlight]),
+					   "Failed to submit graphics command buffer");
 
 
 	// Present an image
@@ -358,9 +401,6 @@ int RenderingSystem::present() {
 	presentInfo.pImageIndices	   = &imageIndex;
 
 	RETURN_IF_VK_ERROR(vkPresentQueue.presentKHR(&presentInfo), "Failed to present image");
-
-	// FIXME: more optimal way
-	RETURN_IF_VK_ERROR(vkPresentQueue.waitIdle(), "Failed to wait for presenting to finish");
 
 	return 0;
 }
@@ -585,26 +625,13 @@ int RenderingSystem::createSwapchain() {
 
 	vk::CommandPoolCreateInfo commandPoolCreateInfo {};
 	commandPoolCreateInfo.queueFamilyIndex = queueFamilies.graphicsFamily;
-	commandPoolCreateInfo.flags			   = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
+	// commandPoolCreateInfo.flags			   = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
 
 	vkCommandPools.resize(framesInFlightCount * (1 + threadCount));
 	for (uint i = 0; i < vkCommandPools.size(); i++) {
 		RETURN_IF_VK_ERROR(vkDevice.createCommandPool(&commandPoolCreateInfo, nullptr, &vkCommandPools[i]),
 						   "Failed to create command pool");
 	}
-
-
-	// allocate command buffers
-
-	vkCommandBuffers.resize(swapchainImageCount);
-
-	vk::CommandBufferAllocateInfo commandBufferAllocateInfo {};
-	commandBufferAllocateInfo.commandPool		 = vkCommandPools[0];
-	commandBufferAllocateInfo.level				 = vk::CommandBufferLevel::ePrimary;
-	commandBufferAllocateInfo.commandBufferCount = vkCommandBuffers.size();
-
-	RETURN_IF_VK_ERROR(vkDevice.allocateCommandBuffers(&commandBufferAllocateInfo, vkCommandBuffers.data()),
-					   "Failed to allocate command buffers");
 
 
 	// create rendering semaphores

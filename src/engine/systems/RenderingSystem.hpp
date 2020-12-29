@@ -95,12 +95,14 @@ private:
 	std::vector<vk::RenderPass> vkRenderPasses {};
 	std::vector<vk::Framebuffer> vkFramebuffers {};
 
-	std::vector<vk::CommandBuffer> vkCommandBuffers;
+	std::vector<vk::CommandBuffer> vkCommandBuffers {};
+	std::vector<vk::Fence> vkCommandBufferFences {};
 
 	std::vector<vk::Semaphore> vkImageAvailableSemaphores {};
 	std::vector<vk::Semaphore> vkImageBlitFinishedSemaphores {};
 
 	std::vector<vk::CommandBuffer> vkImageBlitCommandBuffers {};
+	std::vector<vk::Fence> vkImageBlitCommandBufferFences {};
 
 	Engine::Managers::TextureManager::Handle finalTextureHandle {};
 
@@ -125,6 +127,7 @@ private:
 
 public:
 	~RenderingSystem() {
+		vkDevice.waitIdle();
 		Engine::Managers::MeshManager::destroy();
 		Engine::Managers::TextureManager::dispose();
 		vmaDestroyAllocator(vmaAllocator);
@@ -149,6 +152,12 @@ private:
 
 	inline uint getCommandPoolIndex(uint frameIndex, uint threadIndex) const {
 		return frameIndex * (threadCount + 1) + threadIndex;
+	}
+	
+	inline uint getCommandBufferIndex(uint frameIndex, uint rendererIndex, uint threadIndex) const {
+		// FIXME: rendererCount
+		uint rendererCount = 1;
+		return frameIndex * rendererCount * (threadCount + 1) + rendererIndex * (threadCount + 1) + threadIndex;
 	}
 
 	int createRenderPasses();
