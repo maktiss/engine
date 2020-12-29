@@ -11,6 +11,8 @@
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_DEPTH_ZERO_TO_ONE
 
+#include "engine/managers/EntityManager.hpp"
+
 #include "engine/systems/RenderingSystem.hpp"
 
 #include <array>

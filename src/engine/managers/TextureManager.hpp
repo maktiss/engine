@@ -15,6 +15,8 @@ class TextureManager : public ResourceManagerBase<TextureManager, Engine::Graphi
 public:
 	struct TextureInfo {
 		vk::Image image {};
+		vk::ImageView imageView {};
+		vk::Sampler sampler {};
 	};
 
 
@@ -28,6 +30,8 @@ private:
 
 	static vk::Queue vkTransferQueue;
 	static vk::CommandPool vkCommandPool;
+
+	static float maxAnisotropy;
 
 
 public:

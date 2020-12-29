@@ -11,12 +11,40 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_executable(
 	${PROJECT_NAME}
-	src/main.cpp
 	src/engine/Core.cpp
+	src/engine/Core.hpp
+	src/engine/components/Camera.hpp
+	src/engine/components/ComponentBase.hpp
+	src/engine/components/Model.hpp
+	src/engine/components/Transform.hpp
 	src/engine/graphics/Buffer.cpp
+	src/engine/graphics/Buffer.hpp
+	src/engine/graphics/materials/MaterialBase.hpp
+	src/engine/graphics/materials/SimpleMaterial.hpp
+	src/engine/graphics/meshes/MeshBase.hpp
+	src/engine/graphics/meshes/StaticMesh.hpp
+	src/engine/graphics/shaders/ShaderBase.hpp
+	src/engine/graphics/shaders/SimpleShader.hpp
+	src/engine/graphics/textures/Texture2D.hpp
+	src/engine/graphics/textures/TextureBase.hpp
+	src/engine/managers/EntityManager.hpp
+	src/engine/managers/EntityManagerBase.hpp
+	src/engine/managers/MaterialManager.hpp
 	src/engine/managers/MeshManager.cpp
+	src/engine/managers/MeshManager.hpp
+	src/engine/managers/ResourceManagerBase.hpp
+	src/engine/managers/ShaderManager.hpp
+	src/engine/managers/ShaderManagerBase.hpp
+	src/engine/managers/TextureManager.cpp
+	src/engine/managers/TextureManager.hpp
+	src/engine/renderers/ForwardRenderer.hpp
+	src/engine/renderers/RendererBase.hpp
 	src/engine/systems/RenderingSystem.cpp
+	src/engine/systems/RenderingSystem.hpp
+	src/engine/systems/SystemBase.hpp
+	src/engine/utils/IO.hpp
 	src/engine/utils/VkMemAllocImpl.cpp
+	src/main.cpp
 )
 
 target_include_directories(

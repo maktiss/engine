@@ -3,8 +3,10 @@
 #include "SystemBase.hpp"
 
 // FIXME: test
-#include "engine/graphics/Mesh.hpp"
+#include "engine/graphics/meshes/StaticMesh.hpp"
 #include "engine/graphics/Buffer.hpp"
+
+#include "engine/renderers/ForwardRenderer.hpp"
 
 #include "engine/utils/IO.hpp"
 
@@ -79,16 +81,34 @@ private:
 		std::vector<vk::Framebuffer> framebuffers;
 	} vkSwapchainInfo;
 
-	vk::RenderPass vkRenderPass;
+	// vk::RenderPass vkRenderPass;
 
-	vk::CommandPool vkCommandPool;
+	uint framesInFlightCount = 3;
+	uint threadCount = 1;
+
+	uint currentFrameInFlight = 0;
+
+	std::vector<vk::CommandPool> vkCommandPools;
+	uint currentCommandPool = 0;
+
+	// RenderPasses and FrameBuffers for every renderer
+	std::vector<vk::RenderPass> vkRenderPasses {};
+	std::vector<vk::Framebuffer> vkFramebuffers {};
+
 	std::vector<vk::CommandBuffer> vkCommandBuffers;
+
+	std::vector<vk::Semaphore> vkImageAvailableSemaphores {};
+	std::vector<vk::Semaphore> vkImageBlitFinishedSemaphores {};
+
+	std::vector<vk::CommandBuffer> vkImageBlitCommandBuffers {};
+
+	Engine::Managers::TextureManager::Handle finalTextureHandle {};
 
 	vk::Semaphore vkImageAvailableSemaphore;
 	vk::Semaphore vkRenderingFinishedSemaphore;
 
-	vk::PipelineLayout vkPipelineLayout;
-	vk::Pipeline vkPipeline;
+	// vk::PipelineLayout vkPipelineLayout;
+	// vk::Pipeline vkPipeline;
 
 	std::vector<const char*> requiredInstanceExtensionNames = {};
 	std::vector<const char*> requiredDeviceExtensionNames	= { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
@@ -100,9 +120,13 @@ private:
 
 	VmaAllocator vmaAllocator = nullptr;
 
+	Engine::Renderers::ForwardRenderer forwardRenderer;
+
+
 public:
 	~RenderingSystem() {
 		Engine::Managers::MeshManager::destroy();
+		Engine::Managers::TextureManager::dispose();
 		vmaDestroyAllocator(vmaAllocator);
 	}
 
@@ -122,6 +146,16 @@ private:
 	int createSwapchain();
 
 	int present();
+
+	inline uint getCommandPoolIndex(uint frameIndex, uint threadIndex) const {
+		return frameIndex * (threadCount + 1) + threadIndex;
+	}
+
+	int createRenderPasses();
+	int createFramebuffers();
+
+	int createRenderPass(Engine::Renderers::RendererBase* renderer, vk::RenderPass& renderPass);
+	int generateGraphicsPipelines(Engine::Renderers::RendererBase* renderer);
 
 	bool isPhysicalDeviceSupported(vk::PhysicalDevice physicalDevice) const;
 	QueueFamilyIndices getQueueFamilies(vk::PhysicalDevice physicalDevice) const;

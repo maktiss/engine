@@ -28,7 +28,7 @@ public:
 
 		uint32_t indexCount {};
 	};
-	
+
 
 private:
 	static std::vector<MeshInfo> meshInfos;
@@ -68,6 +68,7 @@ public:
 		return meshInfos[handle.getIndex()];
 	}
 
+
 	static inline std::string getMeshTypeString(Handle handle) {
 		std::string string;
 		apply(handle, [&string](auto& mesh) {
@@ -85,12 +86,49 @@ public:
 	static inline std::string getMeshTypeStringImpl(uint32_t typeIndex, std::index_sequence<Indices...>) {
 		std::string meshTypeString;
 
+		// FIXME bug
 		((meshTypeString = Indices == typeIndex ? std::get<Indices>(getTypeTuple()).getMeshTypeString() : ""), ...);
 
 		assert(!meshTypeString.empty());
 
 		return meshTypeString;
 	}
+
+
+	static auto getVertexInputAttributeDescriptions(uint32_t meshTypeIndex) {
+		return getVertexInputAttributeDescriptionsImpl(meshTypeIndex, std::make_index_sequence<getTypeCount()>());
+	}
+
+	template <std::size_t... Indices>
+	static std::vector<vk::VertexInputAttributeDescription>
+	getVertexInputAttributeDescriptionsImpl(uint32_t meshTypeIndex, std::index_sequence<Indices...>) {
+		std::vector<vk::VertexInputAttributeDescription> vertexInputAttributeDescription;
+
+		((vertexInputAttributeDescription =
+			  Indices == meshTypeIndex ? std::get<Indices>(getTypeTuple()).getVertexInputAttributeDescriptions()
+									   : vertexInputAttributeDescription),
+		 ...);
+
+		return vertexInputAttributeDescription;
+	}
+
+	static auto getVertexInputBindingDescriptions(uint32_t meshTypeIndex) {
+		return getVertexInputBindingDescriptionsImpl(meshTypeIndex, std::make_index_sequence<getTypeCount()>());
+	}
+
+	template <std::size_t... Indices>
+	static std::vector<vk::VertexInputBindingDescription>
+	getVertexInputBindingDescriptionsImpl(uint32_t meshTypeIndex, std::index_sequence<Indices...>) {
+		std::vector<vk::VertexInputBindingDescription> vertexInputBindingDescriptions;
+
+		((vertexInputBindingDescriptions = Indices == meshTypeIndex
+											   ? std::get<Indices>(getTypeTuple()).getVertexInputBindingDescriptions()
+											   : vertexInputBindingDescriptions),
+		 ...);
+
+		return vertexInputBindingDescriptions;
+	}
+
 
 	static void destroy() {
 		for (auto& meshInfo : meshInfos) {

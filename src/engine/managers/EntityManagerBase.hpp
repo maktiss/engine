@@ -1,7 +1,8 @@
 #pragma once
 
 #include <array>
-#include <stdint.h>
+#include <cassert>
+#include <cstdint>
 #include <tuple>
 #include <variant>
 #include <vector>
@@ -139,7 +140,7 @@ public:
 		auto ranges = getValidRanges<RequiredComponentTypes...>();
 
 		for (auto range : ranges) {
-			for (uint i = range.first; i < range.second; i++) {
+			for (uint32_t i = range.first; i < range.second; i++) {
 				func(getComponent<RequiredComponentTypes>(i)...);
 			}
 		}
@@ -173,7 +174,7 @@ private:
 			getComponentTypeIndex<RequiredComponentTypes>(), ...) };
 
 		std::array<uint32_t, sizeof...(ComponentTypes)> componentTypeIterators { 0 };
-		for (uint currentRangeIndex = 0; currentRangeIndex < componentRanges[leastSignificantTypeIndex].size();
+		for (uint32_t currentRangeIndex = 0; currentRangeIndex < componentRanges[leastSignificantTypeIndex].size();
 			 currentRangeIndex++) {
 			std::pair range = componentRanges[leastSignificantTypeIndex][currentRangeIndex];
 
@@ -215,10 +216,10 @@ private:
 
 	// fixex ranges at given position to match signature
 	static void fixRangesAtPosition(uint32_t position, uint32_t signature) {
-		for (uint componentTypeIndex = 0; componentTypeIndex < getComponentTypeCount(); componentTypeIndex++) {
+		for (uint32_t componentTypeIndex = 0; componentTypeIndex < getComponentTypeCount(); componentTypeIndex++) {
 			if ((signature & (1 << (getComponentTypeCount() - 1 - componentTypeIndex))) != 0) {
 				// position should be within range
-				for (uint rangeIndex = 0; rangeIndex < componentRanges[componentTypeIndex].size() - 1; rangeIndex++) {
+				for (uint32_t rangeIndex = 0; rangeIndex < componentRanges[componentTypeIndex].size() - 1; rangeIndex++) {
 					auto& firstRange  = componentRanges[componentTypeIndex][rangeIndex];
 					auto& secondRange = componentRanges[componentTypeIndex][rangeIndex + 1];
 
@@ -248,7 +249,7 @@ private:
 				}
 			} else {
 				// position should be outside of range
-				for (uint rangeIndex = 0; rangeIndex < componentRanges[componentTypeIndex].size(); rangeIndex++) {
+				for (uint32_t rangeIndex = 0; rangeIndex < componentRanges[componentTypeIndex].size(); rangeIndex++) {
 					auto& range = componentRanges[componentTypeIndex][rangeIndex];
 
 					if (range.first <= position && position < range.second) {
@@ -273,8 +274,8 @@ private:
 	static auto getLeftRangeEdges(uint32_t index) {
 		std::array<uint32_t, getComponentTypeCount()> leftRangeEdges;
 
-		for (uint typeIndex = 0; typeIndex < leftRangeEdges.size(); typeIndex++) {
-			for (uint rangeIndex = 0; rangeIndex < componentRanges[typeIndex].size(); rangeIndex++) {
+		for (uint32_t typeIndex = 0; typeIndex < leftRangeEdges.size(); typeIndex++) {
+			for (uint32_t rangeIndex = 0; rangeIndex < componentRanges[typeIndex].size(); rangeIndex++) {
 				if (componentRanges[typeIndex][rangeIndex].first > index) {
 					break;
 				}

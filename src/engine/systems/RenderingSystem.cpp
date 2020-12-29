@@ -52,189 +52,315 @@ int RenderingSystem::init() {
 
 	// FIXME testing
 
-	{
-		if (Engine::Utils::readFile("assets/shaders/triangle.vsh.spv", vshCode)) {
-			spdlog::error("Failed to read triangle.vsh.spv");
-			return 1;
-		}
-		if (Engine::Utils::readFile("assets/shaders/triangle.fsh.spv", fshCode)) {
-			spdlog::error("Failed to read triangle.fsh.spv");
-			return 1;
-		}
+	Engine::Managers::ShaderManager::setVkDevice(vkDevice);
+	Engine::Managers::ShaderManager::init();
 
-		vk::ShaderModule vsShaderModule;
-		vk::ShaderModule fsShaderModule;
+	Engine::Managers::ShaderManager::importShaderSources<Engine::Graphics::Shaders::SimpleShader>(
+		std::array<std::string, 6> { "assets/shaders/triangle.vsh", "", "", "", "assets/shaders/triangle.fsh", "" });
 
-		vk::ShaderModuleCreateInfo shaderModuleCreateInfo {};
-		shaderModuleCreateInfo.codeSize = vshCode.size();
-		shaderModuleCreateInfo.pCode	= reinterpret_cast<const uint32_t*>(vshCode.data());
 
-		RETURN_IF_VK_ERROR(vkDevice.createShaderModule(&shaderModuleCreateInfo, nullptr, &vsShaderModule),
-						   "Failed to create shader module");
+	Engine::Managers::TextureManager::setVkDevice(vkDevice);
+	Engine::Managers::TextureManager::setVkCommandPool(vkCommandPools[0]);
+	Engine::Managers::TextureManager::setVkTransferQueue(vkGraphicsQueue);
+	Engine::Managers::TextureManager::setVulkanMemoryAllocator(vmaAllocator);
+	Engine::Managers::TextureManager::init();
 
-		shaderModuleCreateInfo.codeSize = fshCode.size();
-		shaderModuleCreateInfo.pCode	= reinterpret_cast<const uint32_t*>(fshCode.data());
+	// auto textureHandle = Engine::Managers::TextureManager::createObject(0);
+	// auto swapchainInfo = vkSwapchainInfo;
+	// textureHandle.apply([swapchainInfo](auto& texture){
+	// 	texture.size = vk::Extent3D(swapchainInfo.extent.width, swapchainInfo.extent.height, 1);
+	// 	texture.format = swapchainInfo.imageFormat;
+	// 	texture.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc;
+	// });
+	// textureHandle.update();
 
-		RETURN_IF_VK_ERROR(vkDevice.createShaderModule(&shaderModuleCreateInfo, nullptr, &fsShaderModule),
-						   "Failed to create shader module");
-
-		vk::PipelineShaderStageCreateInfo vsPipelineShaderStageCreateInfo {};
-		vsPipelineShaderStageCreateInfo.stage  = vk::ShaderStageFlagBits::eVertex;
-		vsPipelineShaderStageCreateInfo.module = vsShaderModule;
-		vsPipelineShaderStageCreateInfo.pName  = "main";
-
-		vk::PipelineShaderStageCreateInfo fsPipelineShaderStageCreateInfo {};
-		fsPipelineShaderStageCreateInfo.stage  = vk::ShaderStageFlagBits::eFragment;
-		fsPipelineShaderStageCreateInfo.module = fsShaderModule;
-		fsPipelineShaderStageCreateInfo.pName  = "main";
-
-		vk::PipelineShaderStageCreateInfo shaderStages[] = { vsPipelineShaderStageCreateInfo,
-															 fsPipelineShaderStageCreateInfo };
-
-		vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {};
-
-		auto vertexInputAttributeDescriptions = Engine::Graphics::Mesh::getVertexInputAttributeDescriptions();
-		pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = vertexInputAttributeDescriptions.size();
-		pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions	   = vertexInputAttributeDescriptions.data();
-
-		auto vertexInputBindingDescriptions = Engine::Graphics::Mesh::getVertexInputBindingDescriptions();
-		pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = vertexInputBindingDescriptions.size();
-		pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions	 = vertexInputBindingDescriptions.data();
-
-		vk::PipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo {};
-		pipelineInputAssemblyStateCreateInfo.topology				= vk::PrimitiveTopology::eTriangleList;
-		pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = false;
-
-		vk::Viewport viewport {};
-		viewport.x		  = 0.0f;
-		viewport.y		  = 0.0f;
-		viewport.width	  = vkSwapchainInfo.extent.width;
-		viewport.height	  = vkSwapchainInfo.extent.height;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-
-		vk::Rect2D scissor {};
-		scissor.offset = vk::Offset2D(0, 0);
-		scissor.extent = vkSwapchainInfo.extent;
-
-		vk::PipelineViewportStateCreateInfo pipelineViewportStateCreateInfo {};
-		pipelineViewportStateCreateInfo.viewportCount = 1;
-		pipelineViewportStateCreateInfo.pViewports	  = &viewport;
-		pipelineViewportStateCreateInfo.scissorCount  = 1;
-		pipelineViewportStateCreateInfo.pScissors	  = &scissor;
-
-		vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {};
-		pipelineRasterizationStateCreateInfo.depthClampEnable		 = false;
-		pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;
-		pipelineRasterizationStateCreateInfo.polygonMode			 = vk::PolygonMode::eFill;
-		pipelineRasterizationStateCreateInfo.cullMode				 = vk::CullModeFlagBits::eBack;
-		pipelineRasterizationStateCreateInfo.frontFace				 = vk::FrontFace::eCounterClockwise;
-		pipelineRasterizationStateCreateInfo.depthBiasEnable		 = false;
-		pipelineRasterizationStateCreateInfo.lineWidth				 = 1.0f;
-
-		vk::PipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {};
-		pipelineMultisampleStateCreateInfo.sampleShadingEnable	= false;
-		pipelineMultisampleStateCreateInfo.rasterizationSamples = vk::SampleCountFlagBits::e1;
-
-		vk::PipelineColorBlendAttachmentState pipelineColorBlendAttachmentState {};
-		pipelineColorBlendAttachmentState.colorWriteMask =
-			vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
-			vk::ColorComponentFlagBits::eA;
-		pipelineColorBlendAttachmentState.blendEnable = false;
-
-		vk::PipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo {};
-		pipelineColorBlendStateCreateInfo.logicOpEnable	  = false;
-		pipelineColorBlendStateCreateInfo.attachmentCount = 1;
-		pipelineColorBlendStateCreateInfo.pAttachments	  = &pipelineColorBlendAttachmentState;
-
-		vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {};
-
-		RETURN_IF_VK_ERROR(vkDevice.createPipelineLayout(&pipelineLayoutCreateInfo, nullptr, &vkPipelineLayout),
-						   "Failed to create pipeline layout");
-
-		vk::GraphicsPipelineCreateInfo graphicsPipelineCreateInfo {};
-		graphicsPipelineCreateInfo.stageCount = 2;
-		graphicsPipelineCreateInfo.pStages	  = shaderStages;
-
-		graphicsPipelineCreateInfo.pVertexInputState   = &pipelineVertexInputStateCreateInfo;
-		graphicsPipelineCreateInfo.pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo;
-		graphicsPipelineCreateInfo.pViewportState	   = &pipelineViewportStateCreateInfo;
-		graphicsPipelineCreateInfo.pRasterizationState = &pipelineRasterizationStateCreateInfo;
-		graphicsPipelineCreateInfo.pMultisampleState   = &pipelineMultisampleStateCreateInfo;
-		graphicsPipelineCreateInfo.pDepthStencilState  = nullptr;
-		graphicsPipelineCreateInfo.pColorBlendState	   = &pipelineColorBlendStateCreateInfo;
-		graphicsPipelineCreateInfo.pDynamicState	   = nullptr;
-
-		graphicsPipelineCreateInfo.layout = vkPipelineLayout;
-
-		graphicsPipelineCreateInfo.renderPass = vkRenderPass;
-		graphicsPipelineCreateInfo.subpass	  = 0;
-
-		RETURN_IF_VK_ERROR(
-			vkDevice.createGraphicsPipelines(nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &vkPipeline),
-			"Failed to create graphics pipeline");
-	}
 
 	Engine::Managers::MeshManager::setVkDevice(vkDevice);
-	Engine::Managers::MeshManager::setVkCommandPool(vkCommandPool);
+	Engine::Managers::MeshManager::setVkCommandPool(vkCommandPools[0]);
 	Engine::Managers::MeshManager::setVkTransferQueue(vkGraphicsQueue);
 	Engine::Managers::MeshManager::setVulkanMemoryAllocator(vmaAllocator);
-
 	Engine::Managers::MeshManager::init();
 
 	meshHandle = Engine::Managers::MeshManager::createObject(0);
+	meshHandle.update();
+
+
+	Engine::Managers::MaterialManager::init();
+
+	auto materialHandle = Engine::Managers::MaterialManager::createObject(0);
+
+
+	forwardRenderer.setVkDevice(vkDevice);
+	forwardRenderer.setOutputSize({ 1920, 1080 });
+	forwardRenderer.init();
+	// forwardRenderer.allocateCommandBuffers(vkCommandPools);
+
+	createRenderPasses();
+	createFramebuffers();
+
+	// FIXME for each renderer
+	generateGraphicsPipelines(&forwardRenderer);
+
+
+	// Allocate command buffers for every renderer
+
+	// TODO: renderers array size
+	uint renderersCount = 1;
+	vkCommandBuffers.resize(renderersCount * framesInFlightCount * (1 + threadCount));
+
+	for (uint rendererIndex = 0; rendererIndex < renderersCount; rendererIndex++) {
+		uint commandBufferOffset = rendererIndex * framesInFlightCount * (1 + threadCount);
+
+		for (uint frameIndex = 0; frameIndex < framesInFlightCount; frameIndex++) {
+			for (uint threadIndex = 0; threadIndex < 1 + threadCount; threadIndex++) {
+				uint commandPoolIndex = getCommandPoolIndex(frameIndex, threadIndex);
+
+				vk::CommandBufferAllocateInfo commandBufferAllocateInfo {};
+				commandBufferAllocateInfo.commandPool		 = vkCommandPools[commandPoolIndex];
+				commandBufferAllocateInfo.commandBufferCount = 1;
+
+				commandBufferAllocateInfo.level = vk::CommandBufferLevel::ePrimary;
+
+
+				RETURN_IF_VK_ERROR(
+					vkDevice.allocateCommandBuffers(&commandBufferAllocateInfo,
+													&vkCommandBuffers[commandBufferOffset + commandPoolIndex]),
+					"Failed to allocate command buffer");
+			}
+		}
+	}
+
+
+	// Allocate command buffers for image blit
+
+	vkImageBlitCommandBuffers.resize(framesInFlightCount);
+	for (uint frameIndex = 0; frameIndex < framesInFlightCount; frameIndex++) {
+		uint commandPoolIndex = getCommandPoolIndex(frameIndex, 0);
+
+		vk::CommandBufferAllocateInfo commandBufferAllocateInfo {};
+		commandBufferAllocateInfo.commandPool		 = vkCommandPools[commandPoolIndex];
+		commandBufferAllocateInfo.commandBufferCount = 1;
+
+		commandBufferAllocateInfo.level = vk::CommandBufferLevel::ePrimary;
+
+
+		RETURN_IF_VK_ERROR(
+			vkDevice.allocateCommandBuffers(&commandBufferAllocateInfo, &vkImageBlitCommandBuffers[frameIndex]),
+			"Failed to allocate command buffer");
+	}
+
+
+	// Create semaphores
+
+	vk::SemaphoreCreateInfo semaphoreCreateInfo {};
+
+	vkImageAvailableSemaphores.resize(framesInFlightCount);
+	vkImageBlitFinishedSemaphores.resize(framesInFlightCount);
+
+	for (auto& semaphore : vkImageAvailableSemaphores) {
+		RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
+						   "Failed to create rendering semaphore");
+	}
+	for (auto& semaphore : vkImageBlitFinishedSemaphores) {
+		RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
+						   "Failed to create rendering semaphore");
+	}
 
 	return 0;
 }
 
 int RenderingSystem::run(double dt) {
-	// record command buffers
+	currentFrameInFlight  = (currentFrameInFlight + 1) % framesInFlightCount;
+	auto commandPoolIndex = getCommandPoolIndex(currentFrameInFlight, 0);
 
-	for (uint i = 0; i < vkCommandBuffers.size(); i++) {
-		auto& commandBuffer = vkCommandBuffers[i];
+	vkDevice.resetCommandPool(vkCommandPools[commandPoolIndex]);
+
+	// FIXME indexed renderers
+	for (uint rendererIndex = 0; rendererIndex < 1; rendererIndex++) {
+		auto& renderer = forwardRenderer;
+
+		auto& commandBuffer =
+			vkCommandBuffers[rendererIndex * framesInFlightCount * (1 + threadCount) + commandPoolIndex];
+
 
 		vk::CommandBufferBeginInfo commandBufferBeginInfo {};
 
-		RETURN_IF_VK_ERROR(commandBuffer.begin(&commandBufferBeginInfo), "Failed to record command buffer");
-
 		vk::RenderPassBeginInfo renderPassBeginInfo {};
-		renderPassBeginInfo.renderPass		  = vkRenderPass;
-		renderPassBeginInfo.framebuffer		  = vkSwapchainInfo.framebuffers[i];
+		renderPassBeginInfo.renderPass		  = vkRenderPasses[rendererIndex];
+		renderPassBeginInfo.framebuffer		  = vkFramebuffers[rendererIndex];
 		renderPassBeginInfo.renderArea.extent = vkSwapchainInfo.extent;
 		renderPassBeginInfo.renderArea.offset = vk::Offset2D(0, 0);
 
-		vk::ClearValue clearValue = { std::array<float, 4> { 0.0f, 0.0f, 0.0f, 1.0f } };
+		// FIXME color
+		vk::ClearValue clearValue = { std::array<float, 4> { 1.0f, 0.0f, 0.0f, 1.0f } };
 
 		renderPassBeginInfo.clearValueCount = 1;
 		renderPassBeginInfo.pClearValues	= &clearValue;
 
 
+		// Begin command buffer
+
+		RETURN_IF_VK_ERROR(commandBuffer.begin(&commandBufferBeginInfo), "Failed to record command buffer");
+
 		commandBuffer.beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
 
-		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkPipeline);
-
-		vk::DeviceSize offsets[] = { 0 };
-
-		auto meshInfo = Engine::Managers::MeshManager::getMeshInfo(meshHandle);
-
-		auto vertexBuffer = meshInfo.vertexBuffer.getVkBuffer();
-		commandBuffer.bindVertexBuffers(0, 1, &vertexBuffer, offsets);
-
-		auto indexBuffer = meshInfo.indexBuffer.getVkBuffer();
-		commandBuffer.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint16);
-
-		commandBuffer.drawIndexed(meshInfo.indexCount, 1, 0, 0, 0);
-
+		renderer.recordCommandBuffer(dt, commandBuffer);
 
 		commandBuffer.endRenderPass();
-
-
 		RETURN_IF_VK_ERROR(commandBuffer.end(), "Failed to record command buffer");
+
+
+		vk::SubmitInfo submitInfo {};
+		// submitInfo.waitSemaphoreCount = 1;
+		// submitInfo.pWaitSemaphores	  = &vkImageAvailableSemaphore;
+
+		vk::PipelineStageFlags pipelineStageFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+		submitInfo.pWaitDstStageMask			  = &pipelineStageFlags;
+
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers	  = &commandBuffer;
+
+		// submitInfo.signalSemaphoreCount = 1;
+		// submitInfo.pSignalSemaphores	= &vkRenderingFinishedSemaphore;
+
+		RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, nullptr), "Failed to submit graphics command buffer");
 	}
+
 
 	if (present()) {
 		return 1;
 	}
+
+	return 0;
+}
+
+
+int RenderingSystem::present() {
+	auto& imageAvailableSemaphore	 = vkImageAvailableSemaphores[currentFrameInFlight];
+	auto& imageBlitFinishedSemaphore = vkImageBlitFinishedSemaphores[currentFrameInFlight];
+
+	uint32_t imageIndex = 0;
+	RETURN_IF_VK_ERROR(vkDevice.acquireNextImageKHR(
+						   vkSwapchainInfo.swapchain, UINT64_MAX, imageAvailableSemaphore, nullptr, &imageIndex),
+					   "Failed to aquire next image to present");
+
+
+	vk::ImageBlit imageBlitRegion {};
+
+	imageBlitRegion.srcSubresource.aspectMask	  = vk::ImageAspectFlagBits::eColor;
+	imageBlitRegion.srcSubresource.mipLevel		  = 0;
+	imageBlitRegion.srcSubresource.baseArrayLayer = 0;
+	imageBlitRegion.srcSubresource.layerCount	  = 1;
+	imageBlitRegion.srcOffsets[0]				  = vk::Offset3D { 0, 0, 0 };
+	imageBlitRegion.srcOffsets[1]				  = vk::Offset3D { 1920, 1080, 1 };
+
+	imageBlitRegion.dstSubresource.aspectMask	  = vk::ImageAspectFlagBits::eColor;
+	imageBlitRegion.dstSubresource.mipLevel		  = 0;
+	imageBlitRegion.dstSubresource.baseArrayLayer = 0;
+	imageBlitRegion.dstSubresource.layerCount	  = 1;
+	imageBlitRegion.dstOffsets[0]				  = vk::Offset3D { 0, 0, 0 };
+	imageBlitRegion.dstOffsets[1]				  = vk::Offset3D { 1920, 1080, 1 };
+
+
+	auto& commandBuffer = vkImageBlitCommandBuffers[currentFrameInFlight];
+
+	vk::CommandBufferBeginInfo commandBufferBeginInfo {};
+
+	auto& srcImage = Engine::Managers::TextureManager::getTextureInfo(finalTextureHandle).image;
+	auto& dstImage = vkSwapchainInfo.images[imageIndex];
+
+
+	// TODO set image layout helper function
+	vk::ImageMemoryBarrier imageMemoryBarrier0 {};
+	imageMemoryBarrier0.oldLayout					 = vk::ImageLayout::ePresentSrcKHR;
+	imageMemoryBarrier0.newLayout					 = vk::ImageLayout::eTransferDstOptimal;
+	imageMemoryBarrier0.srcAccessMask				 = {};
+	imageMemoryBarrier0.dstAccessMask				 = vk::AccessFlagBits::eTransferWrite;
+	imageMemoryBarrier0.image						 = dstImage;
+	imageMemoryBarrier0.subresourceRange.aspectMask	 = vk::ImageAspectFlagBits::eColor;
+	imageMemoryBarrier0.subresourceRange.baseMipLevel = 0;
+	imageMemoryBarrier0.subresourceRange.levelCount	 = 1;
+	imageMemoryBarrier0.subresourceRange.layerCount	 = 1;
+
+	vk::ImageMemoryBarrier imageMemoryBarrier1 {};
+	imageMemoryBarrier1.oldLayout					 = vk::ImageLayout::eTransferDstOptimal;
+	imageMemoryBarrier1.newLayout					 = vk::ImageLayout::ePresentSrcKHR;
+	imageMemoryBarrier1.srcAccessMask				 = vk::AccessFlagBits::eTransferWrite;
+	imageMemoryBarrier1.dstAccessMask				 = vk::AccessFlagBits::eMemoryRead;
+	imageMemoryBarrier1.image						 = dstImage;
+	imageMemoryBarrier1.subresourceRange.aspectMask	 = vk::ImageAspectFlagBits::eColor;
+	imageMemoryBarrier1.subresourceRange.baseMipLevel = 0;
+	imageMemoryBarrier1.subresourceRange.levelCount	 = 1;
+	imageMemoryBarrier1.subresourceRange.layerCount	 = 1;
+
+
+	// Write image blit command buffer
+
+	RETURN_IF_VK_ERROR(commandBuffer.begin(&commandBufferBeginInfo), "Failed to record command buffer");
+
+	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
+								  vk::PipelineStageFlagBits::eTransfer,
+								  {},
+								  0,
+								  nullptr,
+								  0,
+								  nullptr,
+								  1,
+								  &imageMemoryBarrier0);
+
+	commandBuffer.blitImage(srcImage,
+							vk::ImageLayout::eTransferSrcOptimal,
+							dstImage,
+							vk::ImageLayout::eTransferDstOptimal,
+							1,
+							&imageBlitRegion,
+							vk::Filter::eLinear);
+
+	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+								  vk::PipelineStageFlagBits::eTopOfPipe,
+								  {},
+								  0,
+								  nullptr,
+								  0,
+								  nullptr,
+								  1,
+								  &imageMemoryBarrier1);
+
+	RETURN_IF_VK_ERROR(commandBuffer.end(), "Failed to record command buffer");
+
+
+	// Submit image blit command buffer
+
+	vk::SubmitInfo submitInfo {};
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores	  = &imageAvailableSemaphore;
+
+	// TODO: what should be here?
+	vk::PipelineStageFlags pipelineStageFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	submitInfo.pWaitDstStageMask			  = &pipelineStageFlags;
+
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers	  = &commandBuffer;
+
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores	= &imageBlitFinishedSemaphore;
+
+	RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, nullptr), "Failed to submit graphics command buffer");
+
+
+	// Present an image
+
+	vk::PresentInfoKHR presentInfo {};
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores	   = &imageBlitFinishedSemaphore;
+	presentInfo.swapchainCount	   = 1;
+	presentInfo.pSwapchains		   = &vkSwapchainInfo.swapchain;
+	presentInfo.pImageIndices	   = &imageIndex;
+
+	RETURN_IF_VK_ERROR(vkPresentQueue.presentKHR(&presentInfo), "Failed to present image");
+
+	// FIXME: more optimal way
+	RETURN_IF_VK_ERROR(vkPresentQueue.waitIdle(), "Failed to wait for presenting to finish");
 
 	return 0;
 }
@@ -393,7 +519,7 @@ int RenderingSystem::createSwapchain() {
 	swapchainCreateInfo.imageColorSpace	 = surfaceFormat.colorSpace;
 	swapchainCreateInfo.imageExtent		 = extent;
 	swapchainCreateInfo.imageArrayLayers = 1;
-	swapchainCreateInfo.imageUsage		 = vk::ImageUsageFlagBits::eColorAttachment;
+	swapchainCreateInfo.imageUsage		 = vk::ImageUsageFlagBits::eTransferDst;
 
 	auto queueFamilies			  = getQueueFamilies(getActivePhysicalDevice());
 	uint32_t queueFamilyIndices[] = { queueFamilies.graphicsFamily, queueFamilies.presentFamily };
@@ -455,70 +581,17 @@ int RenderingSystem::createSwapchain() {
 	}
 
 
-	// TODO: renderers should have their own render passes
-	// create render pass
-
-	vk::AttachmentDescription attachmentDescription {};
-	attachmentDescription.format  = vkSwapchainInfo.imageFormat;
-	attachmentDescription.samples = vk::SampleCountFlagBits::e1;
-
-	attachmentDescription.loadOp  = vk::AttachmentLoadOp::eClear;
-	attachmentDescription.storeOp = vk::AttachmentStoreOp::eStore;
-
-	attachmentDescription.stencilLoadOp	 = vk::AttachmentLoadOp::eDontCare;
-	attachmentDescription.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-
-	attachmentDescription.initialLayout = vk::ImageLayout::eUndefined;
-	attachmentDescription.finalLayout	= vk::ImageLayout::ePresentSrcKHR;
-
-
-	vk::AttachmentReference attachmentReference {};
-	attachmentReference.attachment = 0;
-	attachmentReference.layout	   = vk::ImageLayout::eColorAttachmentOptimal;
-
-
-	vk::SubpassDescription subpassDescription {};
-	subpassDescription.pipelineBindPoint	= vk::PipelineBindPoint::eGraphics;
-	subpassDescription.colorAttachmentCount = 1;
-	subpassDescription.pColorAttachments	= &attachmentReference;
-
-
-	vk::RenderPassCreateInfo renderPassCreateInfo {};
-	renderPassCreateInfo.attachmentCount = 1;
-	renderPassCreateInfo.pAttachments	 = &attachmentDescription;
-	renderPassCreateInfo.subpassCount	 = 1;
-	renderPassCreateInfo.pSubpasses		 = &subpassDescription;
-
-	RETURN_IF_VK_ERROR(vkDevice.createRenderPass(&renderPassCreateInfo, nullptr, &vkRenderPass),
-					   "Failed to create render pass");
-
-
-	// create framebuffer
-
-	vkSwapchainInfo.framebuffers.resize(swapchainImageCount);
-	for (uint i = 0; i < vkSwapchainInfo.framebuffers.size(); i++) {
-		vk::FramebufferCreateInfo framebufferCreateInfo {};
-		framebufferCreateInfo.renderPass	  = vkRenderPass;
-		framebufferCreateInfo.attachmentCount = 1;
-		framebufferCreateInfo.pAttachments	  = &vkSwapchainInfo.imageViews[i];
-		framebufferCreateInfo.width			  = vkSwapchainInfo.extent.width;
-		framebufferCreateInfo.height		  = vkSwapchainInfo.extent.height;
-		framebufferCreateInfo.layers		  = 1;
-
-		RETURN_IF_VK_ERROR(
-			vkDevice.createFramebuffer(&framebufferCreateInfo, nullptr, &vkSwapchainInfo.framebuffers[i]),
-			"Failed to create framebuffer");
-	}
-
-
-	// create command pool
+	// create command pools
 
 	vk::CommandPoolCreateInfo commandPoolCreateInfo {};
 	commandPoolCreateInfo.queueFamilyIndex = queueFamilies.graphicsFamily;
 	commandPoolCreateInfo.flags			   = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
 
-	RETURN_IF_VK_ERROR(vkDevice.createCommandPool(&commandPoolCreateInfo, nullptr, &vkCommandPool),
-					   "Failed to create command pool");
+	vkCommandPools.resize(framesInFlightCount * (1 + threadCount));
+	for (uint i = 0; i < vkCommandPools.size(); i++) {
+		RETURN_IF_VK_ERROR(vkDevice.createCommandPool(&commandPoolCreateInfo, nullptr, &vkCommandPools[i]),
+						   "Failed to create command pool");
+	}
 
 
 	// allocate command buffers
@@ -526,7 +599,7 @@ int RenderingSystem::createSwapchain() {
 	vkCommandBuffers.resize(swapchainImageCount);
 
 	vk::CommandBufferAllocateInfo commandBufferAllocateInfo {};
-	commandBufferAllocateInfo.commandPool		 = vkCommandPool;
+	commandBufferAllocateInfo.commandPool		 = vkCommandPools[0];
 	commandBufferAllocateInfo.level				 = vk::CommandBufferLevel::ePrimary;
 	commandBufferAllocateInfo.commandBufferCount = vkCommandBuffers.size();
 
@@ -549,39 +622,195 @@ int RenderingSystem::createSwapchain() {
 }
 
 
-int RenderingSystem::present() {
-	uint32_t imageIndex = 0;
-	RETURN_IF_VK_ERROR(vkDevice.acquireNextImageKHR(
-						   vkSwapchainInfo.swapchain, UINT64_MAX, vkImageAvailableSemaphore, nullptr, &imageIndex),
-					   "Failed to aquire next image to present");
+int RenderingSystem::createRenderPasses() {
 
-	vk::SubmitInfo submitInfo {};
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores	  = &vkImageAvailableSemaphore;
+	// FIXME
+	vkRenderPasses.resize(1);
 
-	vk::PipelineStageFlags pipelineStageFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-	submitInfo.pWaitDstStageMask			  = &pipelineStageFlags;
+	// TODO: for each renderer
+	createRenderPass(&forwardRenderer, vkRenderPasses[0]);
 
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers	  = &vkCommandBuffers[imageIndex];
+	return 0;
+}
 
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores	= &vkRenderingFinishedSemaphore;
+int RenderingSystem::createFramebuffers() {
 
-	RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, nullptr), "Failed to submit graphics command buffer");
+	// FIXME
+	vkFramebuffers.resize(1);
+
+	auto texture			= Engine::Managers::TextureManager::createObject(0);
+	auto outputDescriptions = forwardRenderer.getOutputDescriptions()[0];
+	texture.apply([&outputDescriptions](auto& texture) {
+		texture.format = outputDescriptions.format;
+		texture.usage  = outputDescriptions.usage | vk::ImageUsageFlagBits::eTransferSrc;
+		texture.size   = vk::Extent3D(1920, 1080, 1);
+	});
+	texture.update();
+
+	// FIXME
+	finalTextureHandle = texture;
+
+	auto textureInfo = Engine::Managers::TextureManager::getTextureInfo(texture);
+
+	vk::FramebufferCreateInfo framebufferCreateInfo {};
+	framebufferCreateInfo.renderPass	  = vkRenderPasses[0];
+	framebufferCreateInfo.attachmentCount = 1;
+	framebufferCreateInfo.pAttachments	  = &textureInfo.imageView;
+	framebufferCreateInfo.width			  = 1920;
+	framebufferCreateInfo.height		  = 1080;
+	framebufferCreateInfo.layers		  = 1;
+
+	RETURN_IF_VK_ERROR(vkDevice.createFramebuffer(&framebufferCreateInfo, nullptr, &vkFramebuffers[0]),
+					   "Failed to create framebuffer");
+
+	return 0;
+}
 
 
-	vk::PresentInfoKHR presentInfo {};
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores	   = &vkRenderingFinishedSemaphore;
-	presentInfo.swapchainCount	   = 1;
-	presentInfo.pSwapchains		   = &vkSwapchainInfo.swapchain;
-	presentInfo.pImageIndices	   = &imageIndex;
+int RenderingSystem::createRenderPass(Engine::Renderers::RendererBase* renderer, vk::RenderPass& renderPass) {
+	auto attachmentDescriptions = renderer->getVkAttachmentDescriptions();
+	for (auto& attachmentDescription : attachmentDescriptions) {
+		attachmentDescription.initialLayout = vk::ImageLayout::eUndefined;
+		attachmentDescription.finalLayout	= vk::ImageLayout::eTransferSrcOptimal;
+	}
 
-	RETURN_IF_VK_ERROR(vkPresentQueue.presentKHR(&presentInfo), "Failed to present image");
+	const auto& attachmentReferences = renderer->getVkAttachmentReferences();
 
-	// FIXME: more optimal way
-	RETURN_IF_VK_ERROR(vkPresentQueue.waitIdle(), "Failed to wait for presenting to finish");
+	vk::SubpassDescription subpassDescription {};
+	subpassDescription.pipelineBindPoint	= renderer->getVkPipelineBindPoint();
+	subpassDescription.colorAttachmentCount = attachmentReferences.size();
+	subpassDescription.pColorAttachments	= attachmentReferences.data();
+
+
+	vk::RenderPassCreateInfo renderPassCreateInfo {};
+	renderPassCreateInfo.attachmentCount = attachmentDescriptions.size();
+	renderPassCreateInfo.pAttachments	 = attachmentDescriptions.data();
+	renderPassCreateInfo.subpassCount	 = 1;
+	renderPassCreateInfo.pSubpasses		 = &subpassDescription;
+
+	RETURN_IF_VK_ERROR(vkDevice.createRenderPass(&renderPassCreateInfo, nullptr, &renderPass),
+					   "Failed to create render pass");
+
+	return 0;
+}
+
+int RenderingSystem::generateGraphicsPipelines(Engine::Renderers::RendererBase* renderer) {
+	constexpr auto shaderTypeCount = Engine::Managers::ShaderManager::getTypeCount();
+	constexpr auto meshTypeCount   = Engine::Managers::MeshManager::getTypeCount();
+
+	auto renderPassIndex = Engine::Managers::ShaderManager::getRenderPassIndex(renderer->getRenderPassName());
+
+	// FIXME index
+	vk::RenderPass renderPass = vkRenderPasses[0];
+	// createRenderPass(renderer, renderPass);
+
+	const auto& pipelineInputAssemblyStateCreateInfo = renderer->getVkPipelineInputAssemblyStateCreateInfo();
+	const auto& viewport							 = renderer->getVkViewport();
+	const auto& scissor								 = renderer->getVkScissor();
+	const auto& pipelineRasterizationStateCreateInfo = renderer->getVkPipelineRasterizationStateCreateInfo();
+	const auto& pipelineMultisampleStateCreateInfo	 = renderer->getVkPipelineMultisampleStateCreateInfo();
+	const auto& pipelineColorBlendAttachmentState	 = renderer->getVkPipelineColorBlendAttachmentState();
+
+	vk::PipelineViewportStateCreateInfo pipelineViewportStateCreateInfo {};
+	pipelineViewportStateCreateInfo.viewportCount = 1;
+	pipelineViewportStateCreateInfo.pViewports	  = &viewport;
+	pipelineViewportStateCreateInfo.scissorCount  = 1;
+	pipelineViewportStateCreateInfo.pScissors	  = &scissor;
+
+	vk::PipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo {};
+	pipelineColorBlendStateCreateInfo.logicOpEnable	  = false;
+	pipelineColorBlendStateCreateInfo.attachmentCount = 1;
+	pipelineColorBlendStateCreateInfo.pAttachments	  = &pipelineColorBlendAttachmentState;
+
+	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {};
+
+	vk::PipelineLayout pipelineLayout {};
+	RETURN_IF_VK_ERROR(vkDevice.createPipelineLayout(&pipelineLayoutCreateInfo, nullptr, &pipelineLayout),
+					   "Failed to create pipeline layout");
+
+
+	std::vector<vk::Pipeline> graphicsPipelines {};
+	for (uint shaderTypeIndex = 0; shaderTypeIndex < shaderTypeCount; shaderTypeIndex++) {
+		for (uint meshTypeIndex = 0; meshTypeIndex < meshTypeCount; meshTypeIndex++) {
+			vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {};
+
+			auto vertexAttributeDescriptions =
+				Engine::Managers::MeshManager::getVertexInputAttributeDescriptions(meshTypeIndex);
+			pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = vertexAttributeDescriptions.size();
+			pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions	   = vertexAttributeDescriptions.data();
+
+			auto vertexBindingDescriptions =
+				Engine::Managers::MeshManager::getVertexInputBindingDescriptions(meshTypeIndex);
+			pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = vertexBindingDescriptions.size();
+			pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions	 = vertexBindingDescriptions.data();
+
+			auto flagCount = Engine::Managers::ShaderManager::getShaderFlagCount(shaderTypeIndex);
+
+			for (uint signature = 0; signature < std::pow(2, flagCount); signature++) {
+				uint32_t shaderStageCount = 0;
+				vk::PipelineShaderStageCreateInfo pipelineShaderStageCreateInfos[6];
+
+				auto shaderInfo = Engine::Managers::ShaderManager::getShaderInfo(
+					renderPassIndex, shaderTypeIndex, meshTypeIndex, signature);
+				for (uint shaderStageIndex = 0; shaderStageIndex < 6; shaderStageIndex++) {
+					if (shaderInfo.shaderModules[shaderStageIndex] != vk::ShaderModule()) {
+						switch (shaderStageIndex) {
+						case 0:
+							pipelineShaderStageCreateInfos[shaderStageCount].stage = vk::ShaderStageFlagBits::eVertex;
+							break;
+						case 1:
+							pipelineShaderStageCreateInfos[shaderStageCount].stage = vk::ShaderStageFlagBits::eGeometry;
+							break;
+						case 2:
+							pipelineShaderStageCreateInfos[shaderStageCount].stage =
+								vk::ShaderStageFlagBits::eTessellationControl;
+							break;
+						case 3:
+							pipelineShaderStageCreateInfos[shaderStageCount].stage =
+								vk::ShaderStageFlagBits::eTessellationEvaluation;
+							break;
+						case 4:
+							pipelineShaderStageCreateInfos[shaderStageCount].stage = vk::ShaderStageFlagBits::eFragment;
+							break;
+						case 5:
+							pipelineShaderStageCreateInfos[shaderStageCount].stage = vk::ShaderStageFlagBits::eCompute;
+							break;
+						}
+						pipelineShaderStageCreateInfos[shaderStageCount].module =
+							shaderInfo.shaderModules[shaderStageIndex];
+						pipelineShaderStageCreateInfos[shaderStageCount].pName = "main";
+						shaderStageCount++;
+					}
+				}
+
+				vk::GraphicsPipelineCreateInfo graphicsPipelineCreateInfo {};
+				graphicsPipelineCreateInfo.stageCount = shaderStageCount;
+				graphicsPipelineCreateInfo.pStages	  = pipelineShaderStageCreateInfos;
+
+				graphicsPipelineCreateInfo.pVertexInputState   = &pipelineVertexInputStateCreateInfo;
+				graphicsPipelineCreateInfo.pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo;
+				graphicsPipelineCreateInfo.pViewportState	   = &pipelineViewportStateCreateInfo;
+				graphicsPipelineCreateInfo.pRasterizationState = &pipelineRasterizationStateCreateInfo;
+				graphicsPipelineCreateInfo.pMultisampleState   = &pipelineMultisampleStateCreateInfo;
+				graphicsPipelineCreateInfo.pDepthStencilState  = nullptr;
+				graphicsPipelineCreateInfo.pColorBlendState	   = &pipelineColorBlendStateCreateInfo;
+				graphicsPipelineCreateInfo.pDynamicState	   = nullptr;
+
+				graphicsPipelineCreateInfo.layout = pipelineLayout;
+
+				graphicsPipelineCreateInfo.renderPass = renderPass;
+				graphicsPipelineCreateInfo.subpass	  = 0;
+
+				vk::Pipeline pipeline;
+				RETURN_IF_VK_ERROR(
+					vkDevice.createGraphicsPipelines(nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline),
+					"Failed to create graphics pipeline");
+
+				graphicsPipelines.push_back(pipeline);
+			}
+		}
+	}
+	renderer->setGraphicsPipelines(graphicsPipelines);
 
 	return 0;
 }

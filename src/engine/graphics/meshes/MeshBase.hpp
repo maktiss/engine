@@ -63,7 +63,7 @@ public:
 
 	// TODO: should MeshManager be responsible for populating vulkan related structures?
 	static constexpr auto getVertexInputBindingDescriptions() {
-		std::array<vk::VertexInputBindingDescription, 1> vertexInputBindingDescriptions {};
+		std::vector<vk::VertexInputBindingDescription> vertexInputBindingDescriptions(1);
 		vertexInputBindingDescriptions[0].binding	= 0;
 		vertexInputBindingDescriptions[0].stride	= getVertexSize();
 		vertexInputBindingDescriptions[0].inputRate = vk::VertexInputRate::eVertex;
@@ -78,7 +78,7 @@ public:
 private:
 	template <std::size_t... Indices>
 	static constexpr auto getVertexInputAttributeDescriptionsImpl(std::index_sequence<Indices...>) {
-		std::array<vk::VertexInputAttributeDescription, getNumAttributes()> vertexInputAttributeDescriptions {};
+		std::vector<vk::VertexInputAttributeDescription> vertexInputAttributeDescriptions(getNumAttributes());
 
 		static_assert(MeshType::getAttributeFormats().size() == getNumAttributes());
 

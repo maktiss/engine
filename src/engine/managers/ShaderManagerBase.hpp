@@ -107,6 +107,12 @@ public:
 		return shaderInfoArrays[renderPass][handle.getIndex()];
 	}
 
+	static inline ShaderInfo& getShaderInfo(uint32_t renderPass, uint32_t shaderTypeIndex, uint32_t meshTypeIndex,
+											uint32_t signature) {
+		assert(renderPass < ShaderManagerBase::getRenderPassStringCount());
+		return shaderInfoArrays[renderPass][getShaderInfoIndex(shaderTypeIndex, meshTypeIndex, signature)];
+	}
+
 
 	// Imports shader sources generating all variations
 	template <typename ShaderType>
@@ -156,8 +162,7 @@ public:
 					auto filenameLength	  = glslSources[i].find("\"", filenamePosition + 1) - filenamePosition - 1;
 
 					if (position + includeLineLength < filenamePosition) {
-						spdlog::error("Failed preprocess shader '{}': include errors detected",
-									  glslSourceFilenames[i]);
+						spdlog::error("Failed preprocess shader '{}': include errors detected", glslSourceFilenames[i]);
 						return 1;
 					}
 
@@ -258,9 +263,8 @@ public:
 			for (uint32_t meshTypeIndex = 0; meshTypeIndex < MeshManager::getTypeCount(); meshTypeIndex++) {
 				for (uint32_t signature = 0; signature < pow(2, ShaderType::getFlagCount()); signature++) {
 
-					uint32_t index = getShaderIndex<ShaderType>(renderPassIndex, meshTypeIndex, signature);
-					uint32_t shaderInfoIndex =
-						getShaderInfoIndex<ShaderType>(shaderTypeIndex, meshTypeIndex, signature);
+					uint32_t index			 = getShaderIndex<ShaderType>(renderPassIndex, meshTypeIndex, signature);
+					uint32_t shaderInfoIndex = getShaderInfoIndex(shaderTypeIndex, meshTypeIndex, signature);
 
 					for (uint shaderStageIndex = 0; shaderStageIndex < 6; shaderStageIndex++) {
 						auto shaderSource =
@@ -298,8 +302,8 @@ public:
 
 	// Returns render pass index given it's string
 	static constexpr uint32_t getRenderPassIndex(const char* renderPassString) {
-		constexpr auto& renderPassStrings = DerivedManager::getRenderPassStrings();
-		uint32_t index					  = -1;
+		constexpr auto renderPassStrings = DerivedManager::getRenderPassStrings();
+		uint32_t index					 = -1;
 		for (uint i = 0; i < renderPassStrings.size(); i++) {
 			if (strcmp(renderPassString, renderPassStrings[i]) == 0) {
 				index = i;
@@ -309,6 +313,19 @@ public:
 
 		assert(index != -1);
 		return index;
+	}
+
+
+	static uint32_t getShaderFlagCount(uint32_t shaderTypeIndex) {
+		return getShaderFlagCountImpl(shaderTypeIndex, std::make_index_sequence<getTypeCount()>());
+	}
+
+	template <std::size_t... Indices>
+	static uint32_t getShaderFlagCountImpl(uint32_t shaderTypeIndex, std::index_sequence<Indices...>) {
+		return ((Indices == shaderTypeIndex
+					 ? std::tuple_element<Indices, std::tuple<ShaderTypes...>>::type::getFlagCount()
+					 : 0) +
+				...);
 	}
 
 
@@ -323,6 +340,11 @@ public:
 					 ? Indices
 					 : 0) +
 				...);
+	}
+
+
+	static constexpr uint32_t getTypeCount() {
+		return sizeof...(ShaderTypes);
 	}
 
 
@@ -343,9 +365,8 @@ private:
 			   meshTypeIndex * ShaderType::getFlagCount() + signature;
 	}
 
-	template <typename ShaderType>
 	static inline uint32_t getShaderInfoIndex(uint32_t shaderTypeIndex, uint32_t meshTypeIndex, uint32_t signature) {
-		return shaderTypeOffsets[shaderTypeIndex] + meshTypeIndex * ShaderType::getFlagCount() + signature;
+		return shaderTypeOffsets[shaderTypeIndex] + meshTypeIndex * getShaderFlagCount(shaderTypeIndex) + signature;
 	}
 
 

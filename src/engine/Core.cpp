@@ -46,6 +46,26 @@ int Core::init(int argc, char** argv) {
 	}
 
 
+
+	Engine::Managers::EntityManager::init();
+
+	auto cameraEntity = Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Camera>();
+	cameraEntity.apply<Components::Transform, Components::Camera>(
+		[](auto& transform, auto& camera) {
+			transform.position.y = 5.0f;
+		});
+	
+	cameraEntity.getComponent<Components::Transform>().position.y = 10.0f;
+
+	auto modelEntity = Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Model>();
+	auto meshHandle = Engine::Managers::MeshManager::createObject(0);
+	meshHandle.update();
+	modelEntity.getComponent<Components::Model>().meshHandles.push_back(meshHandle);
+
+	Managers::EntityManager::forEach<Components::Transform, Components::Camera>([](auto& transform, auto& camera){
+		spdlog::error(transform.position.y);
+	});
+
 	spdlog::info("Initialization completed successfully");
 
 	return 0;

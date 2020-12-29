@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/managers/EntityManager.hpp"
 #include "engine/managers/MaterialManager.hpp"
 #include "engine/managers/MeshManager.hpp"
 #include "engine/managers/ShaderManager.hpp"
