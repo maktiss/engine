@@ -133,8 +133,9 @@ public:
 		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkGraphicsPipelines[0]);
 
 		Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(
-			[&commandBuffer](auto& transform, auto& model) {
-				const auto& meshInfo = Engine::Managers::MeshManager::getMeshInfo(model.meshHandles[0]);
+			[&commandBuffer, pipelineLayout = vkPipelineLayout](auto& transform, auto& model) {
+				const auto& meshInfo	 = Engine::Managers::MeshManager::getMeshInfo(model.meshHandles[0]);
+				const auto& materialInfo = Engine::Managers::MaterialManager::getMaterialInfo(model.materialHandles[0]);
 
 				auto vertexBuffer		 = meshInfo.vertexBuffer.getVkBuffer();
 				vk::DeviceSize offsets[] = { 0 };
@@ -142,6 +143,9 @@ public:
 
 				auto indexBuffer = meshInfo.indexBuffer.getVkBuffer();
 				commandBuffer.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint16);
+
+				commandBuffer.bindDescriptorSets(
+					vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, 1, &materialInfo.descriptorSet, 0, nullptr);
 
 				commandBuffer.drawIndexed(meshInfo.indexCount, 1, 0, 0, 0);
 			});

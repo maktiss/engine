@@ -2,14 +2,14 @@
 
 #include "ShaderManagerBase.hpp"
 
-#include "engine/graphics/shaders/SimpleShader.hpp"
+#include "engine/graphics/shaders/SolidColorShader.hpp"
 
 #include <array>
 #include <string>
 
 
 namespace Engine::Managers  {
-class ShaderManager : public ShaderManagerBase<ShaderManager, Engine::Graphics::Shaders::SimpleShader> {
+class ShaderManager : public ShaderManagerBase<ShaderManager, Engine::Graphics::Shaders::SolidColorShader> {
 public:
 	static int init() {
 		spdlog::info("Initializing ShaderManager...");

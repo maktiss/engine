@@ -117,6 +117,7 @@ public:
 	~RenderingSystem() {
 		vkDevice.waitIdle();
 		Engine::Managers::MeshManager::destroy();
+		Engine::Managers::MaterialManager::dispose();
 		Engine::Managers::TextureManager::dispose();
 		vmaDestroyAllocator(vmaAllocator);
 	}

@@ -58,9 +58,17 @@ int Core::init(int argc, char** argv) {
 	cameraEntity.getComponent<Components::Transform>().position.y = 10.0f;
 
 	auto modelEntity = Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Model>();
+
 	auto meshHandle = Engine::Managers::MeshManager::createObject(0);
 	meshHandle.update();
 	modelEntity.getComponent<Components::Model>().meshHandles.push_back(meshHandle);
+
+	auto materialHandle = Engine::Managers::MaterialManager::createObject(0);
+	materialHandle.apply([](auto& material) {
+		material.color = glm::vec3(0.5f, 0.3f, 0.8f);
+	});
+	materialHandle.update();
+	modelEntity.getComponent<Components::Model>().materialHandles.push_back(materialHandle);
 
 	Managers::EntityManager::forEach<Components::Transform, Components::Camera>([](auto& transform, auto& camera){
 		spdlog::error(transform.position.y);

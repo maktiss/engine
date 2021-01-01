@@ -20,15 +20,16 @@ add_executable(
 	src/engine/graphics/Buffer.cpp
 	src/engine/graphics/Buffer.hpp
 	src/engine/graphics/materials/MaterialBase.hpp
-	src/engine/graphics/materials/SimpleMaterial.hpp
+	src/engine/graphics/materials/SolidColorMaterial.hpp
 	src/engine/graphics/meshes/MeshBase.hpp
 	src/engine/graphics/meshes/StaticMesh.hpp
 	src/engine/graphics/shaders/ShaderBase.hpp
-	src/engine/graphics/shaders/SimpleShader.hpp
+	src/engine/graphics/shaders/SolidColorShader.hpp
 	src/engine/graphics/textures/Texture2D.hpp
 	src/engine/graphics/textures/TextureBase.hpp
 	src/engine/managers/EntityManager.hpp
 	src/engine/managers/EntityManagerBase.hpp
+	src/engine/managers/MaterialManager.cpp
 	src/engine/managers/MaterialManager.hpp
 	src/engine/managers/MeshManager.cpp
 	src/engine/managers/MeshManager.hpp

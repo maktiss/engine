@@ -23,5 +23,34 @@ public:
 	inline std::vector<uint8_t>& getShaderSource(uint shaderStageIndex) {
 		return shaderSources[shaderStageIndex];
 	}
+
+
+	static constexpr auto getFlagNames() {
+		std::array<const char*, getFlagCount()> flagNames;
+
+		for (uint i = 0; i < 16; i++) {
+			flagNames[i] = DerivedShader::getFlagName((typename DerivedShader::Flags)(1 << i));
+		}
+
+		return flagNames;
+	}
+
+	static constexpr uint32_t getFlagCount() {
+		uint flagCount = 0;
+		for (uint i = 0; i < 16; i++) {
+			if (strlen(DerivedShader::getFlagName((typename DerivedShader::Flags)(1 << i)))) {
+				flagCount++;
+			} else {
+				break;
+			}
+		}
+
+		return flagCount;
+	}
+
+
+	static constexpr uint32_t getMaterialUniformBlockSize() {
+		return sizeof(typename DerivedShader::MaterialUniformBlock);
+	}
 };
 } // namespace Engine::Graphics::Shaders

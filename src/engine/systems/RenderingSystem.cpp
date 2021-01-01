@@ -55,8 +55,9 @@ int RenderingSystem::init() {
 	Engine::Managers::ShaderManager::setVkDevice(vkDevice);
 	Engine::Managers::ShaderManager::init();
 
-	Engine::Managers::ShaderManager::importShaderSources<Engine::Graphics::Shaders::SimpleShader>(
-		std::array<std::string, 6> { "assets/shaders/triangle.vsh", "", "", "", "assets/shaders/triangle.fsh", "" });
+	Engine::Managers::ShaderManager::importShaderSources<Engine::Graphics::Shaders::SolidColorShader>(
+		std::array<std::string, 6> {
+			"assets/shaders/solid_color_shader.vsh", "", "", "", "assets/shaders/solid_color_shader.fsh", "" });
 
 
 	Engine::Managers::TextureManager::setVkDevice(vkDevice);
@@ -85,9 +86,15 @@ int RenderingSystem::init() {
 	meshHandle.update();
 
 
+	Engine::Managers::MaterialManager::setVkDevice(vkDevice);
+	Engine::Managers::MaterialManager::setVulkanMemoryAllocator(vmaAllocator);
 	Engine::Managers::MaterialManager::init();
 
-	auto materialHandle = Engine::Managers::MaterialManager::createObject(0);
+	// auto materialHandle = Engine::Managers::MaterialManager::createObject(0);
+	// materialHandle.apply([](auto& material) {
+	// 	material.color = glm::vec3(0.5f, 0.3f, 0.8f);
+	// });
+	// materialHandle.update();
 
 
 	forwardRenderer.setVkDevice(vkDevice);
@@ -231,12 +238,6 @@ int RenderingSystem::run(double dt) {
 		renderPassBeginInfo.framebuffer		  = vkFramebuffers[rendererIndex];
 		renderPassBeginInfo.renderArea.extent = vkSwapchainInfo.extent;
 		renderPassBeginInfo.renderArea.offset = vk::Offset2D(0, 0);
-
-		// FIXME color
-		vk::ClearValue clearValue = { std::array<float, 4> { 1.0f, 0.0f, 0.0f, 1.0f } };
-
-		renderPassBeginInfo.clearValueCount = 1;
-		renderPassBeginInfo.pClearValues	= &clearValue;
 
 
 		// Begin command buffer
@@ -711,11 +712,18 @@ int RenderingSystem::generateGraphicsPipelines(Engine::Renderers::RendererBase* 
 	pipelineColorBlendStateCreateInfo.attachmentCount = 1;
 	pipelineColorBlendStateCreateInfo.pAttachments	  = &pipelineColorBlendAttachmentState;
 
+
+	vk::DescriptorSetLayout descriptorSetLayout = Engine::Managers::MaterialManager::getVkDescriptorSetLayout();
+
 	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {};
+	pipelineLayoutCreateInfo.setLayoutCount = 1;
+	pipelineLayoutCreateInfo.pSetLayouts	= &descriptorSetLayout;
 
 	vk::PipelineLayout pipelineLayout {};
 	RETURN_IF_VK_ERROR(vkDevice.createPipelineLayout(&pipelineLayoutCreateInfo, nullptr, &pipelineLayout),
-					   "Failed to create pipeline layout");
+						"Failed to create pipeline layout");
+
+	renderer->setVkPipelineLayout(pipelineLayout);
 
 
 	std::vector<vk::Pipeline> graphicsPipelines {};

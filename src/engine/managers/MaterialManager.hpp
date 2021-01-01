@@ -2,21 +2,66 @@
 
 #include "ResourceManagerBase.hpp"
 
-#include "engine/graphics/materials/SimpleMaterial.hpp"
+#include "engine/graphics/materials/SolidColorMaterial.hpp"
+
+#define VULKAN_HPP_NO_EXCEPTIONS 1
+#include <vulkan/vulkan.hpp>
+
+#include "vk_mem_alloc.h"
 
 
 namespace Engine::Managers {
-class MaterialManager : public ResourceManagerBase<MaterialManager, Engine::Graphics::Materials::SimpleMaterial> {
+class MaterialManager : public ResourceManagerBase<MaterialManager, Engine::Graphics::Materials::SolidColorMaterial> {
 public:
-	static void postCreate(Handle handle) {
+	struct MaterialInfo {
+		vk::Buffer uniformBuffer;
+		vk::DescriptorSet descriptorSet;
+	};
 
-	}
-	
-	static void update(Handle handle) {
 
+private:
+	static std::vector<MaterialInfo> materialInfos;
+	static std::vector<VmaAllocation> allocationInfos;
+
+	static vk::DescriptorPool vkDescriptorPool;
+	static vk::DescriptorSetLayout vkDescriptorSetLayout;
+
+	static vk::Device vkDevice;
+	static VmaAllocator vmaAllocator;
+
+
+public:
+	static int init();
+
+	static void postCreate(Handle handle);
+	static void update(Handle handle);
+
+
+	static inline void setVkDevice(vk::Device device) {
+		vkDevice = device;
 	}
+
+	static inline void setVulkanMemoryAllocator(VmaAllocator allocator) {
+		vmaAllocator = allocator;
+	}
+
+
+	static inline auto getVkDescriptorSetLayout() {
+		return vkDescriptorSetLayout;
+	}
+
+
+	static inline MaterialInfo& getMaterialInfo(Handle handle) {
+		return materialInfos[handle.getIndex()];
+	}
+
+
+	static void dispose();
+
 
 private:
 	MaterialManager() {};
+
+	static void destroy(uint32_t index);
 };
-}
+} // namespace Engine::Managers
