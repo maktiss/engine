@@ -3,9 +3,10 @@
 
 namespace Engine::Managers {
 std::vector<MaterialManager::MaterialInfo> MaterialManager::materialInfos {};
-std::vector<VmaAllocation> MaterialManager::allocationInfos {};
+std::vector<MaterialManager::AllocationInfo> MaterialManager::allocationInfos {};
 
-vk::DescriptorPool MaterialManager::vkDescriptorPool {};
+std::vector<MaterialManager::DescriptorPoolInfo> MaterialManager::descriptorPoolInfos {};
+
 vk::DescriptorSetLayout MaterialManager::vkDescriptorSetLayout {};
 
 vk::Device MaterialManager::vkDevice {};
@@ -18,20 +19,13 @@ int MaterialManager::init() {
 	assert(vkDevice != vk::Device());
 	assert(vmaAllocator != nullptr);
 
-	vk::DescriptorPoolSize descriptorPoolSize {};
-	descriptorPoolSize.descriptorCount = 1;
 
-	vk::DescriptorPoolCreateInfo descriptorPoolCreateInfo {};
-	descriptorPoolCreateInfo.poolSizeCount = 1;
-	descriptorPoolCreateInfo.pPoolSizes	   = &descriptorPoolSize;
-	descriptorPoolCreateInfo.maxSets	   = 1024;
+	// Create initial descriptor pool
 
-	auto result = vkDevice.createDescriptorPool(&descriptorPoolCreateInfo, nullptr, &vkDescriptorPool);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error(
-			"[MaterialManager] Failed to create descriptor pool. Error code: {} ({})", result, vk::to_string(result));
-		return 1;
-	}
+	createDescriptorPool();
+
+
+	// Create descriptor set layout
 
 	vk::DescriptorSetLayoutBinding descriptorSetLayoutBinding {};
 	descriptorSetLayoutBinding.binding		   = 4; // FIXME
@@ -43,7 +37,7 @@ int MaterialManager::init() {
 	descriptorSetLayoutCreateInfo.bindingCount = 1;
 	descriptorSetLayoutCreateInfo.pBindings	   = &descriptorSetLayoutBinding;
 
-	result = vkDevice.createDescriptorSetLayout(&descriptorSetLayoutCreateInfo, nullptr, &vkDescriptorSetLayout);
+	auto result = vkDevice.createDescriptorSetLayout(&descriptorSetLayoutCreateInfo, nullptr, &vkDescriptorSetLayout);
 	if (result != vk::Result::eSuccess) {
 		spdlog::error("[MaterialManager] Failed to create descriptor set layout. Error code: {} ({})",
 					  result,
@@ -59,7 +53,7 @@ void MaterialManager::postCreate(Handle handle) {
 	materialInfos.push_back({});
 	allocationInfos.push_back({});
 
-	auto& allocation = allocationInfos[handle.getIndex()];
+	auto& allocationInfo = allocationInfos[handle.getIndex()];
 
 	auto& uniformBuffer = materialInfos[handle.getIndex()].uniformBuffer;
 	auto& descriptorSet = materialInfos[handle.getIndex()].descriptorSet;
@@ -81,8 +75,8 @@ void MaterialManager::postCreate(Handle handle) {
 
 
 	VkBuffer buffer;
-	auto result = vk::Result(
-		vmaCreateBuffer(vmaAllocator, &cBufferCreateInfo, &allocationCreateInfo, &buffer, &allocation, nullptr));
+	auto result = vk::Result(vmaCreateBuffer(
+		vmaAllocator, &cBufferCreateInfo, &allocationCreateInfo, &buffer, &allocationInfo.vmaAllocation, nullptr));
 	if (result != vk::Result::eSuccess) {
 		spdlog::error("[MaterialManager] Failed to allocate uniform buffer memory. Error code: {} ({})",
 					  result,
@@ -93,43 +87,59 @@ void MaterialManager::postCreate(Handle handle) {
 	uniformBuffer = vk::Buffer(buffer);
 
 
+	// Get available pool index, and if all filled create a new one
+
+	uint poolIndex = 0;
+	for (poolIndex = 0; poolIndex < descriptorPoolInfos.size(); poolIndex++) {
+		if (descriptorPoolInfos[poolIndex].descriptorSetCount < 1024) {
+			break;
+		}
+	}
+	if (poolIndex == descriptorPoolInfos.size()) {
+		createDescriptorPool();
+	}
+
+	allocationInfo.descriptorPoolIndex = poolIndex;
+
+
 	// Allocate descriptor set
 
 	vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo {};
-	descriptorSetAllocateInfo.descriptorPool	 = vkDescriptorPool;
+	descriptorSetAllocateInfo.descriptorPool	 = descriptorPoolInfos[poolIndex].vkDescriptorPool;
 	descriptorSetAllocateInfo.descriptorSetCount = 1;
 	descriptorSetAllocateInfo.pSetLayouts		 = &vkDescriptorSetLayout;
 
-	result =
-		vkDevice.allocateDescriptorSets(&descriptorSetAllocateInfo, &descriptorSet);
+	result = vkDevice.allocateDescriptorSets(&descriptorSetAllocateInfo, &descriptorSet);
 	if (result != vk::Result::eSuccess) {
 		spdlog::error(
 			"[MaterialManager] Failed to allocate descriptor set. Error code: {} ({})", result, vk::to_string(result));
 
 		return;
 	}
+	descriptorPoolInfos[poolIndex].descriptorSetCount++;
+	
 
 	vk::DescriptorBufferInfo descriptorBufferInfo {};
 	descriptorBufferInfo.buffer = uniformBuffer;
 	descriptorBufferInfo.offset = 0;
-	descriptorBufferInfo.range = bufferCreateInfo.size;
+	descriptorBufferInfo.range	= bufferCreateInfo.size;
 
 	vk::WriteDescriptorSet writeDescriptorSet {};
-	writeDescriptorSet.dstSet = descriptorSet;
-	writeDescriptorSet.dstBinding = 4;
+	writeDescriptorSet.dstSet		   = descriptorSet;
+	writeDescriptorSet.dstBinding	   = 4;
 	writeDescriptorSet.dstArrayElement = 0;
-	writeDescriptorSet.descriptorType = vk::DescriptorType::eUniformBuffer;
+	writeDescriptorSet.descriptorType  = vk::DescriptorType::eUniformBuffer;
 	writeDescriptorSet.descriptorCount = 1;
-	writeDescriptorSet.pBufferInfo = &descriptorBufferInfo;
+	writeDescriptorSet.pBufferInfo	   = &descriptorBufferInfo;
 
 	vkDevice.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 }
 
 void MaterialManager::update(Handle handle) {
-	auto& allocation = allocationInfos[handle.getIndex()];
+	auto& allocationInfo = allocationInfos[handle.getIndex()];
 
 	void* pBufferData;
-	auto result = vk::Result(vmaMapMemory(vmaAllocator, allocation, &pBufferData));
+	auto result = vk::Result(vmaMapMemory(vmaAllocator, allocationInfo.vmaAllocation, &pBufferData));
 	if (result != vk::Result::eSuccess) {
 		spdlog::error("[MaterialManager] Failed to write uniform buffer memory. Error code: {} ({})",
 					  result,
@@ -141,14 +151,41 @@ void MaterialManager::update(Handle handle) {
 	apply(handle, [&pBufferData](auto& material) {
 		material.writeBuffer(pBufferData);
 	});
-	vmaUnmapMemory(vmaAllocator, allocation);
+	vmaUnmapMemory(vmaAllocator, allocationInfo.vmaAllocation);
+}
+
+
+int MaterialManager::createDescriptorPool() {
+	vk::DescriptorPoolSize descriptorPoolSize {};
+	descriptorPoolSize.descriptorCount = 1;
+
+	vk::DescriptorPoolCreateInfo descriptorPoolCreateInfo {};
+	descriptorPoolCreateInfo.poolSizeCount = 1;
+	descriptorPoolCreateInfo.pPoolSizes	   = &descriptorPoolSize;
+	descriptorPoolCreateInfo.maxSets	   = 1024;
+
+	DescriptorPoolInfo descriptorPoolInfo;
+	auto result = vkDevice.createDescriptorPool(&descriptorPoolCreateInfo, nullptr, &descriptorPoolInfo.vkDescriptorPool);
+	if (result != vk::Result::eSuccess) {
+		spdlog::error(
+			"[MaterialManager] Failed to create descriptor pool. Error code: {} ({})", result, vk::to_string(result));
+		return 1;
+	}
+
+	descriptorPoolInfos.push_back(descriptorPoolInfo);
+
+	return 0;
 }
 
 
 void MaterialManager::destroy(uint32_t index) {
-	if (allocationInfos[index] != nullptr) {
-		vmaDestroyBuffer(vmaAllocator, materialInfos[index].uniformBuffer, allocationInfos[index]);
-		allocationInfos[index] = nullptr;
+	auto& vmaAllocation = allocationInfos[index].vmaAllocation;
+	if (vmaAllocation != nullptr) {
+		vmaDestroyBuffer(vmaAllocator, materialInfos[index].uniformBuffer, vmaAllocation);
+		vmaAllocation = nullptr;
+
+		assert(descriptorPoolInfos[allocationInfos[index].descriptorPoolIndex].descriptorSetCount != 0);
+		descriptorPoolInfos[allocationInfos[index].descriptorPoolIndex].descriptorSetCount--;
 	}
 }
 

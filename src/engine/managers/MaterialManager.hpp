@@ -20,10 +20,23 @@ public:
 
 
 private:
-	static std::vector<MaterialInfo> materialInfos;
-	static std::vector<VmaAllocation> allocationInfos;
+	struct AllocationInfo {
+		VmaAllocation vmaAllocation {};
+		uint descriptorPoolIndex {};
+	};
 
-	static vk::DescriptorPool vkDescriptorPool;
+	struct DescriptorPoolInfo {
+		vk::DescriptorPool vkDescriptorPool {};
+		uint descriptorSetCount {};
+	};
+
+
+private:
+	static std::vector<MaterialInfo> materialInfos;
+	static std::vector<AllocationInfo> allocationInfos;
+
+	static std::vector<DescriptorPoolInfo> descriptorPoolInfos;
+
 	static vk::DescriptorSetLayout vkDescriptorSetLayout;
 
 	static vk::Device vkDevice;
@@ -55,6 +68,8 @@ public:
 		return materialInfos[handle.getIndex()];
 	}
 
+
+	static int createDescriptorPool();
 
 	static void dispose();
 
