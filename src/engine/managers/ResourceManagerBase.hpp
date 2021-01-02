@@ -106,7 +106,7 @@ public:
 		referenceCounts.push_back(0);
 
 		auto handle = getHandle(id);
-		DerivedManager::postCreate(handle);
+	DerivedManager::postCreate(handle);
 
 		return handle;
 	}

@@ -24,7 +24,7 @@ int MaterialManager::init() {
 	vk::DescriptorPoolCreateInfo descriptorPoolCreateInfo {};
 	descriptorPoolCreateInfo.poolSizeCount = 1;
 	descriptorPoolCreateInfo.pPoolSizes	   = &descriptorPoolSize;
-	descriptorPoolCreateInfo.maxSets	   = 1;
+	descriptorPoolCreateInfo.maxSets	   = 1024;
 
 	auto result = vkDevice.createDescriptorPool(&descriptorPoolCreateInfo, nullptr, &vkDescriptorPool);
 	if (result != vk::Result::eSuccess) {
@@ -58,10 +58,14 @@ int MaterialManager::init() {
 void MaterialManager::postCreate(Handle handle) {
 	materialInfos.push_back({});
 	allocationInfos.push_back({});
-}
 
-void MaterialManager::update(Handle handle) {
-	destroy(handle.getIndex());
+	auto& allocation = allocationInfos[handle.getIndex()];
+
+	auto& uniformBuffer = materialInfos[handle.getIndex()].uniformBuffer;
+	auto& descriptorSet = materialInfos[handle.getIndex()].descriptorSet;
+
+
+	// Create uniform buffer
 
 	vk::BufferCreateInfo bufferCreateInfo {};
 	bufferCreateInfo.usage = vk::BufferUsageFlagBits::eUniformBuffer;
@@ -75,7 +79,6 @@ void MaterialManager::update(Handle handle) {
 	VmaAllocationCreateInfo allocationCreateInfo {};
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-	auto& allocation = allocationInfos[handle.getIndex()];
 
 	VkBuffer buffer;
 	auto result = vk::Result(
@@ -86,9 +89,6 @@ void MaterialManager::update(Handle handle) {
 					  vk::to_string(result));
 		return;
 	}
-
-	auto& uniformBuffer = materialInfos[handle.getIndex()].uniformBuffer;
-	auto& descriptorSet = materialInfos[handle.getIndex()].descriptorSet;
 
 	uniformBuffer = vk::Buffer(buffer);
 
@@ -123,11 +123,13 @@ void MaterialManager::update(Handle handle) {
 	writeDescriptorSet.pBufferInfo = &descriptorBufferInfo;
 
 	vkDevice.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+}
 
+void MaterialManager::update(Handle handle) {
+	auto& allocation = allocationInfos[handle.getIndex()];
 
-	// TODO: split allocation from updating
 	void* pBufferData;
-	result = vk::Result(vmaMapMemory(vmaAllocator, allocation, &pBufferData));
+	auto result = vk::Result(vmaMapMemory(vmaAllocator, allocation, &pBufferData));
 	if (result != vk::Result::eSuccess) {
 		spdlog::error("[MaterialManager] Failed to write uniform buffer memory. Error code: {} ({})",
 					  result,
