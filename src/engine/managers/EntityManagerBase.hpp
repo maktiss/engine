@@ -104,6 +104,8 @@ public:
 		assert((index == 0) || (signature <= getSignature(index - 1)));
 		assert((index == (getEntityCount() - 1)) || (signature > getSignature(index + 1)));
 
+		resetEntity(index);
+
 		return Handle(index);
 	}
 
@@ -161,6 +163,17 @@ private:
 	static void reserve(uint32_t size) {
 		((std::get<std::vector<ComponentTypes>>(componentArrays).resize(size)), ...);
 		referenceCounts.resize(size);
+	}
+
+
+	// Resets all components of an entity to their initial state
+	static void resetEntity(uint32_t index) {
+		resetEntityImpl(index, std::make_index_sequence<getComponentTypeCount()>());
+	}
+
+	template <std::size_t... Indices>
+	static void resetEntityImpl(uint32_t index, std::index_sequence<Indices...>) {
+		((std::get<Indices>(componentArrays)[index] = {}), ...);
 	}
 
 
