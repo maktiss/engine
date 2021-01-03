@@ -134,6 +134,10 @@ public:
 
 		Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(
 			[&commandBuffer, pipelineLayout = vkPipelineLayout](auto& transform, auto& model) {
+				transform.rotation.z += 0.001;
+				auto transformMatrix = transform.getTransformMatrix();
+				commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eAll, 0, 64, &transformMatrix);
+
 				const auto& meshInfo	 = Engine::Managers::MeshManager::getMeshInfo(model.meshHandles[0]);
 				const auto& materialInfo = Engine::Managers::MaterialManager::getMaterialInfo(model.materialHandles[0]);
 

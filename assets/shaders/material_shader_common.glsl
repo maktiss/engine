@@ -19,9 +19,9 @@ layout(binding = CAMERA_BLOCK_LOCATION) uniform CameraBlock {
 } uCamera;
 
 
-layout(binding = MODEL_BLOCK_LOCATION) uniform ModelBlock {
-	mat4 modelMatrix;
-} uModel;
+// layout(binding = MODEL_BLOCK_LOCATION) uniform ModelBlock {
+// 	mat4 modelMatrix;
+// } uModel;
 
 
 layout(binding = ENVIRONMENT_BLOCK_LOCATION) uniform EnvironmentBlock {

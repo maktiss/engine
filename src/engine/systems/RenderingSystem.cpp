@@ -715,9 +715,18 @@ int RenderingSystem::generateGraphicsPipelines(Engine::Renderers::RendererBase* 
 
 	vk::DescriptorSetLayout descriptorSetLayout = Engine::Managers::MaterialManager::getVkDescriptorSetLayout();
 
+	// TODO: request from renderer
+	vk::PushConstantRange pushConstantRange {};
+	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eAll;
+	pushConstantRange.offset = 0;
+	pushConstantRange.size = 64;
+
 	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {};
 	pipelineLayoutCreateInfo.setLayoutCount = 1;
 	pipelineLayoutCreateInfo.pSetLayouts	= &descriptorSetLayout;
+
+	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+	pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
 	vk::PipelineLayout pipelineLayout {};
 	RETURN_IF_VK_ERROR(vkDevice.createPipelineLayout(&pipelineLayoutCreateInfo, nullptr, &pipelineLayout),
