@@ -28,7 +28,7 @@ int MaterialManager::init() {
 	// Create descriptor set layout
 
 	vk::DescriptorSetLayoutBinding descriptorSetLayoutBinding {};
-	descriptorSetLayoutBinding.binding		   = 4; // FIXME
+	descriptorSetLayoutBinding.binding		   = 0;
 	descriptorSetLayoutBinding.descriptorType  = vk::DescriptorType::eUniformBuffer;
 	descriptorSetLayoutBinding.descriptorCount = 1;
 	descriptorSetLayoutBinding.stageFlags	   = vk::ShaderStageFlagBits::eAll;
@@ -126,7 +126,7 @@ void MaterialManager::postCreate(Handle handle) {
 
 	vk::WriteDescriptorSet writeDescriptorSet {};
 	writeDescriptorSet.dstSet		   = descriptorSet;
-	writeDescriptorSet.dstBinding	   = 4;
+	writeDescriptorSet.dstBinding	   = 0;
 	writeDescriptorSet.dstArrayElement = 0;
 	writeDescriptorSet.descriptorType  = vk::DescriptorType::eUniformBuffer;
 	writeDescriptorSet.descriptorCount = 1;

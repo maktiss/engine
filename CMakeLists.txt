@@ -19,6 +19,8 @@ add_executable(
 	src/engine/components/Transform.hpp
 	src/engine/graphics/Buffer.cpp
 	src/engine/graphics/Buffer.hpp
+	src/engine/graphics/UniqueUniformBuffer.cpp
+	src/engine/graphics/UniqueUniformBuffer.hpp
 	src/engine/graphics/materials/MaterialBase.hpp
 	src/engine/graphics/materials/SolidColorMaterial.hpp
 	src/engine/graphics/meshes/MeshBase.hpp
@@ -43,6 +45,8 @@ add_executable(
 	src/engine/systems/RenderingSystem.cpp
 	src/engine/systems/RenderingSystem.hpp
 	src/engine/systems/SystemBase.hpp
+	src/engine/utils/Importer.cpp
+	src/engine/utils/Importer.hpp
 	src/engine/utils/IO.hpp
 	src/engine/utils/VkMemAllocImpl.cpp
 	src/main.cpp
@@ -65,6 +69,7 @@ target_link_libraries(
 	SPIRV-Tools
 	SPIRV-Tools-opt
 	shaderc_combined
+	assimp
 	${CMAKE_DL_LIBS}
 )
 

@@ -26,7 +26,7 @@ namespace Engine::Graphics::Meshes {
 template <typename MeshType>
 class MeshBase {
 public:
-	std::vector<uint16_t> indexBuffer;
+	std::vector<uint32_t> indexBuffer;
 
 
 public:
@@ -43,7 +43,7 @@ public:
 	}
 
 	inline auto getIndexBufferSize() {
-		return getIndexBuffer().size() * sizeof(uint16_t);
+		return getIndexBuffer().size() * sizeof(uint32_t);
 	}
 
 	static constexpr auto getVertexSize() {

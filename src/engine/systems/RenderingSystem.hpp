@@ -116,6 +116,9 @@ private:
 public:
 	~RenderingSystem() {
 		vkDevice.waitIdle();
+
+		forwardRenderer.dispose();
+
 		Engine::Managers::MeshManager::destroy();
 		Engine::Managers::MaterialManager::dispose();
 		Engine::Managers::TextureManager::dispose();

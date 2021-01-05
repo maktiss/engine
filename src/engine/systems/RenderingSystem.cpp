@@ -99,14 +99,21 @@ int RenderingSystem::init() {
 
 	forwardRenderer.setVkDevice(vkDevice);
 	forwardRenderer.setOutputSize({ 1920, 1080 });
+	forwardRenderer.setVulkanMemoryAllocator(vmaAllocator);
 	forwardRenderer.init();
 	// forwardRenderer.allocateCommandBuffers(vkCommandPools);
 
-	createRenderPasses();
-	createFramebuffers();
+	if (createRenderPasses()) {
+		return 1;
+	}
+	if (createFramebuffers()) {
+		return 1;
+	}
 
 	// FIXME for each renderer
-	generateGraphicsPipelines(&forwardRenderer);
+	if (generateGraphicsPipelines(&forwardRenderer)) {
+		return 1;
+	}
 
 
 	// Allocate command buffers for every renderer
@@ -238,6 +245,10 @@ int RenderingSystem::run(double dt) {
 		renderPassBeginInfo.framebuffer		  = vkFramebuffers[rendererIndex];
 		renderPassBeginInfo.renderArea.extent = vkSwapchainInfo.extent;
 		renderPassBeginInfo.renderArea.offset = vk::Offset2D(0, 0);
+
+		auto& clearValues = renderer.getVkClearValues();
+		renderPassBeginInfo.clearValueCount = clearValues.size();
+		renderPassBeginInfo.pClearValues = clearValues.data();
 
 
 		// Begin command buffer
@@ -628,24 +639,43 @@ int RenderingSystem::createFramebuffers() {
 	// FIXME
 	vkFramebuffers.resize(1);
 
-	auto texture			= Engine::Managers::TextureManager::createObject(0);
-	auto outputDescriptions = forwardRenderer.getOutputDescriptions()[0];
-	texture.apply([&outputDescriptions](auto& texture) {
-		texture.format = outputDescriptions.format;
-		texture.usage  = outputDescriptions.usage | vk::ImageUsageFlagBits::eTransferSrc;
-		texture.size   = vk::Extent3D(1920, 1080, 1);
-	});
-	texture.update();
+	auto outputDescriptions = forwardRenderer.getOutputDescriptions();
+
+	std::vector<Engine::Managers::TextureManager::Handle> textures(outputDescriptions.size());
+	std::vector<vk::ImageView> imageViews(textures.size());
+
+	for (uint i = 0; i < textures.size(); i++) {
+		auto& texture = textures[i];
+		texture = Engine::Managers::TextureManager::createObject(0);
+
+		texture.apply([&outputDescriptions, i](auto& texture) {
+			texture.format = outputDescriptions[i].format;
+			texture.usage  = outputDescriptions[i].usage;
+
+			if (texture.usage & vk::ImageUsageFlagBits::eDepthStencilAttachment) {
+				texture.imageAspect = vk::ImageAspectFlagBits::eDepth;
+			}
+
+			// FIXME: output size
+			texture.size   = vk::Extent3D(1920, 1080, 1);
+
+			// FIXME: for final texture only
+			texture.usage |= vk::ImageUsageFlagBits::eTransferSrc;
+		});
+		texture.update();
+
+		imageViews[i] = Engine::Managers::TextureManager::getTextureInfo(texture).imageView; 
+	}
 
 	// FIXME
-	finalTextureHandle = texture;
-
-	auto textureInfo = Engine::Managers::TextureManager::getTextureInfo(texture);
+	finalTextureHandle = textures[0];
 
 	vk::FramebufferCreateInfo framebufferCreateInfo {};
 	framebufferCreateInfo.renderPass	  = vkRenderPasses[0];
-	framebufferCreateInfo.attachmentCount = 1;
-	framebufferCreateInfo.pAttachments	  = &textureInfo.imageView;
+	framebufferCreateInfo.attachmentCount = imageViews.size();
+	framebufferCreateInfo.pAttachments	  = imageViews.data();
+
+	// FIXME: output size
 	framebufferCreateInfo.width			  = 1920;
 	framebufferCreateInfo.height		  = 1080;
 	framebufferCreateInfo.layers		  = 1;
@@ -659,6 +689,8 @@ int RenderingSystem::createFramebuffers() {
 
 int RenderingSystem::createRenderPass(Engine::Renderers::RendererBase* renderer, vk::RenderPass& renderPass) {
 	auto attachmentDescriptions = renderer->getVkAttachmentDescriptions();
+
+	// FIXME: should depend on rendergraph
 	for (auto& attachmentDescription : attachmentDescriptions) {
 		attachmentDescription.initialLayout = vk::ImageLayout::eUndefined;
 		attachmentDescription.finalLayout	= vk::ImageLayout::eTransferSrcOptimal;
@@ -670,6 +702,15 @@ int RenderingSystem::createRenderPass(Engine::Renderers::RendererBase* renderer,
 	subpassDescription.pipelineBindPoint	= renderer->getVkPipelineBindPoint();
 	subpassDescription.colorAttachmentCount = attachmentReferences.size();
 	subpassDescription.pColorAttachments	= attachmentReferences.data();
+
+	if (attachmentReferences.size() > 0) {
+		auto& lastAttachmentReference = attachmentReferences[attachmentReferences.size() - 1];
+		// TODO: check for all depth layout variations
+		if (lastAttachmentReference.layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+			subpassDescription.colorAttachmentCount--;
+			subpassDescription.pDepthStencilAttachment = &lastAttachmentReference;
+		}
+	}
 
 
 	vk::RenderPassCreateInfo renderPassCreateInfo {};
@@ -699,6 +740,7 @@ int RenderingSystem::generateGraphicsPipelines(Engine::Renderers::RendererBase* 
 	const auto& scissor								 = renderer->getVkScissor();
 	const auto& pipelineRasterizationStateCreateInfo = renderer->getVkPipelineRasterizationStateCreateInfo();
 	const auto& pipelineMultisampleStateCreateInfo	 = renderer->getVkPipelineMultisampleStateCreateInfo();
+	const auto& pipelineDepthStencilStateCreateInfo	 = renderer->getVkPipelineDepthStencilStateCreateInfo();
 	const auto& pipelineColorBlendAttachmentState	 = renderer->getVkPipelineColorBlendAttachmentState();
 
 	vk::PipelineViewportStateCreateInfo pipelineViewportStateCreateInfo {};
@@ -713,7 +755,8 @@ int RenderingSystem::generateGraphicsPipelines(Engine::Renderers::RendererBase* 
 	pipelineColorBlendStateCreateInfo.pAttachments	  = &pipelineColorBlendAttachmentState;
 
 
-	vk::DescriptorSetLayout descriptorSetLayout = Engine::Managers::MaterialManager::getVkDescriptorSetLayout();
+	auto descriptorSetLayouts = renderer->getVkDescriptorSetLayouts();
+	descriptorSetLayouts.push_back(Engine::Managers::MaterialManager::getVkDescriptorSetLayout());
 
 	// TODO: request from renderer
 	vk::PushConstantRange pushConstantRange {};
@@ -722,8 +765,8 @@ int RenderingSystem::generateGraphicsPipelines(Engine::Renderers::RendererBase* 
 	pushConstantRange.size = 64;
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {};
-	pipelineLayoutCreateInfo.setLayoutCount = 1;
-	pipelineLayoutCreateInfo.pSetLayouts	= &descriptorSetLayout;
+	pipelineLayoutCreateInfo.setLayoutCount = descriptorSetLayouts.size();
+	pipelineLayoutCreateInfo.pSetLayouts	= descriptorSetLayouts.data();
 
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 	pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
@@ -798,7 +841,7 @@ int RenderingSystem::generateGraphicsPipelines(Engine::Renderers::RendererBase* 
 				graphicsPipelineCreateInfo.pViewportState	   = &pipelineViewportStateCreateInfo;
 				graphicsPipelineCreateInfo.pRasterizationState = &pipelineRasterizationStateCreateInfo;
 				graphicsPipelineCreateInfo.pMultisampleState   = &pipelineMultisampleStateCreateInfo;
-				graphicsPipelineCreateInfo.pDepthStencilState  = nullptr;
+				graphicsPipelineCreateInfo.pDepthStencilState  = &pipelineDepthStencilStateCreateInfo;
 				graphicsPipelineCreateInfo.pColorBlendState	   = &pipelineColorBlendStateCreateInfo;
 				graphicsPipelineCreateInfo.pDynamicState	   = nullptr;
 
