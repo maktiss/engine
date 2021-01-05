@@ -90,4 +90,6 @@ _deps
 
 build/*
 
+assets/*
+
 Engine.log
