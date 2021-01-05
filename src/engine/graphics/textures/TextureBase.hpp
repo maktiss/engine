@@ -18,6 +18,7 @@ public:
 	bool useMipMapping {};
 
 	vk::ImageUsageFlags usage {};
+	vk::ImageAspectFlags imageAspect = vk::ImageAspectFlagBits::eColor;
 
 
 private:

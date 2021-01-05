@@ -54,7 +54,7 @@ void TextureManager::update(Handle handle) {
 
 		imageViewCreateInfo.viewType = vk::ImageViewType::e2D;
 		imageViewCreateInfo.format = texture.format;
-		imageViewCreateInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+		imageViewCreateInfo.subresourceRange.aspectMask = texture.imageAspect;
 		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.levelCount = 1;
