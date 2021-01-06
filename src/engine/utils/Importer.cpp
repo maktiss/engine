@@ -40,11 +40,13 @@ int Importer::importMesh(std::string filename, std::vector<Engine::Managers::Mes
 				std::get<0>(vertexBuffer[vIndex]).y = assimpMesh->mVertices[vIndex].y;
 				std::get<0>(vertexBuffer[vIndex]).z = assimpMesh->mVertices[vIndex].z;
 
-				std::get<1>(vertexBuffer[vIndex]).x = 1.0f;
-				std::get<1>(vertexBuffer[vIndex]).y = 1.0f;
-
-				// std::get<1>(vertexBuffer[vIndex]).x = assimpMesh->mTextureCoords[0][vIndex].x;
-				// std::get<1>(vertexBuffer[vIndex]).y = assimpMesh->mTextureCoords[0][vIndex].y;
+				if (assimpMesh->mTextureCoords[0] != nullptr) {
+					std::get<1>(vertexBuffer[vIndex]).x = assimpMesh->mTextureCoords[0][vIndex].x;
+					std::get<1>(vertexBuffer[vIndex]).y = assimpMesh->mTextureCoords[0][vIndex].y;
+				} else {
+					std::get<1>(vertexBuffer[vIndex]).x = 0.0f;
+					std::get<1>(vertexBuffer[vIndex]).y = 0.0f;
+				}
 			}
 
 			auto& indexBuffer = mesh.getIndexBuffer();
