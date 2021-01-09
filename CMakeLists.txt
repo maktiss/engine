@@ -31,6 +31,8 @@ add_executable(
 	src/engine/graphics/textures/TextureBase.hpp
 	src/engine/managers/EntityManager.hpp
 	src/engine/managers/EntityManagerBase.hpp
+	src/engine/managers/InputManager.cpp
+	src/engine/managers/InputManager.hpp
 	src/engine/managers/MaterialManager.cpp
 	src/engine/managers/MaterialManager.hpp
 	src/engine/managers/MeshManager.cpp
@@ -42,6 +44,8 @@ add_executable(
 	src/engine/managers/TextureManager.hpp
 	src/engine/renderers/ForwardRenderer.hpp
 	src/engine/renderers/RendererBase.hpp
+	src/engine/systems/InputSystem.cpp
+	src/engine/systems/InputSystem.hpp
 	src/engine/systems/RenderingSystem.cpp
 	src/engine/systems/RenderingSystem.hpp
 	src/engine/systems/SystemBase.hpp

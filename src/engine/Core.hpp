@@ -13,18 +13,22 @@
 
 #include "engine/managers/EntityManager.hpp"
 
+#include "engine/systems/InputSystem.hpp"
 #include "engine/systems/RenderingSystem.hpp"
 
 #include <array>
 #include <memory>
+#include <vector>
 
 
 namespace Engine {
 class Core {
 public:
-
 private:
-	std::array<std::shared_ptr<Systems::SystemBase>, 1> systems { std::make_shared<Systems::RenderingSystem>() };
+	// std::array<std::shared_ptr<Systems::SystemBase>, 2> systems { std::make_shared<Systems::InputSystem>(),
+	// 															  std::make_shared<Systems::RenderingSystem>() };
+
+	std::vector<std::shared_ptr<Systems::SystemBase>> systems;
 
 	GLFWwindow* glfwWindow = nullptr;
 

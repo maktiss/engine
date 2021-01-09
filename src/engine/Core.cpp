@@ -34,9 +34,15 @@ int Core::init(int argc, char** argv) {
 	}
 
 
-	// FIXME: what if RenderingSystem has different position in a list?
-	auto renderingSystem = std::static_pointer_cast<Systems::RenderingSystem>(systems[0]);
+	auto inputSystem = std::make_shared<Systems::InputSystem>();
+	inputSystem->setWindow(glfwWindow);
+
+	auto renderingSystem = std::make_shared<Systems::RenderingSystem>();
 	renderingSystem->setWindow(glfwWindow);
+
+
+	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(inputSystem));
+	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(renderingSystem));
 
 
 	// systems initialization

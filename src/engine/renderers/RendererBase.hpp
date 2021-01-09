@@ -6,8 +6,6 @@
 
 #include "engine/graphics/UniqueUniformBuffer.hpp"
 
-#include "engine/utils/VulkanHelper.hpp"
-
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
 
