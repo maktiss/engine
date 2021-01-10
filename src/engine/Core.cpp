@@ -4,6 +4,8 @@
 
 #include "engine/scripts/CameraScript.hpp"
 
+#include <chrono>
+
 
 namespace Engine {
 Core::~Core() {
@@ -101,10 +103,20 @@ int Core::init(int argc, char** argv) {
 
 int Core::run() {
 	double dt = 0.0;
-	while (!glfwWindowShouldClose(glfwWindow)) {
-		glfwPollEvents();
+	
+	auto timeNow = std::chrono::high_resolution_clock::now();
 
-		// TODO: calculate dt
+	while (!glfwWindowShouldClose(glfwWindow)) {
+		auto timeLast = timeNow;
+		timeNow = std::chrono::high_resolution_clock::now();
+
+		dt = std::chrono::duration_cast<std::chrono::duration<double>>(timeNow - timeLast).count();
+
+		if (dt > 0.033) {
+			dt = 0.033;
+		}
+		
+		glfwPollEvents();
 
 		// update systems
 		for (auto& system : systems) {

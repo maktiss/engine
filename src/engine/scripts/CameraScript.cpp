@@ -38,7 +38,7 @@ int CameraScript::onUpdate(Engine::Managers::EntityManager::Handle handle, doubl
 
 	auto& transform = handle.getComponent<Engine::Components::Transform>();
 
-	transform.position += movementDir * static_cast<float>(0.016) * 5.0f;
+	transform.position += movementDir * static_cast<float>(dt) * 5.0f;
 
 	return 0;
 }
