@@ -2,6 +2,8 @@
 
 #include "engine/utils/Importer.hpp"
 
+#include "engine/scripts/CameraScript.hpp"
+
 
 namespace Engine {
 Core::~Core() {
@@ -37,11 +39,14 @@ int Core::init(int argc, char** argv) {
 	auto inputSystem = std::make_shared<Systems::InputSystem>();
 	inputSystem->setWindow(glfwWindow);
 
+	auto scriptingSystem = std::make_shared<Systems::ScriptingSystem>();
+
 	auto renderingSystem = std::make_shared<Systems::RenderingSystem>();
 	renderingSystem->setWindow(glfwWindow);
 
 
 	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(inputSystem));
+	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(scriptingSystem));
 	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(renderingSystem));
 
 
@@ -55,13 +60,18 @@ int Core::init(int argc, char** argv) {
 
 
 
+	Engine::Managers::ScriptManager::init();
+	Engine::Managers::ScriptManager::registerScript<Engine::Scripts::CameraScript>();
+
 	Engine::Managers::EntityManager::init();
 
 
-	auto cameraEntity = Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Camera>();
-	cameraEntity.apply<Components::Transform, Components::Camera>(
-		[](auto& transform, auto& camera) {
+	auto cameraEntity = Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Script,  Components::Camera>();
+	cameraEntity.apply<Components::Transform, Components::Script, Components::Camera>(
+		[](auto& transform, auto& script, auto& camera) {
 			transform.position.z = -3.0f;
+
+			script.handle = Engine::Managers::ScriptManager::getScriptHandle("camera_script");
 
 			camera.viewport = { 1920.0f, 1080.0f };
 		});

@@ -8,13 +8,15 @@
 #include "engine/managers/ShaderManager.hpp"
 #include "engine/managers/TextureManager.hpp"
 
-#include <memory>
+#include <string>
 
 
-namespace Engine::Systems {
-class SystemBase {
+namespace Engine::Scripts {
+class ScriptBase {
 public:
-	virtual int init()		   = 0;
-	virtual int run(double dt) = 0;
+	// Called once per frame
+	virtual int onUpdate(Engine::Managers::EntityManager::Handle handle, double dt) = 0;
+
+	virtual const char* getScriptName() const = 0;
 };
-} // namespace Engine::Systems
+} // namespace Engine::Scripts

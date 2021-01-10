@@ -16,6 +16,7 @@ add_executable(
 	src/engine/components/Camera.hpp
 	src/engine/components/ComponentBase.hpp
 	src/engine/components/Model.hpp
+	src/engine/components/Script.hpp
 	src/engine/components/Transform.hpp
 	src/engine/graphics/Buffer.cpp
 	src/engine/graphics/Buffer.hpp
@@ -38,16 +39,23 @@ add_executable(
 	src/engine/managers/MeshManager.cpp
 	src/engine/managers/MeshManager.hpp
 	src/engine/managers/ResourceManagerBase.hpp
+	src/engine/managers/ScriptManager.hpp
+	src/engine/managers/ScriptManagerBase.hpp
 	src/engine/managers/ShaderManager.hpp
 	src/engine/managers/ShaderManagerBase.hpp
 	src/engine/managers/TextureManager.cpp
 	src/engine/managers/TextureManager.hpp
 	src/engine/renderers/ForwardRenderer.hpp
 	src/engine/renderers/RendererBase.hpp
+	src/engine/scripts/CameraScript.cpp
+	src/engine/scripts/CameraScript.hpp
+	src/engine/scripts/ScriptBase.hpp
 	src/engine/systems/InputSystem.cpp
 	src/engine/systems/InputSystem.hpp
 	src/engine/systems/RenderingSystem.cpp
 	src/engine/systems/RenderingSystem.hpp
+	src/engine/systems/ScriptingSystem.cpp
+	src/engine/systems/ScriptingSystem.hpp
 	src/engine/systems/SystemBase.hpp
 	src/engine/utils/Importer.cpp
 	src/engine/utils/Importer.hpp

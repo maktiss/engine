@@ -1,16 +1,15 @@
-#define FRAME_BLOCK_LOCATION 0
-#define CAMERA_BLOCK_LOCATION 1
-#define MODEL_BLOCK_LOCATION 2
-#define ENVIRONMENT_BLOCK_LOCATION 3
-#define MATERIAL_BLOCK_LOCATION 4
+#define FRAME_BLOCK_SET 0
+#define CAMERA_BLOCK_SET 1
+#define ENVIRONMENT_BLOCK_SET 2
+#define MATERIAL_BLOCK_SET 3
 
 
-layout(binding = FRAME_BLOCK_LOCATION) uniform FrameBlock {
+layout(set = FRAME_BLOCK_SET, binding = 0) uniform FrameBlock {
 	float dt;
 } uFrame;
 
 
-layout(binding = CAMERA_BLOCK_LOCATION) uniform CameraBlock {
+layout(set = CAMERA_BLOCK_SET, binding = 0) uniform CameraBlock {
 	mat4 viewMatrix;
 	mat4 projectionMatrix;
 
@@ -19,11 +18,6 @@ layout(binding = CAMERA_BLOCK_LOCATION) uniform CameraBlock {
 } uCamera;
 
 
-// layout(binding = MODEL_BLOCK_LOCATION) uniform ModelBlock {
-// 	mat4 modelMatrix;
-// } uModel;
-
-
-layout(binding = ENVIRONMENT_BLOCK_LOCATION) uniform EnvironmentBlock {
+layout(set = ENVIRONMENT_BLOCK_SET, binding = 0) uniform EnvironmentBlock {
 	vec3 lightPos;
 } uEnvironment;
