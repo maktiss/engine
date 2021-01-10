@@ -148,6 +148,17 @@ public:
 		}
 	}
 
+	template <typename... RequiredComponentTypes, typename Func>
+	static void forEachIndexed(Func&& func) {
+		auto ranges = getValidRanges<RequiredComponentTypes...>();
+
+		for (auto range : ranges) {
+			for (uint32_t i = range.first; i < range.second; i++) {
+				func(Handle(i), getComponent<RequiredComponentTypes>(i)...);
+			}
+		}
+	}
+
 
 	template <typename... RequiredComponentTypes, typename Func>
 	static void apply(uint32_t index, Func&& func) {
