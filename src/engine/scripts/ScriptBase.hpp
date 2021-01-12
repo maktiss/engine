@@ -15,8 +15,12 @@ namespace Engine::Scripts {
 class ScriptBase {
 public:
 	// Called once per frame
-	virtual int onUpdate(Engine::Managers::EntityManager::Handle handle, double dt) = 0;
+	virtual int onUpdate(Engine::Managers::EntityManager::Handle handle, double dt) {
+		return 0;
+	}
 
-	virtual const char* getScriptName() const = 0;
+	virtual const char* getScriptName() const {
+		return "script_unnamed";
+	}
 };
 } // namespace Engine::Scripts

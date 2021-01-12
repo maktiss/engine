@@ -42,7 +42,12 @@ private:
 
 public:
 	static int init() {
-		spdlog::info("Initializing ScriptManager...");
+		// Remove all scripts
+		((std::get<std::vector<std::shared_ptr<ScriptBaseTypes>>>(scripts) = {}), ...);
+		scriptInfos = {};
+
+		// Register fallback scripts
+		((registerScript<ScriptBaseTypes>()), ...);
 
 		return 0;
 	}
@@ -55,7 +60,11 @@ public:
 
 
 	static inline Handle getScriptHandle(std::string name) {
-		return Handle(scriptInfos[name].localIndex);
+		auto index = scriptInfos[name].localIndex;
+		if (index == 0) {
+			spdlog::error("Requested non-existing script: {}", name);
+		}
+		return Handle(index);
 	}
 
 	template <typename ScriptBaseType>
@@ -68,13 +77,21 @@ private:
 	template <typename ScriptType, typename ScriptBaseType>
 	static void registerScriptImpl() {
 		if (std::is_base_of<ScriptBaseType, ScriptType>::value) {
+			auto script = std::static_pointer_cast<ScriptBaseType>(std::make_shared<ScriptType>());
+
+			auto iter = scriptInfos.find(script->getScriptName());
+
+			if (iter != scriptInfos.end()) {
+				spdlog::error("Attempted to register a script with existing name: {}", script->getScriptName());
+				return;
+			}
+
 			auto& scriptArray = std::get<std::vector<std::shared_ptr<ScriptBaseType>>>(scripts);
-			scriptArray.push_back(std::static_pointer_cast<ScriptBaseType>(std::make_shared<ScriptType>()));
+			scriptArray.push_back(script);
 
 			constexpr auto typeIndex = getScriptTypeIndex<ScriptBaseType>();
 			uint32_t index			 = scriptArray.size() - 1;
-
-			scriptInfos[scriptArray[index]->getScriptName()] = { typeIndex, index };
+			scriptInfos[script->getScriptName()] = { typeIndex, index };
 		}
 	}
 

@@ -30,6 +30,7 @@ add_executable(
 	src/engine/graphics/shaders/SolidColorShader.hpp
 	src/engine/graphics/textures/Texture2D.hpp
 	src/engine/graphics/textures/TextureBase.hpp
+	src/engine/managers/EntityManager.cpp
 	src/engine/managers/EntityManager.hpp
 	src/engine/managers/EntityManagerBase.hpp
 	src/engine/managers/InputManager.cpp
@@ -39,6 +40,7 @@ add_executable(
 	src/engine/managers/MeshManager.cpp
 	src/engine/managers/MeshManager.hpp
 	src/engine/managers/ResourceManagerBase.hpp
+	src/engine/managers/ScriptManager.cpp
 	src/engine/managers/ScriptManager.hpp
 	src/engine/managers/ScriptManagerBase.hpp
 	src/engine/managers/ShaderManager.hpp
@@ -49,6 +51,8 @@ add_executable(
 	src/engine/renderers/RendererBase.hpp
 	src/engine/scripts/CameraScript.cpp
 	src/engine/scripts/CameraScript.hpp
+	src/engine/scripts/FloatingObjectScript.cpp
+	src/engine/scripts/FloatingObjectScript.hpp
 	src/engine/scripts/ScriptBase.hpp
 	src/engine/systems/InputSystem.cpp
 	src/engine/systems/InputSystem.hpp

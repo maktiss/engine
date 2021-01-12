@@ -14,7 +14,7 @@ int ScriptingSystem::init() {
 
 int ScriptingSystem::run(double dt) {
 
-	Engine::Managers::EntityManager::forEachIndexed<Engine::Components::Script>([dt](auto handle, auto& script){
+	Engine::Managers::EntityManager::forEachIndexed<Engine::Components::Script>([dt](auto handle, auto& script) {
 		Engine::Managers::ScriptManager::getScript<Engine::Scripts::ScriptBase>(script.handle)->onUpdate(handle, dt);
 	});
 

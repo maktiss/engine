@@ -10,13 +10,7 @@ class ScriptBase;
 namespace Engine::Managers {
 class ScriptManager : public ScriptManagerBase<ScriptManager, Engine::Scripts::ScriptBase> {
 public:
-	static int init() {
-		if (ScriptManagerBase::init()) {
-			return 1;
-		}
-
-		return 0;
-	}
+	static int init();
 
 
 private:

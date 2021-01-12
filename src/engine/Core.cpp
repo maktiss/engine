@@ -2,8 +2,6 @@
 
 #include "engine/utils/Importer.hpp"
 
-#include "engine/scripts/CameraScript.hpp"
-
 #include <chrono>
 
 
@@ -63,7 +61,6 @@ int Core::init(int argc, char** argv) {
 
 
 	Engine::Managers::ScriptManager::init();
-	Engine::Managers::ScriptManager::registerScript<Engine::Scripts::CameraScript>();
 
 	Engine::Managers::EntityManager::init();
 
@@ -73,13 +70,13 @@ int Core::init(int argc, char** argv) {
 		[](auto& transform, auto& script, auto& camera) {
 			transform.position.z = -3.0f;
 
-			script.handle = Engine::Managers::ScriptManager::getScriptHandle("camera_script");
+			script.handle = Engine::Managers::ScriptManager::getScriptHandle("script_camera");
 
 			camera.viewport = { 1920.0f, 1080.0f };
 		});
 
 
-	auto modelEntity = Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Model>();
+	auto modelEntity = Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Model, Components::Script>();
 
 	// auto meshHandle = Engine::Managers::MeshManager::createObject(0);
 	if (Engine::Utils::Importer::importMesh("assets/models/dragon.obj", modelEntity.getComponent<Components::Model>().meshHandles)) {
@@ -94,6 +91,8 @@ int Core::init(int argc, char** argv) {
 	});
 	materialHandle.update();
 	modelEntity.getComponent<Components::Model>().materialHandles.push_back(materialHandle);
+
+	modelEntity.getComponent<Components::Script>().handle = Engine::Managers::ScriptManager::getScriptHandle("script_floating_object");
 
 
 	spdlog::info("Initialization completed successfully");

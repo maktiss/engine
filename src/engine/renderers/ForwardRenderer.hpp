@@ -157,10 +157,6 @@ public:
 
 		Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(
 			[&commandBuffer, pipelineLayout = vkPipelineLayout](auto& transform, auto& model) {
-				// TODO: must be updated by ScriptingSystem
-				transform.position.y = -0.5f;
-				transform.rotation.y += 0.001;
-				transform.scale = { 0.1f, 0.1f, 0.1f };
 				auto transformMatrix = transform.getTransformMatrix();
 				commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eAll, 0, 64, &transformMatrix);
 
