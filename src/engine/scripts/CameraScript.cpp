@@ -3,7 +3,7 @@
 
 namespace Engine::Scripts {
 int CameraScript::onUpdate(Engine::Managers::EntityManager::Handle handle, double dt) {
-	glm::vec3 movementDir = glm::vec3(0.0f);
+	auto movementDir = glm::vec4(0.0f);
 
 	if (Engine::Managers::InputManager::isKeyActionStatePressed(
 			Engine::Managers::InputManager::KeyAction::CAMERA_MOVE_LEFT)) {
@@ -36,9 +36,27 @@ int CameraScript::onUpdate(Engine::Managers::EntityManager::Handle handle, doubl
 		movementDir = glm::normalize(movementDir);
 	}
 
+
 	auto& transform = handle.getComponent<Engine::Components::Transform>();
 
-	transform.position += movementDir * static_cast<float>(dt) * 5.0f;
+
+	double sensitivity = 0.002;
+
+	if (Engine::Managers::InputManager::isKeyActionStatePressed(
+			Engine::Managers::InputManager::KeyAction::CAMERA_ACTIVE)) {
+		transform.rotation.y +=
+			Engine::Managers::InputManager::getActionAxis(Engine::Managers::InputManager::AxisAction::CAMERA_ROTATE_X) * sensitivity;
+		transform.rotation.x +=
+			Engine::Managers::InputManager::getActionAxis(Engine::Managers::InputManager::AxisAction::CAMERA_ROTATE_Y) * sensitivity;
+	}
+
+	transform.rotation.x = std::max(-1.5707f, transform.rotation.x);
+	transform.rotation.x = std::min(1.5707f, transform.rotation.x);
+
+	movementDir = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * movementDir;
+	movementDir = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * movementDir;
+	
+	transform.position += glm::vec3(movementDir.x, movementDir.y, movementDir.z) * static_cast<float>(dt) * 5.0f;
 
 	return 0;
 }

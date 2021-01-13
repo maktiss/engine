@@ -12,20 +12,21 @@ class InputManager {
 public:
 	enum class KeyAction {
 		UNDEFINED = 0,
+
 		CAMERA_MOVE_FORWARD,
 		CAMERA_MOVE_BACKWARD,
 		CAMERA_MOVE_LEFT,
 		CAMERA_MOVE_RIGHT,
 		CAMERA_MOVE_UP,
 		CAMERA_MOVE_DOWN,
+
+		CAMERA_ACTIVE,
 	};
 
 	enum class AxisAction {
 		UNDEFINED = 0,
-		CAMERA_MOVE_FORWARD,
-		CAMERA_MOVE_BACKWARD,
-		CAMERA_MOVE_LEFT,
-		CAMERA_MOVE_RIGHT,
+		CAMERA_ROTATE_X,
+		CAMERA_ROTATE_Y,
 	};
 
 	enum KeyActionState {
@@ -37,16 +38,10 @@ public:
 private:
 	static std::vector<uint> actionStates;
 
-	static std::vector<glm::vec3> actionAxes;
+	static std::vector<double> actionAxes;
 
 public:
-	static int init() {
-		// TODO: better solution
-		actionStates.resize(7);
-		actionAxes.resize(5);
-
-		return 0;
-	}
+	static int init();
 
 
 	static inline uint getKeyActionState(KeyAction action) {
@@ -67,14 +62,14 @@ public:
 	}
 
 
-	static inline glm::vec3 getActionAxis(AxisAction action) {
+	static inline auto getActionAxis(AxisAction action) {
 		return actionAxes[static_cast<int>(action)];
 	}
 
 
 	static inline void setKeyActionPressed(KeyAction action) {
 		auto& state = actionStates[static_cast<int>(action)];
-		
+
 		if (state & KeyActionState::PRESSED) {
 			state &= ~KeyActionState::PRESSED_ONCE;
 		} else {
@@ -86,12 +81,17 @@ public:
 
 	static inline void setKeyActionReleased(KeyAction action) {
 		auto& state = actionStates[static_cast<int>(action)];
-		
+
 		if (state & KeyActionState::RELEASED) {
 			state = 0;
 		} else {
 			state = KeyActionState::RELEASED;
 		}
+	}
+
+
+	static inline void setAxisActionValue(AxisAction action, double value) {
+		actionAxes[static_cast<int>(action)] = value;
 	}
 
 

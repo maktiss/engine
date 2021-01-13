@@ -139,9 +139,9 @@ public:
 		Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Camera>(
 			[&cameraBlock](auto& transform, auto& camera) {
 				glm::vec4 viewVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-				viewVector = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
-				viewVector = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
 				viewVector = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
+				viewVector = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
+				viewVector = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
 				cameraBlock.viewMatrix = glm::lookAtLH(transform.position,
 													   transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
 													   glm::vec3(0.0f, 1.0f, 0.0f));
