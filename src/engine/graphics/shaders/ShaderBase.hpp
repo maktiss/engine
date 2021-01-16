@@ -26,9 +26,9 @@ public:
 
 
 	static constexpr auto getFlagNames() {
-		std::array<const char*, getFlagCount()> flagNames;
+		std::array<const char*, getFlagCount()> flagNames {};
 
-		for (uint i = 0; i < 16; i++) {
+		for (uint i = 0; i < getFlagCount(); i++) {
 			flagNames[i] = DerivedShader::getFlagName((typename DerivedShader::Flags)(1 << i));
 		}
 
@@ -51,6 +51,10 @@ public:
 
 	static constexpr uint32_t getMaterialUniformBlockSize() {
 		return sizeof(typename DerivedShader::MaterialUniformBlock);
+	}
+
+	static constexpr uint32_t getTextureCount() {
+		return 0;
 	}
 };
 } // namespace Engine::Graphics::Shaders

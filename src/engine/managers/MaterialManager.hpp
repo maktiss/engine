@@ -2,7 +2,7 @@
 
 #include "ResourceManagerBase.hpp"
 
-#include "engine/graphics/materials/SolidColorMaterial.hpp"
+#include "engine/graphics/materials/SimpleMaterial.hpp"
 
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
@@ -11,7 +11,7 @@
 
 
 namespace Engine::Managers {
-class MaterialManager : public ResourceManagerBase<MaterialManager, Engine::Graphics::Materials::SolidColorMaterial> {
+class MaterialManager : public ResourceManagerBase<MaterialManager, Engine::Graphics::Materials::SimpleMaterial> {
 public:
 	struct MaterialInfo {
 		vk::Buffer uniformBuffer;

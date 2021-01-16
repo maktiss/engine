@@ -135,6 +135,8 @@ public:
 
 		constexpr auto shaderTypeIndex = getTypeIndex<ShaderType>();
 
+		constexpr auto shaderFlagNames = ShaderType::getFlagNames();
+
 		shaderc::Compiler compiler;
 
 		std::array<std::string, 6> glslSources;
@@ -193,7 +195,7 @@ public:
 
 					for (uint flagIndex = 0; flagIndex < ShaderType::getFlagCount(); flagIndex++) {
 						if ((1 << flagIndex) & flags) {
-							options.AddMacroDefinition(ShaderType::getFlagNames()[flagIndex]);
+							options.AddMacroDefinition(shaderFlagNames[flagIndex]);
 						}
 					}
 

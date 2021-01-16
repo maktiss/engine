@@ -20,14 +20,16 @@ add_executable(
 	src/engine/components/Transform.hpp
 	src/engine/graphics/Buffer.cpp
 	src/engine/graphics/Buffer.hpp
+	src/engine/graphics/StagingBuffer.cpp
+	src/engine/graphics/StagingBuffer.hpp
 	src/engine/graphics/UniqueUniformBuffer.cpp
 	src/engine/graphics/UniqueUniformBuffer.hpp
 	src/engine/graphics/materials/MaterialBase.hpp
-	src/engine/graphics/materials/SolidColorMaterial.hpp
+	src/engine/graphics/materials/SimpleMaterial.hpp
 	src/engine/graphics/meshes/MeshBase.hpp
 	src/engine/graphics/meshes/StaticMesh.hpp
 	src/engine/graphics/shaders/ShaderBase.hpp
-	src/engine/graphics/shaders/SolidColorShader.hpp
+	src/engine/graphics/shaders/SimpleShader.hpp
 	src/engine/graphics/textures/Texture2D.hpp
 	src/engine/graphics/textures/TextureBase.hpp
 	src/engine/managers/EntityManager.cpp
@@ -64,6 +66,7 @@ add_executable(
 	src/engine/utils/Importer.cpp
 	src/engine/utils/Importer.hpp
 	src/engine/utils/IO.hpp
+	src/engine/utils/StbImageImpl.cpp
 	src/engine/utils/VkMemAllocImpl.cpp
 	src/main.cpp
 )

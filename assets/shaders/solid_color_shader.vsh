@@ -17,7 +17,5 @@ layout(push_constant) uniform ModelBlock {
 void main() {
 	outTexCoord = aTexCoord;
 
-	outTexCoord.x = length(aPosition) * 0.1;
-
 	gl_Position = uCamera.projectionMatrix * uCamera.viewMatrix * uModel.transformMatrix * vec4(aPosition, 1.0);
 }

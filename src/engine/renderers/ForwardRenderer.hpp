@@ -104,7 +104,7 @@ public:
 
 	// Records command buffer within renderpass
 	void recordCommandBuffer(double dt, vk::CommandBuffer& commandBuffer) {
-		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkGraphicsPipelines[0]);
+		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkGraphicsPipelines[1]);
 
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
 										 vkPipelineLayout,

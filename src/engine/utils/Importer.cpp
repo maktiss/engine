@@ -5,13 +5,15 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
+#include "stb_image.h"
+
 
 namespace Engine::Utils {
 Assimp::Importer Importer::assimpImporter {};
 
 
 int Importer::importMesh(std::string filename, std::vector<Engine::Managers::MeshManager::Handle>& meshHandles) {
-	spdlog::info("Importing '{}'", filename);
+	spdlog::info("Importing mesh '{}'...", filename);
 
 	const aiScene* scene =
 		assimpImporter.ReadFile(filename,
@@ -27,7 +29,7 @@ int Importer::importMesh(std::string filename, std::vector<Engine::Managers::Mes
 
 	for (uint i = 0; i < meshHandles.size(); i++) {
 		auto& meshHandle = meshHandles[i];
-		meshHandle = Engine::Managers::MeshManager::createObject(0);
+		meshHandle		 = Engine::Managers::MeshManager::createObject(0);
 
 		auto assimpMesh = scene->mMeshes[i];
 
@@ -63,4 +65,34 @@ int Importer::importMesh(std::string filename, std::vector<Engine::Managers::Mes
 	}
 	return 0;
 }
+
+int Importer::importTexture(std::string filename, Engine::Managers::TextureManager::Handle& textureHandle) {
+	spdlog::info("Importing texture '{}'...", filename);
+	int width;
+	int height;
+	int channels;
+
+	auto image = stbi_load(filename.c_str(), &width, &height, &channels, 4);
+	if (image == nullptr) {
+		spdlog::error("Failed to import '{}'", filename);
+		return 1;
+	}
+
+	textureHandle.apply([image, width, height](auto& texture) {
+		texture.size = vk::Extent3D(width, height, 1);
+
+		texture.setPixelData(image, width * height * 4);
+
+		texture.format		= vk::Format::eR8G8B8A8Srgb;
+		texture.usage		= vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
+		texture.imageAspect = vk::ImageAspectFlagBits::eColor;
+
+		texture.useMipMapping = true;
+	});
+	textureHandle.update();
+
+	stbi_image_free(image);
+
+	return 0;
 }
+} // namespace Engine::Utils

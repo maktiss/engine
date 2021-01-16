@@ -2,19 +2,24 @@
 
 #include "MaterialBase.hpp"
 
-#include "engine/graphics/shaders/SolidColorShader.hpp"
+#include "engine/graphics/shaders/SimpleShader.hpp"
 
 #include <glm/glm.hpp>
 
 
 namespace Engine::Graphics::Materials {
-class SolidColorMaterial : public MaterialBase<SolidColorMaterial, Engine::Graphics::Shaders::SolidColorShader> {
+class SimpleMaterial : public MaterialBase<SimpleMaterial, Engine::Graphics::Shaders::SimpleShader> {
 public:
 	glm::vec3 color;
 
 public:
 	uint32_t getFlags() const {
 		uint32_t flags = 0;
+
+		if (textureHandles[0].getIndex()) {
+			flags |= Flags::USE_TEXTURE;
+		}
+
 		return flags;
 	}
 

@@ -4,6 +4,8 @@
 
 #include "engine/graphics/textures/Texture2D.hpp"
 
+#include "engine/graphics/StagingBuffer.hpp"
+
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
 
@@ -32,6 +34,8 @@ private:
 	static vk::CommandPool vkCommandPool;
 
 	static float maxAnisotropy;
+
+	static Engine::Graphics::StagingBuffer stagingBuffer;
 
 
 public:

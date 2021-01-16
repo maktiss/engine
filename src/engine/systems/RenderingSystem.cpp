@@ -55,7 +55,7 @@ int RenderingSystem::init() {
 	Engine::Managers::ShaderManager::setVkDevice(vkDevice);
 	Engine::Managers::ShaderManager::init();
 
-	Engine::Managers::ShaderManager::importShaderSources<Engine::Graphics::Shaders::SolidColorShader>(
+	Engine::Managers::ShaderManager::importShaderSources<Engine::Graphics::Shaders::SimpleShader>(
 		std::array<std::string, 6> {
 			"assets/shaders/solid_color_shader.vsh", "", "", "", "assets/shaders/solid_color_shader.fsh", "" });
 
@@ -246,9 +246,9 @@ int RenderingSystem::run(double dt) {
 		renderPassBeginInfo.renderArea.extent = vkSwapchainInfo.extent;
 		renderPassBeginInfo.renderArea.offset = vk::Offset2D(0, 0);
 
-		auto& clearValues = renderer.getVkClearValues();
+		auto& clearValues					= renderer.getVkClearValues();
 		renderPassBeginInfo.clearValueCount = clearValues.size();
-		renderPassBeginInfo.pClearValues = clearValues.data();
+		renderPassBeginInfo.pClearValues	= clearValues.data();
 
 
 		// Begin command buffer
@@ -646,7 +646,7 @@ int RenderingSystem::createFramebuffers() {
 
 	for (uint i = 0; i < textures.size(); i++) {
 		auto& texture = textures[i];
-		texture = Engine::Managers::TextureManager::createObject(0);
+		texture		  = Engine::Managers::TextureManager::createObject(0);
 
 		texture.apply([&outputDescriptions, i](auto& texture) {
 			texture.format = outputDescriptions[i].format;
@@ -657,14 +657,14 @@ int RenderingSystem::createFramebuffers() {
 			}
 
 			// FIXME: output size
-			texture.size   = vk::Extent3D(1920, 1080, 1);
+			texture.size = vk::Extent3D(1920, 1080, 1);
 
 			// FIXME: for final texture only
 			texture.usage |= vk::ImageUsageFlagBits::eTransferSrc;
 		});
 		texture.update();
 
-		imageViews[i] = Engine::Managers::TextureManager::getTextureInfo(texture).imageView; 
+		imageViews[i] = Engine::Managers::TextureManager::getTextureInfo(texture).imageView;
 	}
 
 	// FIXME
@@ -676,9 +676,9 @@ int RenderingSystem::createFramebuffers() {
 	framebufferCreateInfo.pAttachments	  = imageViews.data();
 
 	// FIXME: output size
-	framebufferCreateInfo.width			  = 1920;
-	framebufferCreateInfo.height		  = 1080;
-	framebufferCreateInfo.layers		  = 1;
+	framebufferCreateInfo.width	 = 1920;
+	framebufferCreateInfo.height = 1080;
+	framebufferCreateInfo.layers = 1;
 
 	RETURN_IF_VK_ERROR(vkDevice.createFramebuffer(&framebufferCreateInfo, nullptr, &vkFramebuffers[0]),
 					   "Failed to create framebuffer");
@@ -761,19 +761,19 @@ int RenderingSystem::generateGraphicsPipelines(Engine::Renderers::RendererBase* 
 	// TODO: request from renderer
 	vk::PushConstantRange pushConstantRange {};
 	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eAll;
-	pushConstantRange.offset = 0;
-	pushConstantRange.size = 64;
+	pushConstantRange.offset	 = 0;
+	pushConstantRange.size		 = 64;
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {};
 	pipelineLayoutCreateInfo.setLayoutCount = descriptorSetLayouts.size();
 	pipelineLayoutCreateInfo.pSetLayouts	= descriptorSetLayouts.data();
 
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-	pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+	pipelineLayoutCreateInfo.pPushConstantRanges	= &pushConstantRange;
 
 	vk::PipelineLayout pipelineLayout {};
 	RETURN_IF_VK_ERROR(vkDevice.createPipelineLayout(&pipelineLayoutCreateInfo, nullptr, &pipelineLayout),
-						"Failed to create pipeline layout");
+					   "Failed to create pipeline layout");
 
 	renderer->setVkPipelineLayout(pipelineLayout);
 

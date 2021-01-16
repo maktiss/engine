@@ -1,11 +1,21 @@
 #pragma once
 
+#include <array>
+
+#include "engine/managers/TextureManager.hpp"
+
+
 namespace Engine::Graphics::Materials {
 template <typename DerivedMaterialType, typename ShaderType>
 class MaterialBase {
 public:
 	using Flags				   = typename ShaderType::Flags;
 	using MaterialUniformBlock = typename ShaderType::MaterialUniformBlock;
+
+
+public:
+	std::array<Engine::Managers::TextureManager::Handle, ShaderType::getTextureCount()> textureHandles;
+
 
 public:
 	void writeBuffer(void* buffer) {

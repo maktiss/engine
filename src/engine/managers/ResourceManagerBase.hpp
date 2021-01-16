@@ -31,11 +31,11 @@ public:
 			decrementReferenceCounter(index);
 		}
 
-		inline uint32_t getIndex() {
+		inline uint32_t getIndex() const {
 			return index;
 		}
 
-		inline uint32_t getId() {
+		inline uint32_t getId() const {
 			return id;
 		}
 
@@ -106,7 +106,7 @@ public:
 		referenceCounts.push_back(0);
 
 		auto handle = getHandle(id);
-	DerivedManager::postCreate(handle);
+		DerivedManager::postCreate(handle);
 
 		return handle;
 	}
