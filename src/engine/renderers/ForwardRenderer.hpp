@@ -104,7 +104,7 @@ public:
 
 	// Records command buffer within renderpass
 	void recordCommandBuffer(double dt, vk::CommandBuffer& commandBuffer) {
-		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkGraphicsPipelines[1]);
+		// commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkGraphicsPipelines[1]);
 
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
 										 vkPipelineLayout,
@@ -156,12 +156,15 @@ public:
 
 
 		Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(
-			[&commandBuffer, pipelineLayout = vkPipelineLayout](auto& transform, auto& model) {
-				auto transformMatrix = transform.getTransformMatrix();
-				commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eAll, 0, 64, &transformMatrix);
-
+			[&commandBuffer, pipelineLayout = vkPipelineLayout, &graphicsPipelines = vkGraphicsPipelines](auto& transform, auto& model) {
 				const auto& meshInfo	 = Engine::Managers::MeshManager::getMeshInfo(model.meshHandles[0]);
 				const auto& materialInfo = Engine::Managers::MaterialManager::getMaterialInfo(model.materialHandles[0]);
+
+				commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipelines[model.shaderHandles[0].getIndex()]);
+
+
+				auto transformMatrix = transform.getTransformMatrix();
+				commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eAll, 0, 64, &transformMatrix);
 
 				auto vertexBuffer		 = meshInfo.vertexBuffer.getVkBuffer();
 				vk::DeviceSize offsets[] = { 0 };

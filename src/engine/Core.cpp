@@ -79,16 +79,16 @@ int Core::init(int argc, char** argv) {
 	auto modelEntity =
 		Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Model, Components::Script>();
 
-	// auto meshHandle = Engine::Managers::MeshManager::createObject(0);
-	if (Engine::Utils::Importer::importMesh("assets/models/dragon.obj",
-											modelEntity.getComponent<Components::Model>().meshHandles)) {
+	std::vector<Engine::Managers::MeshManager::Handle> meshHandles {};
+	if (Engine::Utils::Importer::importMesh("assets/models/dragon.obj", meshHandles)) {
 		return 1;
 	}
-	// meshHandle.update();
-	// modelEntity.getComponent<Components::Model>().meshHandles.push_back(meshHandle);
+	modelEntity.getComponent<Components::Model>().meshHandles[0] = meshHandles[0];
 
 	auto textureHandle = Engine::Managers::TextureManager::createObject(0);
-	Engine::Utils::Importer::importTexture("assets/textures/Concrete_Panels_01_Base_Color.jpg", textureHandle);
+	if (Engine::Utils::Importer::importTexture("assets/textures/Concrete_Panels_01_Base_Color.jpg", textureHandle)) {
+		return 1;
+	}
 
 	auto materialHandle = Engine::Managers::MaterialManager::createObject(0);
 	materialHandle.apply([&textureHandle](auto& material) {
@@ -96,7 +96,12 @@ int Core::init(int argc, char** argv) {
 		material.textureHandles[0] = textureHandle;
 	});
 	materialHandle.update();
-	modelEntity.getComponent<Components::Model>().materialHandles.push_back(materialHandle);
+
+	modelEntity.getComponent<Components::Model>().materialHandles[0] = materialHandle;
+
+	modelEntity.getComponent<Components::Model>().shaderHandles[0] =
+		Engine::Managers::ShaderManager::getHandle(meshHandles[0], materialHandle);
+
 
 	modelEntity.getComponent<Components::Script>().handle =
 		Engine::Managers::ScriptManager::getScriptHandle("script_floating_object");

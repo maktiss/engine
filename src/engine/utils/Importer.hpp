@@ -15,7 +15,10 @@ private:
 	static Assimp::Importer assimpImporter;
 
 public:
-	static int importMesh(std::string filename, std::vector<Engine::Managers::MeshManager::Handle>& meshHandles);
-	static int importTexture(std::string filename, Engine::Managers::TextureManager::Handle& textureHandle);
+	[[nodiscard]] static int importMesh(std::string filename,
+										std::vector<Engine::Managers::MeshManager::Handle>& meshHandles);
+
+	[[nodiscard]] static int importTexture(std::string filename,
+										   Engine::Managers::TextureManager::Handle& textureHandle);
 };
 } // namespace Engine::Utils
