@@ -45,11 +45,18 @@ add_executable(
 	src/engine/managers/ScriptManager.cpp
 	src/engine/managers/ScriptManager.hpp
 	src/engine/managers/ScriptManagerBase.hpp
+	src/engine/managers/ShaderManager.cpp
 	src/engine/managers/ShaderManager.hpp
 	src/engine/managers/ShaderManagerBase.hpp
 	src/engine/managers/TextureManager.cpp
 	src/engine/managers/TextureManager.hpp
-	src/engine/renderers/ForwardRenderer.hpp
+	src/engine/renderers/compute/ComputeRendererBase.hpp
+	src/engine/renderers/graphics/GraphicsRendererBase.cpp
+	src/engine/renderers/graphics/GraphicsRendererBase.hpp
+	src/engine/renderers/graphics/DepthNormalRenderer.cpp
+	src/engine/renderers/graphics/DepthNormalRenderer.hpp
+	src/engine/renderers/graphics/ForwardRenderer.cpp
+	src/engine/renderers/graphics/ForwardRenderer.hpp
 	src/engine/renderers/RendererBase.hpp
 	src/engine/scripts/CameraScript.cpp
 	src/engine/scripts/CameraScript.hpp

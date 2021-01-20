@@ -6,7 +6,8 @@
 #include "engine/graphics/meshes/StaticMesh.hpp"
 #include "engine/graphics/Buffer.hpp"
 
-#include "engine/renderers/ForwardRenderer.hpp"
+#include "engine/renderers/RendererBase.hpp"
+
 
 #include "engine/utils/IO.hpp"
 
@@ -85,10 +86,6 @@ private:
 	std::vector<vk::CommandPool> vkCommandPools;
 	uint currentCommandPool = 0;
 
-	// RenderPasses and FrameBuffers for every renderer
-	std::vector<vk::RenderPass> vkRenderPasses {};
-	std::vector<vk::Framebuffer> vkFramebuffers {};
-
 	std::vector<vk::CommandBuffer> vkCommandBuffers {};
 	std::vector<vk::Fence> vkCommandBufferFences {};
 
@@ -110,14 +107,16 @@ private:
 
 	VmaAllocator vmaAllocator = nullptr;
 
-	Engine::Renderers::ForwardRenderer forwardRenderer;
+	std::vector<std::shared_ptr<Engine::Renderers::RendererBase>> renderers {};
 
 
 public:
 	~RenderingSystem() {
 		vkDevice.waitIdle();
 
-		forwardRenderer.dispose();
+		for (auto& renderer : renderers) {
+			renderer->dispose();
+		}
 
 		Engine::Managers::MeshManager::destroy();
 		Engine::Managers::MaterialManager::dispose();
@@ -142,6 +141,7 @@ private:
 
 	int present();
 
+
 	inline uint getCommandPoolIndex(uint frameIndex, uint threadIndex) const {
 		return frameIndex * (threadCount + 1) + threadIndex;
 	}
@@ -152,11 +152,6 @@ private:
 		return frameIndex * rendererCount * (threadCount + 1) + rendererIndex * (threadCount + 1) + threadIndex;
 	}
 
-	int createRenderPasses();
-	int createFramebuffers();
-
-	int createRenderPass(Engine::Renderers::RendererBase* renderer, vk::RenderPass& renderPass);
-	int generateGraphicsPipelines(Engine::Renderers::RendererBase* renderer);
 
 	bool isPhysicalDeviceSupported(vk::PhysicalDevice physicalDevice) const;
 	QueueFamilyIndices getQueueFamilies(vk::PhysicalDevice physicalDevice) const;

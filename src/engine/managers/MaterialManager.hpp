@@ -14,7 +14,7 @@ namespace Engine::Managers {
 class MaterialManager : public ResourceManagerBase<MaterialManager, Engine::Graphics::Materials::SimpleMaterial> {
 public:
 	struct MaterialInfo {
-		vk::Buffer uniformBuffer;
+		vk::Buffer uniformBuffer; // TODO: move uniformbuffer out; not needed for rendering
 		vk::DescriptorSet descriptorSet;
 	};
 
