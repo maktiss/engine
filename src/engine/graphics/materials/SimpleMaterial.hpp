@@ -13,7 +13,7 @@ public:
 	glm::vec3 color;
 
 public:
-	uint32_t getFlags() const {
+	uint32_t getSignature() const {
 		uint32_t flags = 0;
 
 		if (textureHandles[0].getIndex()) {

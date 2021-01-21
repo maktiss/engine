@@ -11,7 +11,7 @@ protected:
 
 
 public:
-	GraphicsRendererBase(uint inputCount = 0, uint outputCount = 0) :
+	GraphicsRendererBase(uint inputCount, uint outputCount) :
 		Engine::Renderers::RendererBase(inputCount, outputCount) {
 	}
 

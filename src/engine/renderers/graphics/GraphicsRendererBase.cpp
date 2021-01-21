@@ -199,9 +199,9 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 			pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = vertexBindingDescriptions.size();
 			pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions	 = vertexBindingDescriptions.data();
 
-			auto flagCount = Engine::Managers::ShaderManager::getShaderFlagCount(shaderTypeIndex);
+			auto signatureCount = Engine::Managers::ShaderManager::getShaderSignatureCount(shaderTypeIndex);
 
-			for (uint signature = 0; signature < std::pow(2, flagCount); signature++) {
+			for (uint signature = 0; signature < signatureCount; signature++) {
 				uint32_t shaderStageCount = 0;
 				vk::PipelineShaderStageCreateInfo pipelineShaderStageCreateInfos[6];
 

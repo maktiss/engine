@@ -47,40 +47,25 @@ private:
 	// Shader info arrays splitted by render pass
 	static std::vector<std::vector<ShaderInfo>> shaderInfoArrays;
 
-	// Shader type offsets within shaderInfos array
-	static std::array<uint32_t, sizeof...(ShaderTypes)> shaderTypeOffsets;
-
 	static vk::Device vkDevice;
 
 public:
 	static int init() {
 		assert(vkDevice != vk::Device());
 
-		// resize shader object arrays to fit all of their variations
+		// Resize shader object arrays to fit all of their variations
 		(std::get<std::vector<ShaderTypes>>(shaderObjectArrays)
 			 .resize(pow(2, ShaderTypes::getFlagCount()) * MeshManager::getTypeCount() *
 					 ShaderManagerBase::getRenderPassStringCount()),
 		 ...);
 
 		uint32_t totalShaderCount = 0;
-		((totalShaderCount += shaderTypeOffsets[getTypeIndex<ShaderTypes>()] =
-			  pow(2, ShaderTypes::getFlagCount()) * MeshManager::getTypeCount()),
-		 ...);
+		((totalShaderCount += ShaderTypes::getSignatureCount() * MeshManager::getTypeCount()), ...);
 
 		shaderInfoArrays.resize(ShaderManagerBase::getRenderPassStringCount());
 		for (auto& shaderInfos : shaderInfoArrays) {
 			shaderInfos.resize(totalShaderCount);
 		}
-
-		// calculate shader type mapping offsets
-		for (uint i = shaderTypeOffsets.size() - 1; i > 0; i--) {
-			uint32_t offset = 0;
-			for (uint j = i - 1; j >= 0; j--) {
-				offset += shaderTypeOffsets[j];
-			}
-			shaderTypeOffsets[i] = offset;
-		}
-		shaderTypeOffsets[0] = 0;
 
 		return 0;
 	}
@@ -90,15 +75,13 @@ public:
 
 		auto meshTypeIndex = MeshManager::getTypeIndex(meshHandle);
 
-		uint32_t materialFlags = 0;
-		MaterialManager::apply(materialHandle, [&materialFlags](auto& material) {
-			materialFlags = material.getFlags();
+		uint32_t signature = 0;
+		MaterialManager::apply(materialHandle, [&signature](auto& material) {
+			signature = material.getSignature();
 		});
 
-		uint32_t index =
-			shaderTypeOffsets[shaderTypeIndex] + meshTypeIndex * MeshManager::getTypeCount() + materialFlags;
+		uint32_t index = getShaderInfoIndex(shaderTypeIndex, meshTypeIndex, signature);
 
-		assert(index < shaderInfoArrays[0].size());
 		return Handle(index);
 	}
 
@@ -155,7 +138,7 @@ public:
 					directoryName += "/";
 				}
 
-				// preprocess #include directives
+				// Preprocess #include directives
 				int position = 0;
 				while ((position = glslSources[i].find("#include", position)) != -1) {
 					auto includeLineLength = glslSources[i].find("\n", position) - position;
@@ -173,8 +156,7 @@ public:
 					std::string includeSource;
 					if (Engine::Utils::readTextFile(filename, includeSource)) {
 						spdlog::error("Failed preprocess shader '{}': cannot open '{}' to include",
-									  glslSourceFilenames[i],
-									  filename);
+									  glslSourceFilenames[i], filename);
 						return 1;
 					}
 
@@ -185,22 +167,23 @@ public:
 
 		for (uint renderPassIndex = 0; renderPassIndex < getRenderPassStringCount(); renderPassIndex++) {
 			for (uint meshTypeIndex = 0; meshTypeIndex < MeshManager::getTypeCount(); meshTypeIndex++) {
-				for (uint flags = 0; flags < pow(2, ShaderType::getFlagCount()); flags++) {
+				for (uint signature = 0; signature < ShaderType::getSignatureCount(); signature++) {
 					shaderc::CompileOptions options;
 
 					options.SetOptimizationLevel(shaderc_optimization_level_size);
+
+					auto test = DerivedManager::getRenderPassStrings()[renderPassIndex];
 
 					options.AddMacroDefinition(DerivedManager::getRenderPassStrings()[renderPassIndex]);
 					options.AddMacroDefinition(MeshManager::getMeshTypeString(meshTypeIndex));
 
 					for (uint flagIndex = 0; flagIndex < ShaderType::getFlagCount(); flagIndex++) {
-						if ((1 << flagIndex) & flags) {
+						if ((1 << flagIndex) & signature) {
 							options.AddMacroDefinition(shaderFlagNames[flagIndex]);
 						}
 					}
 
-					uint32_t index = renderPassIndex * MeshManager::getTypeCount() * ShaderType::getFlagCount() +
-									 meshTypeIndex * ShaderType::getFlagCount() + flags;
+					uint32_t index = getShaderIndex<ShaderType>(renderPassIndex, meshTypeIndex, signature);
 
 					for (uint shaderStageIndex = 0; shaderStageIndex < 6; shaderStageIndex++) {
 						if (!glslSources[shaderStageIndex].empty()) {
@@ -227,15 +210,12 @@ public:
 							}
 
 							shaderc::SpvCompilationResult result =
-								compiler.CompileGlslToSpv(glslSources[shaderStageIndex],
-														  kind,
-														  glslSourceFilenames[shaderStageIndex].c_str(),
-														  options);
+								compiler.CompileGlslToSpv(glslSources[shaderStageIndex], kind,
+														  glslSourceFilenames[shaderStageIndex].c_str(), options);
 
 							if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
 								spdlog::error("Failed to compile shader '{}'. Error message:\n{}",
-											  glslSourceFilenames[shaderStageIndex],
-											  result.GetErrorMessage());
+											  glslSourceFilenames[shaderStageIndex], result.GetErrorMessage());
 
 								return 1;
 							}
@@ -263,7 +243,7 @@ public:
 
 		for (uint32_t renderPassIndex = 0; renderPassIndex < getRenderPassStringCount(); renderPassIndex++) {
 			for (uint32_t meshTypeIndex = 0; meshTypeIndex < MeshManager::getTypeCount(); meshTypeIndex++) {
-				for (uint32_t signature = 0; signature < pow(2, ShaderType::getFlagCount()); signature++) {
+				for (uint32_t signature = 0; signature < ShaderType::getSignatureCount(); signature++) {
 
 					uint32_t index			 = getShaderIndex<ShaderType>(renderPassIndex, meshTypeIndex, signature);
 					uint32_t shaderInfoIndex = getShaderInfoIndex(shaderTypeIndex, meshTypeIndex, signature);
@@ -278,13 +258,11 @@ public:
 							shaderModuleCreateInfo.pCode	= reinterpret_cast<const uint32_t*>(shaderSource.data());
 
 							auto result = vkDevice.createShaderModule(
-								&shaderModuleCreateInfo,
-								nullptr,
+								&shaderModuleCreateInfo, nullptr,
 								&shaderInfoArrays[renderPassIndex][shaderInfoIndex].shaderModules[shaderStageIndex]);
 
 							if (result != vk::Result::eSuccess) {
-								spdlog::error("[vulkan] Failed to create shader module. Error code: {} ({})",
-											  result,
+								spdlog::error("[vulkan] Failed to create shader module. Error code: {} ({})", result,
 											  vk::to_string(result));
 								return 1;
 							}
@@ -308,24 +286,25 @@ public:
 		uint32_t index					 = -1;
 		for (uint i = 0; i < renderPassStrings.size(); i++) {
 			if (strcmp(renderPassString, renderPassStrings[i]) == 0) {
-				index = i;
-				break;
+				return i;
 			}
 		}
+
+		// TODO: use fallback shaders?
 
 		assert(index != -1);
 		return index;
 	}
 
 
-	static uint32_t getShaderFlagCount(uint32_t shaderTypeIndex) {
-		return getShaderFlagCountImpl(shaderTypeIndex, std::make_index_sequence<getTypeCount()>());
+	static uint32_t getShaderSignatureCount(uint32_t shaderTypeIndex) {
+		return getShaderSignatureCountImpl(shaderTypeIndex, std::make_index_sequence<getTypeCount()>());
 	}
 
 	template <std::size_t... Indices>
-	static uint32_t getShaderFlagCountImpl(uint32_t shaderTypeIndex, std::index_sequence<Indices...>) {
+	static uint32_t getShaderSignatureCountImpl(uint32_t shaderTypeIndex, std::index_sequence<Indices...>) {
 		return ((Indices == shaderTypeIndex
-					 ? std::tuple_element<Indices, std::tuple<ShaderTypes...>>::type::getFlagCount()
+					 ? std::tuple_element<Indices, std::tuple<ShaderTypes...>>::type::getSignatureCount()
 					 : 0) +
 				...);
 	}
@@ -363,12 +342,13 @@ protected:
 private:
 	template <typename ShaderType>
 	static inline uint32_t getShaderIndex(uint32_t renderPassIndex, uint32_t meshTypeIndex, uint32_t signature) {
-		return renderPassIndex * MeshManager::getTypeCount() * ShaderType::getFlagCount() +
-			   meshTypeIndex * ShaderType::getFlagCount() + signature;
+		return renderPassIndex * MeshManager::getTypeCount() * ShaderType::getSignatureCount() +
+			   meshTypeIndex * ShaderType::getSignatureCount() + signature;
 	}
 
 	static inline uint32_t getShaderInfoIndex(uint32_t shaderTypeIndex, uint32_t meshTypeIndex, uint32_t signature) {
-		return shaderTypeOffsets[shaderTypeIndex] + meshTypeIndex * getShaderFlagCount(shaderTypeIndex) + signature;
+		return shaderTypeIndex * MeshManager::getTypeCount() * getShaderSignatureCount(shaderTypeIndex) +
+			   meshTypeIndex * getShaderSignatureCount(shaderTypeIndex) + signature;
 	}
 
 
@@ -376,15 +356,16 @@ private:
 		auto materialTypeIndex = MaterialManager::getTypeIndex(materialHandle);
 
 		uint32_t shaderTypeIndex = 0;
+		// FIXME bug; wont work with multiple shader types
 		MaterialManager::apply(materialHandle, [&shaderTypeIndex](auto& material) {
 			shaderTypeIndex =
 				((material.template isShaderCompatible<ShaderTypes>() ? getTypeIndex<ShaderTypes>() + 1 : 0) + ...);
 		});
 
-		// zero would mean there are no compatible shaders
+		// Zero would mean there are no compatible shaders
 		assert(shaderTypeIndex != 0);
 
-		// decrement since index was incremented above
+		// Decrement since index was incremented above
 		shaderTypeIndex--;
 
 		return shaderTypeIndex;
@@ -398,10 +379,6 @@ std::tuple<std::vector<ShaderTypes>...> ShaderManagerBase<DerivedManager, Shader
 template <typename DerivedManager, typename... ShaderTypes>
 std::vector<std::vector<typename ShaderManagerBase<DerivedManager, ShaderTypes...>::ShaderInfo>>
 	ShaderManagerBase<DerivedManager, ShaderTypes...>::shaderInfoArrays {};
-
-template <typename DerivedManager, typename... ShaderTypes>
-std::array<uint32_t, sizeof...(ShaderTypes)> ShaderManagerBase<DerivedManager, ShaderTypes...>::shaderTypeOffsets {};
-
 
 template <typename DerivedManager, typename... ShaderTypes>
 vk::Device ShaderManagerBase<DerivedManager, ShaderTypes...>::vkDevice {};

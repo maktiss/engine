@@ -23,8 +23,19 @@ void main() {
 	outColor *= texture(uTextures[0], inTexCoord);
 	#endif
 }
+#elif defined(RED)
+void main() {
+	outColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+#elif defined(GREEN)
+void main() {
+	outColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+#elif defined(BLUE)
+void main() {
+	outColor = vec4(0.0, 0.0, 1.0, 1.0);
+}
 #else
 void main() {
-	outColor = vec4(1.0, 0.0, 1.0, 1.0);
 }
 #endif

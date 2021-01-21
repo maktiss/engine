@@ -147,9 +147,7 @@ private:
 	}
 	
 	inline uint getCommandBufferIndex(uint frameIndex, uint rendererIndex, uint threadIndex) const {
-		// FIXME: rendererCount
-		uint rendererCount = 1;
-		return frameIndex * rendererCount * (threadCount + 1) + rendererIndex * (threadCount + 1) + threadIndex;
+		return frameIndex * renderers.size() * (threadCount + 1) + rendererIndex * (threadCount + 1) + threadIndex;
 	}
 
 

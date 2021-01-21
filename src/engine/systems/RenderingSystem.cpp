@@ -1,6 +1,7 @@
 #include "RenderingSystem.hpp"
 
 #include "engine/renderers/graphics/ForwardRenderer.hpp"
+#include "engine/renderers/graphics/DepthNormalRenderer.hpp"
 
 
 namespace Engine::Systems {
@@ -101,11 +102,18 @@ int RenderingSystem::init() {
 	// materialHandle.update();
 
 
+	auto depthNormalRenderer = std::make_shared<Engine::Renderers::Graphics::DepthNormalRenderer>();
+	depthNormalRenderer->setVkDevice(vkDevice);
+	depthNormalRenderer->setOutputSize({ 1920, 1080 });
+	depthNormalRenderer->setVulkanMemoryAllocator(vmaAllocator);
+
 	auto forwardRenderer = std::make_shared<Engine::Renderers::Graphics::ForwardRenderer>();
 	forwardRenderer->setVkDevice(vkDevice);
 	forwardRenderer->setOutputSize({ 1920, 1080 });
 	forwardRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
+
+	renderers.push_back(depthNormalRenderer);
 	renderers.push_back(forwardRenderer);
 
 
@@ -148,12 +156,10 @@ int RenderingSystem::init() {
 
 	// Allocate command buffers for every renderer
 
-	// FIXME: renderers array size
-	uint renderersCount = 1;
-	vkCommandBuffers.resize(framesInFlightCount * renderersCount * (1 + threadCount));
+	vkCommandBuffers.resize(framesInFlightCount * renderers.size() * (1 + threadCount));
 
 	for (uint frameIndex = 0; frameIndex < framesInFlightCount; frameIndex++) {
-		for (uint rendererIndex = 0; rendererIndex < renderersCount; rendererIndex++) {
+		for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
 			for (uint threadIndex = 0; threadIndex < 1 + threadCount; threadIndex++) {
 				uint commandPoolIndex	= getCommandPoolIndex(frameIndex, threadIndex);
 				uint commandBufferIndex = getCommandBufferIndex(frameIndex, rendererIndex, threadIndex);
@@ -214,7 +220,7 @@ int RenderingSystem::init() {
 	vk::FenceCreateInfo fenceCreateInfo {};
 	fenceCreateInfo.flags = vk::FenceCreateFlagBits::eSignaled;
 
-	vkCommandBufferFences.resize(vkCommandBuffers.size() / (1 + threadCount));
+	vkCommandBufferFences.resize(framesInFlightCount * renderers.size());
 	for (auto& fence : vkCommandBufferFences) {
 		RETURN_IF_VK_ERROR(vkDevice.createFence(&fenceCreateInfo, nullptr, &fence),
 						   "Failed to create command buffer fence");
@@ -236,11 +242,11 @@ int RenderingSystem::run(double dt) {
 
 	// Wait for rendering command buffers to finish
 
-	uint32_t fenceCount = vkCommandPools.size() / (framesInFlightCount * (1 + threadCount));
+	// uint32_t fenceCount = vkCommandPools.size() / (framesInFlightCount * 2 * (1 + threadCount));
 	RETURN_IF_VK_ERROR(
-		vkDevice.waitForFences(fenceCount, &vkCommandBufferFences[currentFrameInFlight * fenceCount], true, UINT64_MAX),
+		vkDevice.waitForFences(renderers.size(), &vkCommandBufferFences[currentFrameInFlight * renderers.size()], true, UINT64_MAX),
 		"Failed to wait for command buffer fences");
-	RETURN_IF_VK_ERROR(vkDevice.resetFences(fenceCount, &vkCommandBufferFences[currentFrameInFlight * fenceCount]),
+	RETURN_IF_VK_ERROR(vkDevice.resetFences(renderers.size(), &vkCommandBufferFences[currentFrameInFlight * renderers.size()]),
 					   "Failed to reset command buffer fences");
 
 
@@ -249,7 +255,7 @@ int RenderingSystem::run(double dt) {
 	RETURN_IF_VK_ERROR(
 		vkDevice.waitForFences(1, &vkImageBlitCommandBufferFences[currentFrameInFlight], true, UINT64_MAX),
 		"Failed to wait for image blit command buffer fences");
-	RETURN_IF_VK_ERROR(vkDevice.resetFences(fenceCount, &vkImageBlitCommandBufferFences[currentFrameInFlight]),
+	RETURN_IF_VK_ERROR(vkDevice.resetFences(1, &vkImageBlitCommandBufferFences[currentFrameInFlight]),
 					   "Failed to reset image blit command buffer fences");
 
 
@@ -264,7 +270,7 @@ int RenderingSystem::run(double dt) {
 		auto commandBufferIndex = getCommandBufferIndex(currentFrameInFlight, rendererIndex, 0);
 
 		auto& commandBuffer		 = vkCommandBuffers[commandBufferIndex];
-		auto& commandBufferFence = vkCommandBufferFences[commandBufferIndex / (1 + threadCount)];
+		auto& commandBufferFence = vkCommandBufferFences[currentFrameInFlight * renderers.size() + rendererIndex];
 
 
 		renderer->render(commandBuffer, dt);
@@ -274,7 +280,7 @@ int RenderingSystem::run(double dt) {
 		// submitInfo.waitSemaphoreCount = 1;
 		// submitInfo.pWaitSemaphores	  = &vkImageAvailableSemaphore;
 
-		vk::PipelineStageFlags pipelineStageFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+		vk::PipelineStageFlags pipelineStageFlags = vk::PipelineStageFlagBits::eBottomOfPipe;
 		submitInfo.pWaitDstStageMask			  = &pipelineStageFlags;
 
 		submitInfo.commandBufferCount = 1;

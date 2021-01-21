@@ -48,6 +48,10 @@ public:
 		return flagCount;
 	}
 
+	static constexpr uint32_t getSignatureCount() {
+		return pow(2, getFlagCount());
+	}
+
 
 	static constexpr uint32_t getMaterialUniformBlockSize() {
 		return sizeof(typename DerivedShader::MaterialUniformBlock);
