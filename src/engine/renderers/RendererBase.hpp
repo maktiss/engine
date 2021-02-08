@@ -39,7 +39,9 @@ protected:
 	std::vector<Engine::Managers::TextureManager::Handle> outputs {};
 
 	// Set by rendering system based on render graph
+	std::vector<vk::ImageLayout> vkInputInitialLayouts {};
 	std::vector<vk::ImageLayout> vkOutputInitialLayouts {};
+	std::vector<vk::ImageLayout> vkInputFinalLayouts {};
 	std::vector<vk::ImageLayout> vkOutputFinalLayouts {};
 
 
@@ -54,8 +56,11 @@ public:
 		inputs.resize(inputCount);
 		outputs.resize(outputCount);
 
-		vkOutputInitialLayouts.resize(outputCount);
-		vkOutputFinalLayouts.resize(outputCount);
+		vkInputInitialLayouts.resize(inputCount, vk::ImageLayout::eUndefined);
+		vkOutputInitialLayouts.resize(outputCount, vk::ImageLayout::eUndefined);
+
+		vkInputFinalLayouts.resize(inputCount, vk::ImageLayout::eGeneral);
+		vkOutputFinalLayouts.resize(outputCount, vk::ImageLayout::eGeneral);
 	}
 
 
@@ -70,6 +75,26 @@ public:
 
 	virtual std::vector<AttachmentDescription> getInputDescriptions() const {
 		return std::vector<AttachmentDescription>();
+	}
+
+
+	// Returns expected initial layouts, does not apply if resource is not a reference
+	virtual std::vector<vk::ImageLayout> getInputInitialLayouts() const {
+		return std::vector<vk::ImageLayout>();
+	}
+	
+	// Returns expected initial layouts, does not apply if resource is not a reference
+	virtual std::vector<vk::ImageLayout> getOutputInitialLayouts() const {
+		return std::vector<vk::ImageLayout>();
+	}
+
+
+	uint getInputCount() const {
+		return inputs.size();
+	}
+
+	uint getOutputCount() const {
+		return outputs.size();
 	}
 
 
@@ -113,8 +138,16 @@ public:
 	}
 
 
+	void setInputInitialLayout(uint index, vk::ImageLayout imageLayout) {
+		vkInputInitialLayouts[index] = imageLayout;
+	}
+
 	void setOutputInitialLayout(uint index, vk::ImageLayout imageLayout) {
 		vkOutputInitialLayouts[index] = imageLayout;
+	}
+
+	void setInputFinalLayout(uint index, vk::ImageLayout imageLayout) {
+		vkInputFinalLayouts[index] = imageLayout;
 	}
 
 	void setOutputFinalLayout(uint index, vk::ImageLayout imageLayout) {

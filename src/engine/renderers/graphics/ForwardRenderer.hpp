@@ -36,6 +36,21 @@ public:
 		std::vector<AttachmentDescription> descriptions {};
 		return descriptions;
 	}
+	
+
+	std::vector<vk::ImageLayout> getInputInitialLayouts() const {
+		return std::vector<vk::ImageLayout>();
+	}
+
+	std::vector<vk::ImageLayout> getOutputInitialLayouts() const {
+		std::vector<vk::ImageLayout> outputInitialLayouts {};
+		outputInitialLayouts.resize(2);
+
+		outputInitialLayouts[0] = vk::ImageLayout::eColorAttachmentOptimal;
+		outputInitialLayouts[1] = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+		return outputInitialLayouts;
+	}
 
 
 	inline std::vector<vk::ClearValue> getVkClearValues() {
@@ -64,8 +79,8 @@ public:
 
 		attachmentDescriptions[1].format		 = outputDescriptions[1].format;
 		attachmentDescriptions[1].samples		 = vk::SampleCountFlagBits::e1;
-		attachmentDescriptions[1].loadOp		 = vk::AttachmentLoadOp::eClear;
-		attachmentDescriptions[1].storeOp		 = vk::AttachmentStoreOp::eStore;
+		attachmentDescriptions[1].loadOp		 = vk::AttachmentLoadOp::eLoad;
+		attachmentDescriptions[1].storeOp		 = vk::AttachmentStoreOp::eDontCare;
 		attachmentDescriptions[1].stencilLoadOp	 = vk::AttachmentLoadOp::eDontCare;
 		attachmentDescriptions[1].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 
@@ -137,8 +152,8 @@ public:
 	inline vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() {
 		vk::PipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {};
 		pipelineDepthStencilStateCreateInfo.depthTestEnable	 = true;
-		pipelineDepthStencilStateCreateInfo.depthWriteEnable = true;
-		pipelineDepthStencilStateCreateInfo.depthCompareOp	 = vk::CompareOp::eLess;
+		pipelineDepthStencilStateCreateInfo.depthWriteEnable = false;
+		pipelineDepthStencilStateCreateInfo.depthCompareOp	 = vk::CompareOp::eEqual;
 
 		return pipelineDepthStencilStateCreateInfo;
 	}

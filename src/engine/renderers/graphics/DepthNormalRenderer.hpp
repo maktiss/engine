@@ -35,6 +35,20 @@ public:
 	}
 
 
+	std::vector<vk::ImageLayout> getInputInitialLayouts() const {
+		return std::vector<vk::ImageLayout>();
+	}
+
+	std::vector<vk::ImageLayout> getOutputInitialLayouts() const {
+		std::vector<vk::ImageLayout> outputInitialLayouts {};
+		outputInitialLayouts.resize(1);
+
+		outputInitialLayouts[0] = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+		return outputInitialLayouts;
+	}
+
+
 	inline std::vector<vk::ClearValue> getVkClearValues() {
 		std::vector<vk::ClearValue> clearValues {};
 		clearValues.resize(1);

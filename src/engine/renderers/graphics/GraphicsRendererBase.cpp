@@ -82,7 +82,6 @@ int GraphicsRendererBase::createRenderPass() {
 		}
 	}
 
-
 	auto attachmentDescriptions = getVkAttachmentDescriptions();
 	for (uint i = 0; i < attachmentDescriptions.size(); i++) {
 		attachmentDescriptions[i].initialLayout = vkOutputInitialLayouts[i];

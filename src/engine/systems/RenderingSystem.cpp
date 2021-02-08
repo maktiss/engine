@@ -1,10 +1,40 @@
 #include "RenderingSystem.hpp"
 
-#include "engine/renderers/graphics/ForwardRenderer.hpp"
 #include "engine/renderers/graphics/DepthNormalRenderer.hpp"
+#include "engine/renderers/graphics/ForwardRenderer.hpp"
 
 
 namespace Engine::Systems {
+void RenderingSystem::RenderGraph::addInputConnection(uint srcNodeIndex, uint srcOutputIndex, uint dstNodeIndex,
+													  uint dstInputIndex, bool nextFrame) {
+	nodes[srcNodeIndex].inputReferenceSets[srcOutputIndex].insert({ dstNodeIndex, dstInputIndex, nextFrame });
+
+	if (nodes[dstNodeIndex].backwardInputReferences[dstInputIndex].rendererIndex != -1) {
+		spdlog::warn("Attempt to connect additional output ({}, {}) to an input slot ({}, {}), using last "
+					 "specified connection",
+					 srcNodeIndex, srcOutputIndex, dstNodeIndex, dstInputIndex);
+	}
+	nodes[dstNodeIndex].backwardInputReferences[dstInputIndex] = { srcNodeIndex, srcOutputIndex, nextFrame };
+}
+
+void RenderingSystem::RenderGraph::addOutputConnection(uint srcNodeIndex, uint srcOutputIndex, uint dstNodeIndex,
+													   uint dstOutputIndex, bool nextFrame) {
+	if (nodes[srcNodeIndex].outputReferences[srcOutputIndex].rendererIndex != -1) {
+		spdlog::warn("Attempt to connect an output ({}, {}) to additional output slot ({}, {}), using last "
+					 "specified connection",
+					 srcNodeIndex, srcOutputIndex, dstNodeIndex, dstOutputIndex);
+	}
+	nodes[srcNodeIndex].outputReferences[srcOutputIndex] = { dstNodeIndex, dstOutputIndex, nextFrame };
+
+	if (nodes[dstNodeIndex].backwardOutputReferences[dstOutputIndex].rendererIndex != -1) {
+		spdlog::warn("Attempt to connect additional output ({}, {}) to an output slot ({}, {}), using last "
+					 "specified connection",
+					 srcNodeIndex, srcOutputIndex, dstNodeIndex, dstOutputIndex);
+	}
+	nodes[dstNodeIndex].backwardOutputReferences[dstOutputIndex] = { srcNodeIndex, srcOutputIndex, nextFrame };
+}
+
+
 int RenderingSystem::init() {
 	spdlog::info("Initializing RenderingSystem...");
 
@@ -87,9 +117,6 @@ int RenderingSystem::init() {
 	Engine::Managers::MeshManager::setVulkanMemoryAllocator(vmaAllocator);
 	Engine::Managers::MeshManager::init();
 
-	meshHandle = Engine::Managers::MeshManager::createObject(0);
-	meshHandle.update();
-
 
 	Engine::Managers::MaterialManager::setVkDevice(vkDevice);
 	Engine::Managers::MaterialManager::setVulkanMemoryAllocator(vmaAllocator);
@@ -117,41 +144,316 @@ int RenderingSystem::init() {
 	renderers.push_back(forwardRenderer);
 
 
-	// TODO render graph
+	renderGraph.setNodeCount(renderers.size());
+	for (uint i = 0; i < renderers.size(); i++) {
+		renderGraph.setInputCount(i, renderers[i]->getInputCount());
+		renderGraph.setOutputCount(i, renderers[i]->getOutputCount());
+	}
 
-	for (auto& renderer : renderers) {
-		const auto& outputDescriptions = renderer->getOutputDescriptions();
-		for (uint outputIndex = 0; outputIndex < outputDescriptions.size(); outputIndex++) {
-			auto textureHandle = Engine::Managers::TextureManager::createObject(0);
+	// DepthNormalRenderer depth output -> ForwardRenderer depth output
+	// TODO: better readability
+	renderGraph.addOutputConnection(0, 0, 1, 1);
 
-			textureHandle.apply([&outputDescriptions, outputIndex](auto& textureHandle) {
-				textureHandle.format = outputDescriptions[outputIndex].format;
-				textureHandle.usage	 = outputDescriptions[outputIndex].usage;
+	// ForwardRenderer color output -> swapchain image
+	finalOutputReference.rendererIndex	 = 1;
+	finalOutputReference.attachmentIndex = 0;
 
-				if (textureHandle.usage & vk::ImageUsageFlagBits::eDepthStencilAttachment) {
-					textureHandle.imageAspect = vk::ImageAspectFlagBits::eDepth;
+
+	// Lower value == higher priority
+	std::vector<uint> executionPrioriries(renderers.size(), 0);
+
+	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
+		const auto& renderer		= renderers[rendererIndex];
+		const auto& renderGraphNode = renderGraph.nodes[rendererIndex];
+
+		auto& rendererPriority = executionPrioriries[rendererIndex];
+
+		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
+			const auto& inputReferenceSet = renderGraphNode.inputReferenceSets[outputIndex];
+			const auto& outputReference	  = renderGraphNode.outputReferences[outputIndex];
+
+			// Deal with output first, so it will have lower priority over inputs
+			if (outputReference.rendererIndex != -1) {
+				if (outputReference.attachmentIndex == -1) {
+					spdlog::error("Failed to compile render graph: output attachment index is not specified");
+					return 1;
 				}
 
-				// FIXME: output size
-				textureHandle.size = vk::Extent3D(1920, 1080, 1);
+				auto& referencedPriority = executionPrioriries[outputReference.rendererIndex];
 
-				// FIXME: for final texture only
-				textureHandle.usage |= vk::ImageUsageFlagBits::eTransferSrc;
-			});
-			textureHandle.update();
+				if (outputReference.nextFrame) {
+					spdlog::error("Failed to compile render graph: output cannot be used for writing next frame");
+					return 1;
+				}
 
-			renderer->setOutput(outputIndex, textureHandle);
+				if (referencedPriority <= rendererPriority) {
+					referencedPriority = rendererPriority + 1;
+				}
 
-			// FIXME base on render graph
-			renderer->setOutputInitialLayout(outputIndex, vk::ImageLayout::eUndefined);
-			renderer->setOutputFinalLayout(outputIndex, vk::ImageLayout::eTransferSrcOptimal);
+				// Shift lower priorities
+				for (uint i = 0; i < executionPrioriries.size(); i++) {
+					if (outputReference.rendererIndex != i) {
+						if (referencedPriority <= executionPrioriries[i]) {
+							executionPrioriries[i]++;
+						}
+					}
+				}
+			}
+
+			for (const auto& inputReference : inputReferenceSet) {
+				if (inputReference.rendererIndex != -1 && inputReference.attachmentIndex == -1) {
+					spdlog::error("Failed to compile render graph: input attachment index is not specified");
+					return 1;
+				}
+
+				auto& referencedPriority = executionPrioriries[inputReference.rendererIndex];
+
+				if (inputReference.nextFrame) {
+					// FIXME: check output dependencies
+					if (rendererPriority <= referencedPriority) {
+						rendererPriority = referencedPriority + 1;
+					}
+				} else {
+					if (referencedPriority <= rendererPriority) {
+						referencedPriority = rendererPriority + 1;
+					}
+				}
+
+				// Shift lower priorities
+				for (uint i = 0; i < executionPrioriries.size(); i++) {
+					if (inputReference.rendererIndex != i) {
+						if (referencedPriority <= executionPrioriries[i]) {
+							executionPrioriries[i]++;
+						}
+					}
+				}
+			}
+		}
+	}
+
+
+	// Convert priorities to ordered sequence of renderer indices
+
+	rendererExecutionOrder.resize(renderers.size());
+
+	std::string logMessage = "Compiled renderer execution order: ";
+
+	uint nextPriority = 0;
+	for (uint orderIndex = 0; orderIndex < rendererExecutionOrder.size(); orderIndex++) {
+		auto iter = std::lower_bound(executionPrioriries.begin(), executionPrioriries.end(), nextPriority);
+		assert(iter != executionPrioriries.end());
+
+		rendererExecutionOrder[orderIndex] = iter - executionPrioriries.begin();
+
+		nextPriority = *iter + 1;
+
+		logMessage += std::to_string(rendererExecutionOrder[orderIndex]);
+		logMessage += " ";
+	}
+	spdlog::warn(logMessage);
+
+
+	// Iterate over render graph, set initial layouts if they are needed and create semaphores
+
+	// FIXME: setFramesInFlightCount()
+	syncObjects.resize(framesInFlightCount);
+	for (auto& syncObjectsForFrame : syncObjects) {
+		syncObjectsForFrame.signalSemaphores.resize(renderers.size(), {});
+		syncObjectsForFrame.waitSemaphores.resize(renderers.size(), {});
+	}
+
+	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
+		const auto& renderer		= renderers[rendererIndex];
+		const auto& renderGraphNode = renderGraph.nodes[rendererIndex];
+
+		auto inputInitialLayouts = renderer->getInputInitialLayouts();
+		auto outputInitialLayouts = renderer->getOutputInitialLayouts();
+
+
+		for (uint inputIndex = 0; inputIndex < renderer->getInputCount(); inputIndex++) {
+			if (renderGraphNode.backwardInputReferences[inputIndex].rendererIndex != -1) {
+				renderer->setInputInitialLayout(inputIndex, inputInitialLayouts[inputIndex]);
+			}
 		}
 
-		// FIXME
-		finalTextureHandle = renderer->getOutput(0);
+		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
+			if (renderGraphNode.backwardOutputReferences[outputIndex].rendererIndex != -1) {
+				renderer->setOutputInitialLayout(outputIndex, outputInitialLayouts[outputIndex]);
+			}
+
+			vk::SemaphoreCreateInfo semaphoreCreateInfo {};
+			vk::Semaphore semaphore {};
+
+			for (const auto& inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
+				RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
+							"Failed to create rendering semaphore");
+
+				for (uint frameInFlight = 0; frameInFlight < framesInFlightCount; frameInFlight++) {
+					syncObjects[frameInFlight].signalSemaphores[rendererIndex].push_back(semaphore);
+					syncObjects[frameInFlight].waitSemaphores[inputReference.rendererIndex].push_back(semaphore);
+				}
+
+				// TODO: nextFrame dependency
+			}
+
+			const auto& outputReference = renderGraphNode.outputReferences[outputIndex];
+			if (outputReference.rendererIndex != -1) {
+				RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
+							"Failed to create rendering semaphore");
+
+				for (uint frameInFlight = 0; frameInFlight < framesInFlightCount; frameInFlight++) {
+					syncObjects[frameInFlight].signalSemaphores[rendererIndex].push_back(semaphore);
+					syncObjects[frameInFlight].waitSemaphores[outputReference.rendererIndex].push_back(semaphore);
+				}
+			}
+		}
+	}
+
+
+	// Iterate over render graph again to link initial and final render pass layouts
+
+	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
+		const auto& renderer		= renderers[rendererIndex];
+		const auto& renderGraphNode = renderGraph.nodes[rendererIndex];
+
+		auto& rendererPriority = executionPrioriries[rendererIndex];
+
+		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
+			const auto& inputReferenceSet = renderGraphNode.inputReferenceSets[outputIndex];
+			const auto& outputReference	  = renderGraphNode.outputReferences[outputIndex];
+
+			std::vector<RenderGraph::NodeReference> sortedInputReferences {};
+			if (!inputReferenceSet.empty()) {
+				// Sort input references by execution priority
+				for (uint executionIndex = 0; executionIndex < rendererExecutionOrder.size(); executionIndex++) {
+					const auto& iter = inputReferenceSet.find({ rendererExecutionOrder[executionIndex], {}, {} });
+					if (iter != inputReferenceSet.end()) {
+						sortedInputReferences.push_back(*iter);
+					}
+				}
+
+				renderer->setOutputFinalLayout(
+					outputIndex, renderers[sortedInputReferences[0].rendererIndex]
+									 ->getInputInitialLayouts()[sortedInputReferences[0].attachmentIndex]);
+
+				for (uint inputReferenceIndex = 0; inputReferenceIndex < sortedInputReferences.size() - 1;
+					 inputReferenceIndex++) {
+					const auto& inputReference	   = sortedInputReferences[inputReferenceIndex];
+					const auto& nextInputReference = sortedInputReferences[inputReferenceIndex + 1];
+
+					renderers[inputReference.rendererIndex]->setInputFinalLayout(
+						inputReference.attachmentIndex,
+						renderers[nextInputReference.rendererIndex]
+							->getInputInitialLayouts()[nextInputReference.attachmentIndex]);
+				}
+			}
+
+			if (outputReference.rendererIndex != -1) {
+				if (sortedInputReferences.empty()) {
+					renderer->setOutputFinalLayout(outputIndex,
+												   renderers[outputReference.rendererIndex]
+													   ->getOutputInitialLayouts()[outputReference.attachmentIndex]);
+				} else {
+					const auto& lastOutputReference = sortedInputReferences[sortedInputReferences.size() - 1];
+					renderers[lastOutputReference.rendererIndex]->setInputFinalLayout(
+						lastOutputReference.attachmentIndex,
+						renderers[outputReference.rendererIndex]
+							->getOutputInitialLayouts()[outputReference.attachmentIndex]);
+				}
+			}
+		}
+	}
+
+	// Set final layout for output to blit result from
+	renderers[finalOutputReference.rendererIndex]->setOutputFinalLayout(finalOutputReference.attachmentIndex,
+																		vk::ImageLayout::eTransferSrcOptimal);
+
+	// Iterate over render graph again to create and link inputs/outputs
+
+	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
+		const auto& renderer = renderers[rendererIndex];
+		const auto& renderGraphNode = renderGraph.nodes[rendererIndex];
+		const auto& outputDescriptions = renderer->getOutputDescriptions();
+		
+		for (uint outputIndex = 0; outputIndex < outputDescriptions.size(); outputIndex++) {
+			if (renderGraphNode.backwardOutputReferences[outputIndex].rendererIndex == -1) {
+				auto textureHandle = Engine::Managers::TextureManager::createObject(0);
+
+				bool isFinal = false;
+				if (finalOutputReference.rendererIndex == rendererIndex && finalOutputReference.attachmentIndex == outputIndex) {
+					isFinal = true;
+				}
+
+				textureHandle.apply([&outputDescriptions, outputIndex, isFinal](auto& textureHandle) {
+					textureHandle.format = outputDescriptions[outputIndex].format;
+					textureHandle.usage	 = outputDescriptions[outputIndex].usage;
+
+					if (textureHandle.usage & vk::ImageUsageFlagBits::eDepthStencilAttachment) {
+						textureHandle.imageAspect = vk::ImageAspectFlagBits::eDepth;
+					}
+
+					// FIXME: output size
+					textureHandle.size = vk::Extent3D(1920, 1080, 1);
+
+					if (isFinal) {
+						textureHandle.usage |= vk::ImageUsageFlagBits::eTransferSrc;
+					}
+				});
+				textureHandle.update();
+
+				renderer->setOutput(outputIndex, textureHandle);
+
+				for (auto& inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
+					renderers[inputReference.rendererIndex]->setInput(inputReference.attachmentIndex, textureHandle);
+				}
+
+				// Iterate over chain of outputs
+				auto outputReference = renderGraphNode.outputReferences[outputIndex];
+				while (outputReference.rendererIndex != -1) {
+					renderers[outputReference.rendererIndex]->setOutput(outputReference.attachmentIndex, textureHandle);
+					outputReference = renderGraph.nodes[outputReference.rendererIndex].outputReferences[outputReference.attachmentIndex];
+				}
+			}
+		}
 
 		renderer->init();
 	}
+
+	finalTextureHandle = renderers[finalOutputReference.rendererIndex]->getOutput(finalOutputReference.attachmentIndex);
+
+	// for (auto& renderer : renderers) {
+	// 	const auto& outputDescriptions = renderer->getOutputDescriptions();
+	// 	for (uint outputIndex = 0; outputIndex < outputDescriptions.size(); outputIndex++) {
+	// 		auto textureHandle = Engine::Managers::TextureManager::createObject(0);
+
+	// 		textureHandle.apply([&outputDescriptions, outputIndex](auto& textureHandle) {
+	// 			textureHandle.format = outputDescriptions[outputIndex].format;
+	// 			textureHandle.usage	 = outputDescriptions[outputIndex].usage;
+
+	// 			if (textureHandle.usage & vk::ImageUsageFlagBits::eDepthStencilAttachment) {
+	// 				textureHandle.imageAspect = vk::ImageAspectFlagBits::eDepth;
+	// 			}
+
+	// 			// FIXME: output size
+	// 			textureHandle.size = vk::Extent3D(1920, 1080, 1);
+
+	// 			// FIXME: for final texture only
+	// 			textureHandle.usage |= vk::ImageUsageFlagBits::eTransferSrc;
+	// 		});
+	// 		textureHandle.update();
+
+	// 		renderer->setOutput(outputIndex, textureHandle);
+
+	// 		// FIXME base on render graph
+	// 		// renderer->setOutputInitialLayout(outputIndex, vk::ImageLayout::eUndefined);
+	// 		// renderer->setOutputFinalLayout(outputIndex, vk::ImageLayout::eTransferSrcOptimal);
+	// 	}
+
+	// 	// FIXME
+	// 	finalTextureHandle = renderer->getOutput(0);
+
+	// 	renderer->init();
+	// }
 
 
 	// Allocate command buffers for every renderer
@@ -243,11 +545,13 @@ int RenderingSystem::run(double dt) {
 	// Wait for rendering command buffers to finish
 
 	// uint32_t fenceCount = vkCommandPools.size() / (framesInFlightCount * 2 * (1 + threadCount));
+	RETURN_IF_VK_ERROR(vkDevice.waitForFences(renderers.size(),
+											  &vkCommandBufferFences[currentFrameInFlight * renderers.size()], true,
+											  UINT64_MAX),
+					   "Failed to wait for command buffer fences");
 	RETURN_IF_VK_ERROR(
-		vkDevice.waitForFences(renderers.size(), &vkCommandBufferFences[currentFrameInFlight * renderers.size()], true, UINT64_MAX),
-		"Failed to wait for command buffer fences");
-	RETURN_IF_VK_ERROR(vkDevice.resetFences(renderers.size(), &vkCommandBufferFences[currentFrameInFlight * renderers.size()]),
-					   "Failed to reset command buffer fences");
+		vkDevice.resetFences(renderers.size(), &vkCommandBufferFences[currentFrameInFlight * renderers.size()]),
+		"Failed to reset command buffer fences");
 
 
 	// Wait for image blit command buffers to finish
@@ -264,7 +568,8 @@ int RenderingSystem::run(double dt) {
 	vkDevice.resetCommandPool(vkCommandPools[commandPoolIndex]);
 
 
-	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
+	for (uint orderIndex = 0; orderIndex < rendererExecutionOrder.size(); orderIndex++) {
+		auto rendererIndex = rendererExecutionOrder[orderIndex];
 		auto& renderer = renderers[rendererIndex];
 
 		auto commandBufferIndex = getCommandBufferIndex(currentFrameInFlight, rendererIndex, 0);
@@ -277,8 +582,8 @@ int RenderingSystem::run(double dt) {
 
 
 		vk::SubmitInfo submitInfo {};
-		// submitInfo.waitSemaphoreCount = 1;
-		// submitInfo.pWaitSemaphores	  = &vkImageAvailableSemaphore;
+		submitInfo.waitSemaphoreCount = syncObjects[currentFrameInFlight].waitSemaphores[rendererIndex].size();
+		submitInfo.pWaitSemaphores	  = syncObjects[currentFrameInFlight].waitSemaphores[rendererIndex].data();
 
 		vk::PipelineStageFlags pipelineStageFlags = vk::PipelineStageFlagBits::eBottomOfPipe;
 		submitInfo.pWaitDstStageMask			  = &pipelineStageFlags;
@@ -286,8 +591,8 @@ int RenderingSystem::run(double dt) {
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers	  = &commandBuffer;
 
-		// submitInfo.signalSemaphoreCount = 1;
-		// submitInfo.pSignalSemaphores	= &vkRenderingFinishedSemaphore;
+		submitInfo.signalSemaphoreCount = syncObjects[currentFrameInFlight].signalSemaphores[rendererIndex].size();
+		submitInfo.pSignalSemaphores	= syncObjects[currentFrameInFlight].signalSemaphores[rendererIndex].data();
 
 		RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, commandBufferFence),
 						   "Failed to submit command buffer");
