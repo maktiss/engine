@@ -49,6 +49,18 @@ int Importer::importMesh(std::string filename, std::vector<Engine::Managers::Mes
 					std::get<1>(vertexBuffer[vIndex]).x = 0.0f;
 					std::get<1>(vertexBuffer[vIndex]).y = 0.0f;
 				}
+
+				std::get<2>(vertexBuffer[vIndex]).x = assimpMesh->mNormals[vIndex].x;
+				std::get<2>(vertexBuffer[vIndex]).y = assimpMesh->mNormals[vIndex].y;
+				std::get<2>(vertexBuffer[vIndex]).z = assimpMesh->mNormals[vIndex].z;
+
+				std::get<3>(vertexBuffer[vIndex]).x = assimpMesh->mTangents[vIndex].x;
+				std::get<3>(vertexBuffer[vIndex]).y = assimpMesh->mTangents[vIndex].y;
+				std::get<3>(vertexBuffer[vIndex]).z = assimpMesh->mTangents[vIndex].z;
+
+				std::get<4>(vertexBuffer[vIndex]).x = assimpMesh->mBitangents[vIndex].x;
+				std::get<4>(vertexBuffer[vIndex]).y = assimpMesh->mBitangents[vIndex].y;
+				std::get<4>(vertexBuffer[vIndex]).z = assimpMesh->mBitangents[vIndex].z;
 			}
 
 			auto& indexBuffer = mesh.getIndexBuffer();
@@ -66,7 +78,7 @@ int Importer::importMesh(std::string filename, std::vector<Engine::Managers::Mes
 	return 0;
 }
 
-int Importer::importTexture(std::string filename, Engine::Managers::TextureManager::Handle& textureHandle) {
+int Importer::importTexture(std::string filename, Engine::Managers::TextureManager::Handle& textureHandle, bool srgb) {
 	spdlog::info("Importing texture '{}'...", filename);
 	int width;
 	int height;
@@ -78,12 +90,16 @@ int Importer::importTexture(std::string filename, Engine::Managers::TextureManag
 		return 1;
 	}
 
-	textureHandle.apply([image, width, height](auto& texture) {
+	textureHandle.apply([image, width, height, srgb](auto& texture) {
 		texture.size = vk::Extent3D(width, height, 1);
 
 		texture.setPixelData(image, width * height * 4);
 
-		texture.format		= vk::Format::eR8G8B8A8Srgb;
+		if (srgb) {
+			texture.format		= vk::Format::eR8G8B8A8Srgb;
+		} else {
+			texture.format		= vk::Format::eR8G8B8A8Unorm;
+		}
 		texture.usage		= vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
 		texture.imageAspect = vk::ImageAspectFlagBits::eColor;
 

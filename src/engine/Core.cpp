@@ -85,15 +85,20 @@ int Core::init(int argc, char** argv) {
 	}
 	modelEntity.getComponent<Components::Model>().meshHandles[0] = meshHandles[0];
 
-	auto textureHandle = Engine::Managers::TextureManager::createObject(0);
-	if (Engine::Utils::Importer::importTexture("assets/textures/Concrete_Panels_01_Base_Color.jpg", textureHandle)) {
+	auto albedoTextureHandle = Engine::Managers::TextureManager::createObject(0);
+	if (Engine::Utils::Importer::importTexture("assets/textures/Concrete_Panels_01_Base_Color.jpg", albedoTextureHandle, true)) {
+		return 1;
+	}
+	auto normalTextureHandle = Engine::Managers::TextureManager::createObject(0);
+	if (Engine::Utils::Importer::importTexture("assets/textures/Concrete_Panels_01_Normal.jpg", normalTextureHandle, false)) {
 		return 1;
 	}
 
 	auto materialHandle = Engine::Managers::MaterialManager::createObject(0);
-	materialHandle.apply([&textureHandle](auto& material) {
-		material.color			   = glm::vec3(0.5f, 0.3f, 0.8f);
-		material.textureHandles[0] = textureHandle;
+	materialHandle.apply([&albedoTextureHandle, &normalTextureHandle](auto& material) {
+		// material.color			   = glm::vec3(0.5f, 0.3f, 0.8f);
+		material.textureHandles[0] = albedoTextureHandle;
+		material.textureHandles[1] = normalTextureHandle;
 	});
 	materialHandle.update();
 

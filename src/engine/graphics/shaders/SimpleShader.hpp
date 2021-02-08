@@ -9,7 +9,8 @@ namespace Engine::Graphics::Shaders {
 class SimpleShader : public ShaderBase<SimpleShader> {
 public:
 	enum Flags {
-		USE_TEXTURE = 1 << 0,
+		USE_TEXTURE_ALBEDO = 1 << 0,
+		USE_TEXTURE_NORMAL = 1 << 1,
 	};
 
 	struct MaterialUniformBlock {
@@ -18,13 +19,15 @@ public:
 
 public:
 	static constexpr uint32_t getTextureCount() {
-		return 1;
+		return 2;
 	}
 
 	static constexpr const char* getFlagName(Flags flag) {
 		switch (flag) {
-		case Flags::USE_TEXTURE:
-			return "USE_TEXTURE";
+		case Flags::USE_TEXTURE_ALBEDO:
+			return "USE_TEXTURE_ALBEDO";
+		case Flags::USE_TEXTURE_NORMAL:
+			return "USE_TEXTURE_NORMAL";
 		}
 		return "";
 	}

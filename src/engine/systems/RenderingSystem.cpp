@@ -855,7 +855,7 @@ int RenderingSystem::createSwapchain() {
 
 	// TODO: choose the best format
 	auto surfaceFormat = swapchainSupportInfo.formats[0];
-	auto presentMode   = vk::PresentModeKHR::eImmediate;
+	auto presentMode   = vk::PresentModeKHR::eFifo;
 
 	auto extent = swapchainSupportInfo.capabilities.maxImageExtent;
 

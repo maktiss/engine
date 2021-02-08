@@ -19,6 +19,6 @@ public:
 										std::vector<Engine::Managers::MeshManager::Handle>& meshHandles);
 
 	[[nodiscard]] static int importTexture(std::string filename,
-										   Engine::Managers::TextureManager::Handle& textureHandle);
+										   Engine::Managers::TextureManager::Handle& textureHandle, bool srgb);
 };
 } // namespace Engine::Utils

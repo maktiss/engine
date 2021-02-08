@@ -12,33 +12,13 @@ namespace Engine::Graphics::Meshes {
 class StaticMesh : public MeshBase<StaticMesh> {
 public:
 	// TODO: test performance impact due to elements of a tuple being reversed
-	VERTEX_LAYOUT(glm::vec3, glm::vec2);
-	VERTEX_FORMATS(vk::Format::eR32G32B32Sfloat, vk::Format::eR32G32Sfloat);
+	VERTEX_LAYOUT(glm::vec3, glm::vec2, glm::vec3, glm::vec3, glm::vec3);
+	VERTEX_FORMATS(vk::Format::eR32G32B32Sfloat, vk::Format::eR32G32Sfloat, vk::Format::eR32G32B32Sfloat,
+				   vk::Format::eR32G32B32Sfloat, vk::Format::eR32G32B32Sfloat);
 
 public:
-	StaticMesh() {
-		getVertexBuffer() = {
-			{ { -0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f } },
-			{ { 0.5f, 0.5f, -0.5f }, { 1.0f, 0.0f } },
-			{ { 0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f } },
-			{ { -0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f } },
-
-			{ { 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f } },
-			{ { -0.5f, 0.5f, 0.5f }, { 1.0f, 0.0f } },
-			{ { -0.5f, -0.5f, 0.5f }, { 1.0f, 1.0f } },
-			{ { 0.5f, -0.5f, 0.5f }, { 0.0f, 1.0f } },
-
-			{ { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f } },
-			{ { 0.5f, 0.5f, 0.5f }, { 1.0f, 0.0f } },
-			{ { 0.5f, -0.5f, 0.5f }, { 1.0f, 1.0f } },
-			{ { 0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f } },
-		};
-
-		getIndexBuffer() = { 0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11 };
-	}
-
 	static const std::string getMeshTypeString() {
 		return "MESH_TYPE_STATIC";
 	}
 };
-} // namespace Engine::Graphics
+} // namespace Engine::Graphics::Meshes
