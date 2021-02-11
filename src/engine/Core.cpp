@@ -86,11 +86,13 @@ int Core::init(int argc, char** argv) {
 	modelEntity.getComponent<Components::Model>().meshHandles[0] = meshHandles[0];
 
 	auto albedoTextureHandle = Engine::Managers::TextureManager::createObject(0);
-	if (Engine::Utils::Importer::importTexture("assets/textures/Concrete_Panels_01_Base_Color.jpg", albedoTextureHandle, true)) {
+	if (Engine::Utils::Importer::importTexture("assets/textures/Concrete_Panels_01_Base_Color.jpg", albedoTextureHandle,
+											   true)) {
 		return 1;
 	}
 	auto normalTextureHandle = Engine::Managers::TextureManager::createObject(0);
-	if (Engine::Utils::Importer::importTexture("assets/textures/Concrete_Panels_01_Normal.jpg", normalTextureHandle, false)) {
+	if (Engine::Utils::Importer::importTexture("assets/textures/Concrete_Panels_01_Normal.jpg", normalTextureHandle,
+											   false)) {
 		return 1;
 	}
 
@@ -110,6 +112,15 @@ int Core::init(int argc, char** argv) {
 
 	modelEntity.getComponent<Components::Script>().handle =
 		Engine::Managers::ScriptManager::getScriptHandle("script_floating_object");
+
+
+	auto directionalLightEntity =
+		Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Light>();
+	directionalLightEntity.getComponent<Components::Light>().type			= Components::Light::Type::DIRECTIONAL;
+	directionalLightEntity.getComponent<Components::Light>().color			= { 2.0f, 1.3f, 0.6f };
+	directionalLightEntity.getComponent<Components::Transform>().rotation.x = -0.8f;
+	directionalLightEntity.getComponent<Components::Transform>().rotation.y = 0.3f;
+	directionalLightEntity.getComponent<Components::Transform>().rotation.z = 0.2f;
 
 
 	spdlog::info("Initialization completed successfully");

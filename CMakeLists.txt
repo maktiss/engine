@@ -15,6 +15,7 @@ add_executable(
 	src/engine/Core.hpp
 	src/engine/components/Camera.hpp
 	src/engine/components/ComponentBase.hpp
+	src/engine/components/Light.hpp
 	src/engine/components/Model.hpp
 	src/engine/components/Script.hpp
 	src/engine/components/Transform.hpp

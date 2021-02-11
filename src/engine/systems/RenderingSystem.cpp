@@ -285,10 +285,10 @@ int RenderingSystem::init() {
 			vk::Semaphore semaphore {};
 
 			for (const auto& inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
-				RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
-							"Failed to create rendering semaphore");
-
 				for (uint frameInFlight = 0; frameInFlight < framesInFlightCount; frameInFlight++) {
+					RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
+								"Failed to create rendering semaphore");
+
 					syncObjects[frameInFlight].signalSemaphores[rendererIndex].push_back(semaphore);
 					syncObjects[frameInFlight].waitSemaphores[inputReference.rendererIndex].push_back(semaphore);
 				}
@@ -298,10 +298,10 @@ int RenderingSystem::init() {
 
 			const auto& outputReference = renderGraphNode.outputReferences[outputIndex];
 			if (outputReference.rendererIndex != -1) {
-				RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
-							"Failed to create rendering semaphore");
-
 				for (uint frameInFlight = 0; frameInFlight < framesInFlightCount; frameInFlight++) {
+					RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
+								"Failed to create rendering semaphore");
+
 					syncObjects[frameInFlight].signalSemaphores[rendererIndex].push_back(semaphore);
 					syncObjects[frameInFlight].waitSemaphores[outputReference.rendererIndex].push_back(semaphore);
 				}

@@ -5,6 +5,27 @@
 
 namespace Engine::Renderers::Graphics {
 class ForwardRenderer : public GraphicsRendererBase {
+private:
+	struct EnvironmentBlock {
+		struct {
+			alignas(16) glm::vec3 direction;
+			alignas(16) glm::vec3 color;
+			alignas(4) int32_t shadowMapIndex;
+			glm::mat4 lightSpaceMatrices[1];
+		} directionalLight;
+
+		alignas(16) int pointLightCount;
+		struct {
+			glm::vec3 position;
+			float radius;
+
+			glm::vec3 color;
+			int shadowMapIndex;
+
+			glm::mat4 lightSpaceMatrices[6];
+		} pointLights[8];
+	};
+
 public:
 	ForwardRenderer() : GraphicsRendererBase(0, 2) {
 	}
@@ -36,7 +57,7 @@ public:
 		std::vector<AttachmentDescription> descriptions {};
 		return descriptions;
 	}
-	
+
 
 	std::vector<vk::ImageLayout> getInputInitialLayouts() const {
 		return std::vector<vk::ImageLayout>();
@@ -56,7 +77,7 @@ public:
 	inline std::vector<vk::ClearValue> getVkClearValues() {
 		std::vector<vk::ClearValue> clearValues {};
 		clearValues.resize(2);
-		
+
 		clearValues[0].color			  = std::array { 0.0f, 0.0f, 0.0f, 0.0f };
 		clearValues[1].depthStencil.depth = 1.0f;
 

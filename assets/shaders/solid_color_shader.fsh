@@ -29,15 +29,15 @@ layout(set = MATERIAL_BLOCK_SET, binding = 1) uniform sampler2D uTextures[8];
 void main() {
 	vec3 colorAlbedo = uMaterial.color.rgb;
 
-	#ifdef USE_TEXTURE_ALBEDO
+#ifdef USE_TEXTURE_ALBEDO
 	colorAlbedo *= texture(uTextures[ALBEDO], inData.texCoord).rgb;
-	#endif
+#endif
 
 	vec3 normal = inData.tbnMatrix[2];
 
-	#ifdef USE_TEXTURE_NORMAL
+#ifdef USE_TEXTURE_NORMAL
 	normal = inData.tbnMatrix * (texture(uTextures[NORMAL], inData.texCoord).rgb * 2.0 - 1.0);
-	#endif
+#endif
 
 	normal = normalize(normal);
 
@@ -45,7 +45,9 @@ void main() {
 
 	vec3 color = colorAlbedo * 0.5;
 
-	color += colorAlbedo * max(dot(-lightDir, normal), 0.0);
+	color += colorAlbedo * uEnvironment.directionalLight.color *
+			 max(dot(-uEnvironment.directionalLight.direction, normal), 0.0);
+
 
 	outColor = vec4(color, 1.0);
 }

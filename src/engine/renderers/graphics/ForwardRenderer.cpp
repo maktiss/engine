@@ -16,7 +16,7 @@ int ForwardRenderer::init() {
 	uniformBuffers.resize(3);
 	uniformBuffers[0].init(vkDevice, vmaAllocator, 4);
 	uniformBuffers[1].init(vkDevice, vmaAllocator, 256);
-	uniformBuffers[2].init(vkDevice, vmaAllocator, 16);
+	uniformBuffers[2].init(vkDevice, vmaAllocator, sizeof(EnvironmentBlock));
 
 
 	return GraphicsRendererBase::init();
@@ -30,6 +30,7 @@ void ForwardRenderer::recordCommandBuffer(double dt, vk::CommandBuffer& commandB
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
 										 &uniformBuffers[setIndex].getVkDescriptorSet(), 0, nullptr);
 	}
+
 
 	struct {
 		glm::mat4 viewMatrix;
@@ -56,6 +57,24 @@ void ForwardRenderer::recordCommandBuffer(double dt, vk::CommandBuffer& commandB
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
 
 	uniformBuffers[1].update(&cameraBlock, sizeof(cameraBlock));
+
+
+	EnvironmentBlock environmentBlock;
+
+	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Light>(
+		[&environmentBlock, &cameraBlock](const auto& transform, const auto& light) {
+			if (light.type == Engine::Components::Light::Type::DIRECTIONAL) {
+				glm::vec4 direction = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+				direction			= glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * direction;
+				direction			= glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * direction;
+				direction			= glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * direction;
+
+				environmentBlock.directionalLight.direction = glm::vec3(cameraBlock.viewMatrix * direction);
+				environmentBlock.directionalLight.color		= light.color;
+			}
+		});
+
+	uniformBuffers[2].update(&environmentBlock, sizeof(environmentBlock));
 
 
 	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(
