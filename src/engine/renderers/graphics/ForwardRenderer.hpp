@@ -33,7 +33,8 @@ public:
 
 	int init() override;
 
-	void recordCommandBuffer(double dt, vk::CommandBuffer& commandBuffer) override;
+	void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
+									   double dt) override;
 
 	const char* getRenderPassName() const override {
 		return "RENDER_PASS_FORWARD";

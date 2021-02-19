@@ -122,11 +122,11 @@ private:
 
 		// Connects source output to destination input slot
 		void addInputConnection(uint srcNodeIndex, uint srcOutputIndex, uint dstNodeIndex, uint dstInputIndex,
-									  bool nextFrame = false);
+								bool nextFrame = false);
 
 		// Connects source output to destination output slot
 		void addOutputConnection(uint srcNodeIndex, uint srcOutputIndex, uint dstNodeIndex, uint dstOutputIndex,
-									  bool nextFrame = false);
+								 bool nextFrame = false);
 	};
 
 
@@ -155,29 +155,30 @@ private:
 	uint currentFrameInFlight = 0;
 
 	std::vector<vk::CommandPool> vkCommandPools;
-	uint currentCommandPool = 0;
 
-	std::vector<vk::CommandBuffer> vkCommandBuffers {};
-	std::vector<vk::Fence> vkCommandBufferFences {};
+
+	std::vector<vk::CommandBuffer> vkPrimaryCommandBuffers {};
+	std::vector<std::pair<uint, uint>> vkPrimaryCommandBuffersViews {};
+	// TODO: an actual view, not just index-count pair
+
+	std::vector<vk::CommandBuffer> vkSecondaryCommandBuffers {};
+	std::vector<std::pair<uint, uint>> vkSecondaryCommandBuffersViews {};
+
+
+	std::vector<vk::Semaphore> vkRendererWaitSemaphores {};
+	std::vector<std::pair<uint, uint>> vkRendererWaitSemaphoresViews {};
+
+	std::vector<vk::Semaphore> vkRendererSignalSemaphores {};
+	std::vector<std::pair<uint, uint>> vkRendererSignalSemaphoresViews {};
+
+	std::vector<vk::Fence> vkRendererFences {};
 
 	std::vector<vk::Semaphore> vkImageAvailableSemaphores {};
 	std::vector<vk::Semaphore> vkImageBlitFinishedSemaphores {};
 
-	// For every frame in flight for every renderer
-	std::vector<std::vector<vk::Semaphore>> vkRenderPassWaitSemaphores {};
-	std::vector<std::vector<vk::Semaphore>> vkRenderPassSignalSemaphores {};
-
 	std::vector<vk::CommandBuffer> vkImageBlitCommandBuffers {};
 	std::vector<vk::Fence> vkImageBlitCommandBufferFences {};
 
-	struct Sync {
-		// Semaphores per renderer
-		std::vector<std::vector<vk::Semaphore>> waitSemaphores;
-		std::vector<std::vector<vk::Semaphore>> signalSemaphores;
-	};
-
-	// Sync objects per frame-in-flight
-	std::vector<Sync> syncObjects {};
 
 	Engine::Managers::TextureManager::Handle finalTextureHandle {};
 
@@ -243,6 +244,24 @@ private:
 
 	inline uint getCommandBufferIndex(uint frameIndex, uint rendererIndex, uint threadIndex) const {
 		return frameIndex * renderers.size() * (threadCount + 1) + rendererIndex * (threadCount + 1) + threadIndex;
+	}
+
+
+	inline auto& getPrimaryCommandBuffersView(uint frameIndex, uint rendererIndex) {
+		return vkPrimaryCommandBuffersViews[frameIndex * renderers.size() + rendererIndex];
+	}
+
+	inline auto& getSecondaryCommandBuffersView(uint frameIndex, uint rendererIndex) {
+		return vkSecondaryCommandBuffersViews[frameIndex * renderers.size() + rendererIndex];
+	}
+
+
+	inline auto& getRendererWaitSemaphoresView(uint frameIndex, uint rendererIndex) {
+		return vkRendererWaitSemaphoresViews[frameIndex * renderers.size() + rendererIndex];
+	}
+
+	inline auto& getRendererSignalSemaphoresView(uint frameIndex, uint rendererIndex) {
+		return vkRendererSignalSemaphoresViews[frameIndex * renderers.size() + rendererIndex];
 	}
 
 

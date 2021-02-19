@@ -24,38 +24,69 @@ int GraphicsRendererBase::init() {
 }
 
 
-int GraphicsRendererBase::render(vk::CommandBuffer commandBuffer, double dt) {
-	vk::CommandBufferBeginInfo commandBufferBeginInfo {};
+int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers,
+								 const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
+	for (uint layerIndex = 0; layerIndex < getLayerCount(); layerIndex++) {
+		vk::CommandBufferBeginInfo commandBufferBeginInfo {};
 
-	vk::RenderPassBeginInfo renderPassBeginInfo {};
-	renderPassBeginInfo.renderPass		  = vkRenderPass;
-	renderPassBeginInfo.framebuffer		  = vkFramebuffer;
-	renderPassBeginInfo.renderArea.extent = outputSize;
-	renderPassBeginInfo.renderArea.offset = vk::Offset2D(0, 0);
+		vk::RenderPassBeginInfo renderPassBeginInfo {};
+		renderPassBeginInfo.renderPass		  = vkRenderPass;
+		renderPassBeginInfo.framebuffer		  = vkFramebuffers[layerIndex];
+		renderPassBeginInfo.renderArea.extent = outputSize;
+		renderPassBeginInfo.renderArea.offset = vk::Offset2D(0, 0);
 
-	auto clearValues					= getVkClearValues();
-	renderPassBeginInfo.clearValueCount = clearValues.size();
-	renderPassBeginInfo.pClearValues	= clearValues.data();
+		auto clearValues					= getVkClearValues();
+		renderPassBeginInfo.clearValueCount = clearValues.size();
+		renderPassBeginInfo.pClearValues	= clearValues.data();
 
 
-	// Begin command buffer
+		auto& commandBuffer = pPrimaryCommandBuffers[layerIndex];
 
-	auto result = commandBuffer.begin(&commandBufferBeginInfo);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to record command buffer. Error code: {} ({})", result, vk::to_string(result));
-		return 1;
-	}
+		auto result = commandBuffer.begin(&commandBufferBeginInfo);
+		if (result != vk::Result::eSuccess) {
+			spdlog::error("Failed to record command buffer. Error code: {} ({})", result, vk::to_string(result));
+			return 1;
+		}
 
-	commandBuffer.beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
+		commandBuffer.beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eSecondaryCommandBuffers);
 
-	// Command buffer is recorded by derived renderers
-	recordCommandBuffer(dt, commandBuffer);
+		vk::CommandBufferInheritanceInfo commandBufferInheritanceInfo {};
+		commandBufferInheritanceInfo.renderPass	 = vkRenderPass;
+		commandBufferInheritanceInfo.framebuffer = vkFramebuffers[layerIndex];
 
-	commandBuffer.endRenderPass();
-	result = commandBuffer.end();
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to record command buffer. Error code: {} ({})", result, vk::to_string(result));
-		return 1;
+		commandBufferBeginInfo.flags			= vk::CommandBufferUsageFlagBits::eRenderPassContinue;
+		commandBufferBeginInfo.pInheritanceInfo = &commandBufferInheritanceInfo;
+
+		auto pSecondaryCommandBuffersForLayer = pSecondaryCommandBuffers + layerIndex * threadCount;
+
+		for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
+			result = pSecondaryCommandBuffersForLayer[threadIndex].begin(&commandBufferBeginInfo);
+			if (result != vk::Result::eSuccess) {
+				spdlog::error("Failed to record secondary command buffer. Error code: {} ({})", result,
+							  vk::to_string(result));
+				return 1;
+			}
+		}
+
+		recordSecondaryCommandBuffers(pSecondaryCommandBuffersForLayer, layerIndex, dt);
+
+		for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
+			result = pSecondaryCommandBuffersForLayer[threadIndex].end();
+			if (result != vk::Result::eSuccess) {
+				spdlog::error("Failed to record secondary command buffer. Error code: {} ({})", result,
+							  vk::to_string(result));
+				return 1;
+			}
+		}
+
+		commandBuffer.executeCommands(threadCount, pSecondaryCommandBuffersForLayer);
+
+		commandBuffer.endRenderPass();
+		result = commandBuffer.end();
+		if (result != vk::Result::eSuccess) {
+			spdlog::error("Failed to record command buffer. Error code: {} ({})", result, vk::to_string(result));
+			return 1;
+		}
 	}
 
 	return 0;
@@ -106,26 +137,59 @@ int GraphicsRendererBase::createRenderPass() {
 int GraphicsRendererBase::createFramebuffer() {
 	assert(vkRenderPass != vk::RenderPass());
 
-	std::vector<vk::ImageView> imageViews(outputs.size());
+	auto layerCount = getLayerCount();
+	vkFramebuffers.resize(layerCount);
 
-	for (uint i = 0; i < imageViews.size(); i++) {
-		imageViews[i] = Engine::Managers::TextureManager::getTextureInfo(outputs[i]).imageView;
-		assert(imageViews[i] != vk::ImageView());
-	}
+	// Create framebuffer for each layer
+	for (uint layerIndex = 0; layerIndex < layerCount; layerIndex++) {
+		std::vector<vk::ImageView> imageViews(outputs.size());
 
-	vk::FramebufferCreateInfo framebufferCreateInfo {};
-	framebufferCreateInfo.renderPass	  = vkRenderPass;
-	framebufferCreateInfo.attachmentCount = imageViews.size();
-	framebufferCreateInfo.pAttachments	  = imageViews.data();
+		for (uint i = 0; i < imageViews.size(); i++) {
+			const auto image = Engine::Managers::TextureManager::getTextureInfo(outputs[i]).image;
+			vk::ImageView imageView {};
 
-	framebufferCreateInfo.width	 = outputSize.width;
-	framebufferCreateInfo.height = outputSize.height;
-	framebufferCreateInfo.layers = 1;
+			vk::ImageViewCreateInfo imageViewCreateInfo {};
+			imageViewCreateInfo.image = image;
 
-	auto result = vkDevice.createFramebuffer(&framebufferCreateInfo, nullptr, &vkFramebuffer);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to create framebuffer. Error code: {} ({})", result, vk::to_string(result));
-		return 1;
+			outputs[i].apply([&imageViewCreateInfo, layerIndex](const auto& texture) {
+				imageViewCreateInfo.viewType						= vk::ImageViewType::e2D;
+				imageViewCreateInfo.format							= texture.format;
+				imageViewCreateInfo.subresourceRange.aspectMask		= texture.imageAspect;
+				imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
+				imageViewCreateInfo.subresourceRange.levelCount		= 1;
+				imageViewCreateInfo.subresourceRange.baseArrayLayer = layerIndex;
+				imageViewCreateInfo.subresourceRange.layerCount		= 1;
+			});
+
+			auto result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &imageView);
+			if (result != vk::Result::eSuccess) {
+				spdlog::error("Failed to create image view. Error code: {} ({})", result,
+							  vk::to_string(vk::Result(result)));
+				return 1;
+			}
+
+			imageViews[i] = imageView;
+
+			assert(imageViews[i] != vk::ImageView());
+		}
+
+		vk::FramebufferCreateInfo framebufferCreateInfo {};
+		framebufferCreateInfo.renderPass	  = vkRenderPass;
+		framebufferCreateInfo.attachmentCount = imageViews.size();
+		framebufferCreateInfo.pAttachments	  = imageViews.data();
+
+		framebufferCreateInfo.width	 = outputSize.width;
+		framebufferCreateInfo.height = outputSize.height;
+		framebufferCreateInfo.layers = 1;
+
+		vk::Framebuffer framebuffer;
+		auto result = vkDevice.createFramebuffer(&framebufferCreateInfo, nullptr, &framebuffer);
+		if (result != vk::Result::eSuccess) {
+			spdlog::error("Failed to create framebuffer. Error code: {} ({})", result, vk::to_string(result));
+			return 1;
+		}
+
+		vkFramebuffers[layerIndex] = framebuffer;
 	}
 
 	return 0;
@@ -160,7 +224,6 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 	// FIXME pipeline layout creation must be in RendererBase since it's not graphics exclusive
 
 	auto descriptorSetLayouts = getVkDescriptorSetLayouts();
-	// TODO don't like this solution think on something better?
 	descriptorSetLayouts.push_back(Engine::Managers::MaterialManager::getVkDescriptorSetLayout());
 
 	// FIXME should be set by derived renderers

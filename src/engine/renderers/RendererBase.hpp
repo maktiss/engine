@@ -33,6 +33,8 @@ protected:
 	uint threadCount		 = 1;
 	uint framesInFlightCount = 3;
 
+	// number of layers renderer can to render to
+	uint layerCount = 1;
 
 	// Created and set by rendering system
 	std::vector<Engine::Managers::TextureManager::Handle> inputs {};
@@ -52,7 +54,7 @@ protected:
 
 
 public:
-	RendererBase(uint inputCount, uint outputCount) {
+	RendererBase(uint inputCount, uint outputCount, uint layerCount = 1) : layerCount(layerCount) {
 		inputs.resize(inputCount);
 		outputs.resize(outputCount);
 
@@ -66,7 +68,8 @@ public:
 
 	virtual int init() = 0;
 
-	virtual int render(vk::CommandBuffer commandBuffer, double dt) = 0;
+	virtual int render(const vk::CommandBuffer* pPrimaryCommandBuffers,
+					   const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) = 0;
 
 
 	virtual std::vector<AttachmentDescription> getOutputDescriptions() const {
@@ -82,75 +85,80 @@ public:
 	virtual std::vector<vk::ImageLayout> getInputInitialLayouts() const {
 		return std::vector<vk::ImageLayout>();
 	}
-	
+
 	// Returns expected initial layouts, does not apply if resource is not a reference
 	virtual std::vector<vk::ImageLayout> getOutputInitialLayouts() const {
 		return std::vector<vk::ImageLayout>();
 	}
 
 
-	uint getInputCount() const {
+	inline uint getInputCount() const {
 		return inputs.size();
 	}
 
-	uint getOutputCount() const {
+	inline uint getOutputCount() const {
 		return outputs.size();
 	}
 
 
-	void setVkDevice(vk::Device device) {
+	inline auto getLayerCount() const {
+		return layerCount;
+	}
+
+
+	inline void setVkDevice(vk::Device device) {
 		vkDevice = device;
 	}
 
-	void setOutputSize(vk::Extent2D extent) {
+	inline void setOutputSize(vk::Extent2D extent) {
 		outputSize = extent;
 	}
 
-	void setVulkanMemoryAllocator(VmaAllocator allocator) {
+	inline void setVulkanMemoryAllocator(VmaAllocator allocator) {
 		vmaAllocator = allocator;
 	}
 
 
-	void setThreadCount(uint count) {
+	inline void setThreadCount(uint count) {
 		threadCount = count;
 	}
 
-	void setFramesInFlightCount(uint count) {
+	inline void setFramesInFlightCount(uint count) {
 		framesInFlightCount = count;
 	}
 
 
-	void setOutput(uint index, Engine::Managers::TextureManager::Handle textureHandle) {
+	inline void setOutput(uint index, Engine::Managers::TextureManager::Handle textureHandle) {
 		outputs[index] = textureHandle;
 	}
 
-	void setInput(uint index, Engine::Managers::TextureManager::Handle textureHandle) {
+	inline void setInput(uint index, Engine::Managers::TextureManager::Handle textureHandle) {
 		inputs[index] = textureHandle;
 	}
 
 
-	Engine::Managers::TextureManager::Handle getOutput(uint index) {
+	inline Engine::Managers::TextureManager::Handle getOutput(uint index) {
 		return outputs[index];
 	}
 
-	Engine::Managers::TextureManager::Handle getInput(uint index) {
+	inline Engine::Managers::TextureManager::Handle getInput(uint index) {
 		return inputs[index];
 	}
 
 
-	void setInputInitialLayout(uint index, vk::ImageLayout imageLayout) {
+	inline void setInputInitialLayout(uint index, vk::ImageLayout imageLayout) {
 		vkInputInitialLayouts[index] = imageLayout;
 	}
 
-	void setOutputInitialLayout(uint index, vk::ImageLayout imageLayout) {
+	inline void setOutputInitialLayout(uint index, vk::ImageLayout imageLayout) {
 		vkOutputInitialLayouts[index] = imageLayout;
 	}
 
-	void setInputFinalLayout(uint index, vk::ImageLayout imageLayout) {
+	inline void setInputFinalLayout(uint index, vk::ImageLayout imageLayout) {
 		vkInputFinalLayouts[index] = imageLayout;
 	}
 
-	void setOutputFinalLayout(uint index, vk::ImageLayout imageLayout) {
+	inline void setOutputFinalLayout(uint index, vk::ImageLayout imageLayout) {
 		vkOutputFinalLayouts[index] = imageLayout;
 	}
 

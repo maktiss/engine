@@ -12,13 +12,14 @@ public:
 
 	int init() override;
 
-	void recordCommandBuffer(double dt, vk::CommandBuffer& commandBuffer) override;
+	void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
+									   double dt) override;
 
 	const char* getRenderPassName() const override {
 		return "RENDER_PASS_DEPTH_NORMAL";
 	}
-	
-	
+
+
 	std::vector<AttachmentDescription> getOutputDescriptions() const {
 		std::vector<AttachmentDescription> outputDescriptions {};
 		outputDescriptions.resize(1);
@@ -52,7 +53,7 @@ public:
 	inline std::vector<vk::ClearValue> getVkClearValues() {
 		std::vector<vk::ClearValue> clearValues {};
 		clearValues.resize(1);
-		
+
 		clearValues[0].depthStencil.depth = 1.0f;
 
 		return clearValues;

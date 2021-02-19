@@ -255,18 +255,17 @@ int RenderingSystem::init() {
 
 	// Iterate over render graph, set initial layouts if they are needed and create semaphores
 
-	// FIXME: setFramesInFlightCount()
-	syncObjects.resize(framesInFlightCount);
-	for (auto& syncObjectsForFrame : syncObjects) {
-		syncObjectsForFrame.signalSemaphores.resize(renderers.size(), {});
-		syncObjectsForFrame.waitSemaphores.resize(renderers.size(), {});
-	}
+	// Temporary vectors for easier indexing
+	std::vector<std::vector<std::vector<vk::Semaphore>>> rendererWaitSemaphores(
+		framesInFlightCount, std::vector<std::vector<vk::Semaphore>>(renderers.size()));
+	std::vector<std::vector<std::vector<vk::Semaphore>>> rendererSignalSemaphores(
+		framesInFlightCount, std::vector<std::vector<vk::Semaphore>>(renderers.size()));
 
 	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
 		const auto& renderer		= renderers[rendererIndex];
 		const auto& renderGraphNode = renderGraph.nodes[rendererIndex];
 
-		auto inputInitialLayouts = renderer->getInputInitialLayouts();
+		auto inputInitialLayouts  = renderer->getInputInitialLayouts();
 		auto outputInitialLayouts = renderer->getOutputInitialLayouts();
 
 
@@ -287,10 +286,10 @@ int RenderingSystem::init() {
 			for (const auto& inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
 				for (uint frameInFlight = 0; frameInFlight < framesInFlightCount; frameInFlight++) {
 					RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
-								"Failed to create rendering semaphore");
+									   "Failed to create rendering semaphore");
 
-					syncObjects[frameInFlight].signalSemaphores[rendererIndex].push_back(semaphore);
-					syncObjects[frameInFlight].waitSemaphores[inputReference.rendererIndex].push_back(semaphore);
+					rendererWaitSemaphores[frameInFlight][inputReference.rendererIndex].push_back(semaphore);
+					rendererSignalSemaphores[frameInFlight][rendererIndex].push_back(semaphore);
 				}
 
 				// TODO: nextFrame dependency
@@ -300,12 +299,46 @@ int RenderingSystem::init() {
 			if (outputReference.rendererIndex != -1) {
 				for (uint frameInFlight = 0; frameInFlight < framesInFlightCount; frameInFlight++) {
 					RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
-								"Failed to create rendering semaphore");
+									   "Failed to create rendering semaphore");
 
-					syncObjects[frameInFlight].signalSemaphores[rendererIndex].push_back(semaphore);
-					syncObjects[frameInFlight].waitSemaphores[outputReference.rendererIndex].push_back(semaphore);
+					rendererWaitSemaphores[frameInFlight][outputReference.rendererIndex].push_back(semaphore);
+					rendererSignalSemaphores[frameInFlight][rendererIndex].push_back(semaphore);
 				}
 			}
+		}
+	}
+
+
+	// Index renderer semaphores
+
+	vkRendererWaitSemaphoresViews.resize(framesInFlightCount * renderers.size());
+	vkRendererSignalSemaphoresViews.resize(framesInFlightCount * renderers.size());
+
+	uint rendererWaitSemaphoresOffset	= 0;
+	uint rendererSignalSemaphoresOffset = 0;
+
+	for (uint frameInFlight = 0; frameInFlight < framesInFlightCount; frameInFlight++) {
+		for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
+			auto& waitSemaphoresView = vkRendererWaitSemaphoresViews[frameInFlight * renderers.size() + rendererIndex];
+			auto& signalSemaphoresView =
+				vkRendererSignalSemaphoresViews[frameInFlight * renderers.size() + rendererIndex];
+
+			waitSemaphoresView.first  = rendererWaitSemaphoresOffset;
+			waitSemaphoresView.second = rendererWaitSemaphores[frameInFlight][rendererIndex].size();
+
+			rendererWaitSemaphoresOffset += waitSemaphoresView.second;
+
+			signalSemaphoresView.first	= rendererSignalSemaphoresOffset;
+			signalSemaphoresView.second = rendererSignalSemaphores[frameInFlight][rendererIndex].size();
+
+			rendererSignalSemaphoresOffset += signalSemaphoresView.second;
+
+			vkRendererWaitSemaphores.insert(vkRendererWaitSemaphores.end(),
+											rendererWaitSemaphores[frameInFlight][rendererIndex].begin(),
+											rendererWaitSemaphores[frameInFlight][rendererIndex].end());
+			vkRendererSignalSemaphores.insert(vkRendererSignalSemaphores.end(),
+											  rendererSignalSemaphores[frameInFlight][rendererIndex].begin(),
+											  rendererSignalSemaphores[frameInFlight][rendererIndex].end());
 		}
 	}
 
@@ -371,32 +404,37 @@ int RenderingSystem::init() {
 	// Iterate over render graph again to create and link inputs/outputs
 
 	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
-		const auto& renderer = renderers[rendererIndex];
-		const auto& renderGraphNode = renderGraph.nodes[rendererIndex];
+		const auto& renderer		   = renderers[rendererIndex];
+		const auto& renderGraphNode	   = renderGraph.nodes[rendererIndex];
 		const auto& outputDescriptions = renderer->getOutputDescriptions();
-		
+
+		const auto layerCount = renderer->getLayerCount();
+
 		for (uint outputIndex = 0; outputIndex < outputDescriptions.size(); outputIndex++) {
 			if (renderGraphNode.backwardOutputReferences[outputIndex].rendererIndex == -1) {
 				auto textureHandle = Engine::Managers::TextureManager::createObject(0);
 
 				bool isFinal = false;
-				if (finalOutputReference.rendererIndex == rendererIndex && finalOutputReference.attachmentIndex == outputIndex) {
+				if (finalOutputReference.rendererIndex == rendererIndex &&
+					finalOutputReference.attachmentIndex == outputIndex) {
 					isFinal = true;
 				}
 
-				textureHandle.apply([&outputDescriptions, outputIndex, isFinal](auto& textureHandle) {
-					textureHandle.format = outputDescriptions[outputIndex].format;
-					textureHandle.usage	 = outputDescriptions[outputIndex].usage;
+				textureHandle.apply([&outputDescriptions, outputIndex, isFinal, layerCount](auto& texture) {
+					texture.format = outputDescriptions[outputIndex].format;
+					texture.usage  = outputDescriptions[outputIndex].usage;
 
-					if (textureHandle.usage & vk::ImageUsageFlagBits::eDepthStencilAttachment) {
-						textureHandle.imageAspect = vk::ImageAspectFlagBits::eDepth;
+					texture.layerCount = layerCount;
+
+					if (texture.usage & vk::ImageUsageFlagBits::eDepthStencilAttachment) {
+						texture.imageAspect = vk::ImageAspectFlagBits::eDepth;
 					}
 
 					// FIXME: output size
-					textureHandle.size = vk::Extent3D(1920, 1080, 1);
+					texture.size = vk::Extent3D(1920, 1080, 1);
 
 					if (isFinal) {
-						textureHandle.usage |= vk::ImageUsageFlagBits::eTransferSrc;
+						texture.usage |= vk::ImageUsageFlagBits::eTransferSrc;
 					}
 				});
 				textureHandle.update();
@@ -411,7 +449,8 @@ int RenderingSystem::init() {
 				auto outputReference = renderGraphNode.outputReferences[outputIndex];
 				while (outputReference.rendererIndex != -1) {
 					renderers[outputReference.rendererIndex]->setOutput(outputReference.attachmentIndex, textureHandle);
-					outputReference = renderGraph.nodes[outputReference.rendererIndex].outputReferences[outputReference.attachmentIndex];
+					outputReference = renderGraph.nodes[outputReference.rendererIndex]
+										  .outputReferences[outputReference.attachmentIndex];
 				}
 			}
 		}
@@ -456,26 +495,52 @@ int RenderingSystem::init() {
 	// }
 
 
-	// Allocate command buffers for every renderer
+	// Allocate command buffers for each renderer and their layers
 
-	vkCommandBuffers.resize(framesInFlightCount * renderers.size() * (1 + threadCount));
+	vkPrimaryCommandBuffers.resize(0);
+	vkSecondaryCommandBuffers.resize(0);
+
+	vkPrimaryCommandBuffersViews.resize(framesInFlightCount * renderers.size());
+	vkSecondaryCommandBuffersViews.resize(framesInFlightCount * renderers.size());
 
 	for (uint frameIndex = 0; frameIndex < framesInFlightCount; frameIndex++) {
 		for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
-			for (uint threadIndex = 0; threadIndex < 1 + threadCount; threadIndex++) {
-				uint commandPoolIndex	= getCommandPoolIndex(frameIndex, threadIndex);
-				uint commandBufferIndex = getCommandBufferIndex(frameIndex, rendererIndex, threadIndex);
 
-				vk::CommandBufferAllocateInfo commandBufferAllocateInfo {};
-				commandBufferAllocateInfo.commandPool		 = vkCommandPools[commandPoolIndex];
-				commandBufferAllocateInfo.commandBufferCount = 1;
+			auto& primaryCommandBuffersView	  = getPrimaryCommandBuffersView(frameIndex, rendererIndex);
+			auto& secondaryCommandBuffersView = getSecondaryCommandBuffersView(frameIndex, rendererIndex);
 
-				commandBufferAllocateInfo.level = vk::CommandBufferLevel::ePrimary;
+			primaryCommandBuffersView.first	  = vkPrimaryCommandBuffers.size();
+			secondaryCommandBuffersView.first = vkSecondaryCommandBuffers.size();
 
+			const auto renderLayerCount = renderers[rendererIndex]->getLayerCount();
 
-				RETURN_IF_VK_ERROR(
-					vkDevice.allocateCommandBuffers(&commandBufferAllocateInfo, &vkCommandBuffers[commandBufferIndex]),
-					"Failed to allocate command buffer");
+			primaryCommandBuffersView.second   = renderLayerCount;
+			secondaryCommandBuffersView.second = renderLayerCount * threadCount;
+
+			for (uint rendererLayer = 0; rendererLayer < renderLayerCount; rendererLayer++) {
+				for (uint threadIndex = 0; threadIndex < (1 + threadCount); threadIndex++) {
+					uint commandPoolIndex = getCommandPoolIndex(frameIndex, threadIndex);
+
+					vk::CommandBufferAllocateInfo commandBufferAllocateInfo {};
+					commandBufferAllocateInfo.commandPool		 = vkCommandPools[commandPoolIndex];
+					commandBufferAllocateInfo.commandBufferCount = 1;
+
+					if (threadIndex == 0) {
+						commandBufferAllocateInfo.level = vk::CommandBufferLevel::ePrimary;
+					} else {
+						commandBufferAllocateInfo.level = vk::CommandBufferLevel::eSecondary;
+					}
+
+					vk::CommandBuffer commandBuffer {};
+					RETURN_IF_VK_ERROR(vkDevice.allocateCommandBuffers(&commandBufferAllocateInfo, &commandBuffer),
+									   "Failed to allocate command buffer");
+
+					if (threadIndex == 0) {
+						vkPrimaryCommandBuffers.push_back(commandBuffer);
+					} else {
+						vkSecondaryCommandBuffers.push_back(commandBuffer);
+					}
+				}
 			}
 		}
 	}
@@ -522,8 +587,8 @@ int RenderingSystem::init() {
 	vk::FenceCreateInfo fenceCreateInfo {};
 	fenceCreateInfo.flags = vk::FenceCreateFlagBits::eSignaled;
 
-	vkCommandBufferFences.resize(framesInFlightCount * renderers.size());
-	for (auto& fence : vkCommandBufferFences) {
+	vkRendererFences.resize(framesInFlightCount * renderers.size());
+	for (auto& fence : vkRendererFences) {
 		RETURN_IF_VK_ERROR(vkDevice.createFence(&fenceCreateInfo, nullptr, &fence),
 						   "Failed to create command buffer fence");
 	}
@@ -538,19 +603,18 @@ int RenderingSystem::init() {
 }
 
 int RenderingSystem::run(double dt) {
-	currentFrameInFlight  = (currentFrameInFlight + 1) % framesInFlightCount;
-	auto commandPoolIndex = getCommandPoolIndex(currentFrameInFlight, 0);
+	currentFrameInFlight = (currentFrameInFlight + 1) % framesInFlightCount;
 
 
 	// Wait for rendering command buffers to finish
 
 	// uint32_t fenceCount = vkCommandPools.size() / (framesInFlightCount * 2 * (1 + threadCount));
 	RETURN_IF_VK_ERROR(vkDevice.waitForFences(renderers.size(),
-											  &vkCommandBufferFences[currentFrameInFlight * renderers.size()], true,
+											  &vkRendererFences[currentFrameInFlight * renderers.size()], true,
 											  UINT64_MAX),
 					   "Failed to wait for command buffer fences");
 	RETURN_IF_VK_ERROR(
-		vkDevice.resetFences(renderers.size(), &vkCommandBufferFences[currentFrameInFlight * renderers.size()]),
+		vkDevice.resetFences(renderers.size(), &vkRendererFences[currentFrameInFlight * renderers.size()]),
 		"Failed to reset command buffer fences");
 
 
@@ -565,37 +629,54 @@ int RenderingSystem::run(double dt) {
 
 	// Reset command buffers
 
-	vkDevice.resetCommandPool(vkCommandPools[commandPoolIndex]);
+	auto commandPoolIndex = getCommandPoolIndex(currentFrameInFlight, 0);
+
+	for (uint threadIndex = 0; threadIndex < (threadCount + 1); threadIndex++) {
+		vkDevice.resetCommandPool(vkCommandPools[commandPoolIndex + threadIndex]);
+	}
 
 
 	for (uint orderIndex = 0; orderIndex < rendererExecutionOrder.size(); orderIndex++) {
 		auto rendererIndex = rendererExecutionOrder[orderIndex];
-		auto& renderer = renderers[rendererIndex];
+		auto& renderer	   = renderers[rendererIndex];
 
-		auto commandBufferIndex = getCommandBufferIndex(currentFrameInFlight, rendererIndex, 0);
+		const auto& primaryCommandBuffersView = getPrimaryCommandBuffersView(currentFrameInFlight, rendererIndex);
+		const auto* pPrimaryCommandBuffers	  = &vkPrimaryCommandBuffers[primaryCommandBuffersView.first];
+		const auto primaryCommandBuffersCount = primaryCommandBuffersView.second;
 
-		auto& commandBuffer		 = vkCommandBuffers[commandBufferIndex];
-		auto& commandBufferFence = vkCommandBufferFences[currentFrameInFlight * renderers.size() + rendererIndex];
+		const auto& secondarycommandBuffersView = getSecondaryCommandBuffersView(currentFrameInFlight, rendererIndex);
+		const auto* pSecondaryCommandBuffers	= &vkSecondaryCommandBuffers[secondarycommandBuffersView.first];
+		const auto secondaryCommandBuffersCount = secondarycommandBuffersView.second;
 
 
-		renderer->render(commandBuffer, dt);
+		renderer->render(pPrimaryCommandBuffers, pSecondaryCommandBuffers, dt);
 
+
+		const auto& rendererWaitSemaphoresViews = getRendererWaitSemaphoresView(currentFrameInFlight, rendererIndex);
+		const auto* pRendererWaitSemaphores		= &vkRendererWaitSemaphores[rendererWaitSemaphoresViews.first];
+		const auto rendererWaitSemaphoresCount	= rendererWaitSemaphoresViews.second;
+
+		const auto& rendererSignalSemaphoresViews =
+			getRendererSignalSemaphoresView(currentFrameInFlight, rendererIndex);
+		const auto* pRendererSignalSemaphores	 = &vkRendererSignalSemaphores[rendererSignalSemaphoresViews.first];
+		const auto rendererSignalSemaphoresCount = rendererSignalSemaphoresViews.second;
 
 		vk::SubmitInfo submitInfo {};
-		submitInfo.waitSemaphoreCount = syncObjects[currentFrameInFlight].waitSemaphores[rendererIndex].size();
-		submitInfo.pWaitSemaphores	  = syncObjects[currentFrameInFlight].waitSemaphores[rendererIndex].data();
+		submitInfo.pWaitSemaphores	  = pRendererWaitSemaphores;
+		submitInfo.waitSemaphoreCount = rendererWaitSemaphoresCount;
 
 		vk::PipelineStageFlags pipelineStageFlags = vk::PipelineStageFlagBits::eBottomOfPipe;
 		submitInfo.pWaitDstStageMask			  = &pipelineStageFlags;
 
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers	  = &commandBuffer;
+		submitInfo.commandBufferCount = primaryCommandBuffersCount;
+		submitInfo.pCommandBuffers	  = pPrimaryCommandBuffers;
 
-		submitInfo.signalSemaphoreCount = syncObjects[currentFrameInFlight].signalSemaphores[rendererIndex].size();
-		submitInfo.pSignalSemaphores	= syncObjects[currentFrameInFlight].signalSemaphores[rendererIndex].data();
+		submitInfo.pSignalSemaphores	= pRendererSignalSemaphores;
+		submitInfo.signalSemaphoreCount = rendererSignalSemaphoresCount;
 
-		RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, commandBufferFence),
-						   "Failed to submit command buffer");
+		auto& rendererFence = vkRendererFences[currentFrameInFlight * renderers.size() + rendererIndex];
+
+		RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, rendererFence), "Failed to submit command buffer");
 	}
 
 

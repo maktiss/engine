@@ -23,8 +23,9 @@ int ForwardRenderer::init() {
 }
 
 
-void ForwardRenderer::recordCommandBuffer(double dt, vk::CommandBuffer& commandBuffer) {
-	// commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkGraphicsPipelines[1]);
+void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
+													double dt) {
+	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
 	for (uint setIndex = 0; setIndex < uniformBuffers.size(); setIndex++) {
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,

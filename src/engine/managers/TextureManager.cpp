@@ -82,13 +82,29 @@ void TextureManager::update(Handle handle) {
 		imageCreateInfo.sharingMode	  = vk::SharingMode::eExclusive;
 		imageCreateInfo.samples		  = vk::SampleCountFlagBits::e1;
 
-		imageViewCreateInfo.viewType						= vk::ImageViewType::e2D;
+
+		switch (imageCreateInfo.imageType) {
+		case vk::ImageType::e2D:
+			if (imageCreateInfo.arrayLayers > 1) {
+				imageViewCreateInfo.viewType = vk::ImageViewType::e2DArray;
+			} else {
+				imageViewCreateInfo.viewType = vk::ImageViewType::e2D;
+			}
+			break;
+
+			// TODO: 1D & 3D textures support
+
+		default:
+			spdlog::error("Image type '{}' is not supported", vk::to_string(imageCreateInfo.imageType));
+			return;
+		}
+
 		imageViewCreateInfo.format							= texture.format;
 		imageViewCreateInfo.subresourceRange.aspectMask		= texture.imageAspect;
 		imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
-		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.levelCount		= 1;
-		imageViewCreateInfo.subresourceRange.layerCount		= texture.layerCount;
+		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		imageViewCreateInfo.subresourceRange.layerCount		= imageCreateInfo.arrayLayers;
 	});
 
 
@@ -106,8 +122,8 @@ void TextureManager::update(Handle handle) {
 		vmaCreateImage(vmaAllocator, &cImageCreateInfo, &vmaAllocationCreateInfo, &vkImage, &vmaAllocation, nullptr));
 
 	if (result != vk::Result::eSuccess) {
-		spdlog::error(
-			"[TextureManager] Failed to allocate image memory. Error code: {} ({})", result, vk::to_string(result));
+		spdlog::error("[TextureManager] Failed to allocate image memory. Error code: {} ({})", result,
+					  vk::to_string(result));
 		return;
 	}
 
@@ -120,8 +136,7 @@ void TextureManager::update(Handle handle) {
 
 	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &textureInfo.imageView);
 	if (result != vk::Result::eSuccess) {
-		spdlog::error("[TextureManager] Failed to create image view. Error code: {} ({})",
-					  result,
+		spdlog::error("[TextureManager] Failed to create image view. Error code: {} ({})", result,
 					  vk::to_string(vk::Result(result)));
 		return;
 	}
@@ -147,8 +162,7 @@ void TextureManager::update(Handle handle) {
 
 	result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &textureInfo.sampler);
 	if (result != vk::Result::eSuccess) {
-		spdlog::error("[TextureManager] Failed to create image sampler. Error code: {} ({})",
-					  result,
+		spdlog::error("[TextureManager] Failed to create image sampler. Error code: {} ({})", result,
 					  vk::to_string(vk::Result(result)));
 		return;
 	}

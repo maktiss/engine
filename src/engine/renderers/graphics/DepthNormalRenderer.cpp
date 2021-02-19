@@ -23,7 +23,10 @@ int DepthNormalRenderer::init() {
 }
 
 
-void DepthNormalRenderer::recordCommandBuffer(double dt, vk::CommandBuffer& commandBuffer) {
+void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
+														uint layerIndex, double dt) {
+	const auto& commandBuffer = pSecondaryCommandBuffers[0];
+
 	for (uint setIndex = 0; setIndex < uniformBuffers.size(); setIndex++) {
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
 										 &uniformBuffers[setIndex].getVkDescriptorSet(), 0, nullptr);
@@ -57,13 +60,11 @@ void DepthNormalRenderer::recordCommandBuffer(double dt, vk::CommandBuffer& comm
 
 
 	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(
-		[&commandBuffer, pipelineLayout = vkPipelineLayout, &pipelines = vkPipelines](auto& transform,
-																									  auto& model) {
+		[&commandBuffer, pipelineLayout = vkPipelineLayout, &pipelines = vkPipelines](auto& transform, auto& model) {
 			const auto& meshInfo	 = Engine::Managers::MeshManager::getMeshInfo(model.meshHandles[0]);
 			const auto& materialInfo = Engine::Managers::MaterialManager::getMaterialInfo(model.materialHandles[0]);
 
-			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics,
-									   pipelines[model.shaderHandles[0].getIndex()]);
+			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines[model.shaderHandles[0].getIndex()]);
 
 
 			auto transformMatrix = transform.getTransformMatrix();

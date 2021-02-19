@@ -7,24 +7,25 @@ namespace Engine::Renderers::Graphics {
 class GraphicsRendererBase : public Engine::Renderers::RendererBase {
 protected:
 	vk::RenderPass vkRenderPass {};
-	vk::Framebuffer vkFramebuffer {};
+	std::vector<vk::Framebuffer> vkFramebuffers {};
 
 
 public:
-	GraphicsRendererBase(uint inputCount, uint outputCount) :
-		Engine::Renderers::RendererBase(inputCount, outputCount) {
+	GraphicsRendererBase(uint inputCount, uint outputCount) : Engine::Renderers::RendererBase(inputCount, outputCount) {
 	}
 
 
 	virtual int init();
 
-	// Records command buffer within renderpass
-	virtual void recordCommandBuffer(double dt, vk::CommandBuffer& commandBuffer) = 0;
+	// Records secondary command buffers within renderpass
+	virtual void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
+											   double dt) = 0;
 
 	virtual const char* getRenderPassName() const = 0;
 
 
-	int render(vk::CommandBuffer commandBuffer, double dt) override;
+	virtual int render(const vk::CommandBuffer* pPrimaryCommandBuffers,
+					   const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) override;
 
 
 	int createRenderPass();
