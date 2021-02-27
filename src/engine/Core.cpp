@@ -118,6 +118,7 @@ int Core::init(int argc, char** argv) {
 		Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Light>();
 	directionalLightEntity.getComponent<Components::Light>().type			= Components::Light::Type::DIRECTIONAL;
 	directionalLightEntity.getComponent<Components::Light>().color			= { 2.0f, 1.3f, 0.6f };
+	directionalLightEntity.getComponent<Components::Light>().castsShadows	= true;
 	directionalLightEntity.getComponent<Components::Transform>().rotation.x = -0.8f;
 	directionalLightEntity.getComponent<Components::Transform>().rotation.y = 0.3f;
 	directionalLightEntity.getComponent<Components::Transform>().rotation.z = 0.2f;

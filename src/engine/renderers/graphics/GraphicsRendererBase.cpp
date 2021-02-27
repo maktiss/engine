@@ -96,7 +96,7 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 int GraphicsRendererBase::createRenderPass() {
 	auto attachmentReferences = getVkAttachmentReferences();
 
-	assert(attachmentReferences.size() == (inputs.size() + outputs.size()));
+	assert(attachmentReferences.size() == outputs.size());
 
 	vk::SubpassDescription subpassDescription {};
 	subpassDescription.pipelineBindPoint	= vk::PipelineBindPoint::eGraphics;

@@ -21,6 +21,7 @@ public:
 
 	float radius = 5.0f;
 
-	bool castShadows {};
+	bool castsShadows {};
+	int shadowMapIndex = -1;
 };
 } // namespace Engine::Components

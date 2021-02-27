@@ -1,4 +1,4 @@
-#include "DepthNormalRenderer.hpp"
+#include "ShadowMapRenderer.hpp"
 
 #include "engine/managers/EntityManager.hpp"
 
@@ -6,31 +6,32 @@
 
 
 namespace Engine::Renderers::Graphics {
-int DepthNormalRenderer::init() {
-	spdlog::info("Initializing DepthNormalRenderer...");
+int ShadowMapRenderer::init() {
+	spdlog::info("Initializing ShadowMapRenderer...");
 
 	assert(vkDevice != vk::Device());
 	assert(outputSize != vk::Extent2D());
 
 
 	uniformBuffers.resize(3);
-	uniformBuffers[0].init(vkDevice, vmaAllocator, 4, 1);
-	uniformBuffers[1].init(vkDevice, vmaAllocator, 256, 1);
-	uniformBuffers[2].init(vkDevice, vmaAllocator, 16, 1);
+	uniformBuffers[0].init(vkDevice, vmaAllocator, 4, getLayerCount());
+	uniformBuffers[1].init(vkDevice, vmaAllocator, 256, getLayerCount());
+	uniformBuffers[2].init(vkDevice, vmaAllocator, 16, getLayerCount());
 
 
 	return GraphicsRendererBase::init();
 }
 
 
-void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
-														uint layerIndex, double dt) {
+void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
+													  uint layerIndex, double dt) {
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
 	for (uint setIndex = 0; setIndex < uniformBuffers.size(); setIndex++) {
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-										 &uniformBuffers[setIndex].getVkDescriptorSet(0), 0, nullptr);
+										 &uniformBuffers[setIndex].getVkDescriptorSet(layerIndex), 0, nullptr);
 	}
+
 
 	struct {
 		glm::mat4 viewMatrix;
@@ -40,23 +41,32 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 		glm::mat4 invProjectionMatrix;
 	} cameraBlock;
 
-	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Camera>(
-		[&cameraBlock](auto& transform, auto& camera) {
-			glm::vec4 viewVector   = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-			viewVector			   = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
-			viewVector			   = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
-			viewVector			   = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
-			cameraBlock.viewMatrix = glm::lookAtLH(
-				transform.position, transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
-				glm::vec3(0.0f, 1.0f, 0.0f));
+	const float cascadeHalfSizes[] = { 2.0f, 4.0f, 8.0f };
+	const float cascadeHalfSize	   = cascadeHalfSizes[layerIndex];
 
-			cameraBlock.projectionMatrix = camera.getProjectionMatrix();
+	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Light>(
+		[cascadeHalfSize, &cameraBlock](const auto& transform, const auto& light) {
+			if (light.castsShadows) {
+				if (light.type == Engine::Components::Light::Type::DIRECTIONAL) {
+
+					glm::vec4 viewVector = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+					viewVector			 = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
+					viewVector			 = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
+					viewVector			 = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
+					cameraBlock.viewMatrix = glm::lookAtLH(
+						transform.position, transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
+						glm::vec3(0.0f, 1.0f, 0.0f));
+
+					cameraBlock.projectionMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize,
+																   cascadeHalfSize, -cascadeHalfSize, cascadeHalfSize);
+				}
+			}
 		});
 
 	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
 
-	uniformBuffers[1].update(0, &cameraBlock, sizeof(cameraBlock));
+	uniformBuffers[1].update(layerIndex, &cameraBlock, sizeof(cameraBlock));
 
 
 	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(

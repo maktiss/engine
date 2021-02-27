@@ -58,6 +58,8 @@ add_executable(
 	src/engine/renderers/graphics/DepthNormalRenderer.hpp
 	src/engine/renderers/graphics/ForwardRenderer.cpp
 	src/engine/renderers/graphics/ForwardRenderer.hpp
+	src/engine/renderers/graphics/ShadowMapRenderer.cpp
+	src/engine/renderers/graphics/ShadowMapRenderer.hpp
 	src/engine/renderers/RendererBase.hpp
 	src/engine/scripts/CameraScript.cpp
 	src/engine/scripts/CameraScript.hpp

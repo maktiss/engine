@@ -5,6 +5,8 @@
 
 #include "vk_mem_alloc.h"
 
+#include <vector>
+
 
 namespace Engine::Graphics {
 // Uniform buffer designed for exclusive usage, uses its own descriptor pool, layout and set, with binding == 0
@@ -13,18 +15,20 @@ private:
 	vk::Device vkDevice {};
 	VmaAllocator vmaAllocator {};
 
-	vk::Buffer vkBuffer {};
-	VmaAllocation vmaAllocation {};
+	uint setCount {};
+
+	std::vector<vk::Buffer> vkBuffers {};
+	std::vector<VmaAllocation> vmaAllocations {};
 
 	vk::DeviceSize vkBufferSize {};
 
 	vk::DescriptorPool vkDescriptorPool {};
 	vk::DescriptorSetLayout vkDescriptorSetLayout {};
-	vk::DescriptorSet vkDescriptorSet {};
+	std::vector<vk::DescriptorSet> vkDescriptorSets {};
 
 public:
-	int init(vk::Device device, VmaAllocator allocator, vk::DeviceSize size);
-	int update(void* pData, uint64_t size);
+	int init(vk::Device device, VmaAllocator allocator, vk::DeviceSize size, uint setCount);
+	int update(uint index, void* pData, uint64_t size);
 
 	void dispose();
 
@@ -33,8 +37,8 @@ public:
 		return vkDescriptorSetLayout;
 	}
 
-	inline const auto& getVkDescriptorSet() const {
-		return vkDescriptorSet;
+	inline const auto& getVkDescriptorSet(uint index) const {
+		return vkDescriptorSets[index];
 	}
 };
 }

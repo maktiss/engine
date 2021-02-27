@@ -27,7 +27,7 @@ public:
 		} else {
 			float halfWidth = viewport.x * 0.5f;
 			float halfHeight = viewport.y * 0.5f;
-			return glm::orthoLH(-halfWidth, halfWidth, -halfHeight, halfHeight, zNear, zFar);
+			return glm::orthoLH_ZO(-halfWidth, halfWidth, -halfHeight, halfHeight, zNear, zFar);
 		}
 	}
 };

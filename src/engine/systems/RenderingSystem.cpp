@@ -2,6 +2,7 @@
 
 #include "engine/renderers/graphics/DepthNormalRenderer.hpp"
 #include "engine/renderers/graphics/ForwardRenderer.hpp"
+#include "engine/renderers/graphics/ShadowMapRenderer.hpp"
 
 
 namespace Engine::Systems {
@@ -139,9 +140,15 @@ int RenderingSystem::init() {
 	forwardRenderer->setOutputSize({ 1920, 1080 });
 	forwardRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
+	auto shadowMapRenderer = std::make_shared<Engine::Renderers::Graphics::ShadowMapRenderer>();
+	shadowMapRenderer->setVkDevice(vkDevice);
+	shadowMapRenderer->setOutputSize({ 1920, 1080 });
+	shadowMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
+
 
 	renderers.push_back(depthNormalRenderer);
 	renderers.push_back(forwardRenderer);
+	renderers.push_back(shadowMapRenderer);
 
 
 	renderGraph.setNodeCount(renderers.size());
@@ -153,6 +160,7 @@ int RenderingSystem::init() {
 	// DepthNormalRenderer depth output -> ForwardRenderer depth output
 	// TODO: better readability
 	renderGraph.addOutputConnection(0, 0, 1, 1);
+	renderGraph.addInputConnection(2, 0, 1, 0);
 
 	// ForwardRenderer color output -> swapchain image
 	finalOutputReference.rendererIndex	 = 1;
@@ -232,6 +240,17 @@ int RenderingSystem::init() {
 	}
 
 
+	// Deal with duplicate priorities
+
+	for (uint i = 0; i < executionPrioriries.size(); i++) {
+		for (uint j = i + 1; j < executionPrioriries.size(); j++) {
+			if (executionPrioriries[i] <= executionPrioriries[j]) {
+				executionPrioriries[j]++;
+			}
+		}
+	}
+
+
 	// Convert priorities to ordered sequence of renderer indices
 
 	rendererExecutionOrder.resize(renderers.size());
@@ -240,8 +259,14 @@ int RenderingSystem::init() {
 
 	uint nextPriority = 0;
 	for (uint orderIndex = 0; orderIndex < rendererExecutionOrder.size(); orderIndex++) {
-		auto iter = std::lower_bound(executionPrioriries.begin(), executionPrioriries.end(), nextPriority);
-		assert(iter != executionPrioriries.end());
+		// auto iter = std::lower_bound(executionPrioriries.begin(), executionPrioriries.end(), nextPriority);
+		// assert(iter != executionPrioriries.end());
+
+		auto iter = executionPrioriries.end();
+		while (iter == executionPrioriries.end()) {
+			iter = std::find(executionPrioriries.begin(), executionPrioriries.end(), nextPriority);
+			nextPriority++;
+		}
 
 		rendererExecutionOrder[orderIndex] = iter - executionPrioriries.begin();
 

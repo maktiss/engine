@@ -14,9 +14,9 @@ int ForwardRenderer::init() {
 
 
 	uniformBuffers.resize(3);
-	uniformBuffers[0].init(vkDevice, vmaAllocator, 4);
-	uniformBuffers[1].init(vkDevice, vmaAllocator, 256);
-	uniformBuffers[2].init(vkDevice, vmaAllocator, sizeof(EnvironmentBlock));
+	uniformBuffers[0].init(vkDevice, vmaAllocator, 4, 1);
+	uniformBuffers[1].init(vkDevice, vmaAllocator, 256, 1);
+	uniformBuffers[2].init(vkDevice, vmaAllocator, sizeof(EnvironmentBlock), 1);
 
 
 	return GraphicsRendererBase::init();
@@ -29,7 +29,7 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 
 	for (uint setIndex = 0; setIndex < uniformBuffers.size(); setIndex++) {
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-										 &uniformBuffers[setIndex].getVkDescriptorSet(), 0, nullptr);
+										 &uniformBuffers[setIndex].getVkDescriptorSet(0), 0, nullptr);
 	}
 
 
@@ -57,7 +57,7 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
 
-	uniformBuffers[1].update(&cameraBlock, sizeof(cameraBlock));
+	uniformBuffers[1].update(0, &cameraBlock, sizeof(cameraBlock));
 
 
 	EnvironmentBlock environmentBlock;
@@ -75,7 +75,7 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 			}
 		});
 
-	uniformBuffers[2].update(&environmentBlock, sizeof(environmentBlock));
+	uniformBuffers[2].update(0, &environmentBlock, sizeof(environmentBlock));
 
 
 	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(

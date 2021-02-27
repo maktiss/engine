@@ -21,6 +21,9 @@ layout(set = MATERIAL_BLOCK_SET, binding = 0) uniform MaterialBlock {
 layout(set = MATERIAL_BLOCK_SET, binding = 1) uniform sampler2D uTextures[8];
 
 
+layout(set = 4, binding = 0) uniform sampler2DArray uShadowMapBuffer;
+
+
 #define ALBEDO 0
 #define NORMAL 1
 

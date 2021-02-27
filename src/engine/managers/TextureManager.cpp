@@ -78,7 +78,7 @@ void TextureManager::update(Handle handle) {
 		imageCreateInfo.format		  = texture.format;
 		imageCreateInfo.tiling		  = vk::ImageTiling::eOptimal;
 		imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
-		imageCreateInfo.usage		  = texture.usage;
+		imageCreateInfo.usage		  = vk::ImageUsageFlagBits::eSampled | texture.usage;
 		imageCreateInfo.sharingMode	  = vk::SharingMode::eExclusive;
 		imageCreateInfo.samples		  = vk::SampleCountFlagBits::e1;
 
