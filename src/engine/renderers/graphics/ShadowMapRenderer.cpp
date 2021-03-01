@@ -13,10 +13,19 @@ int ShadowMapRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
-	uniformBuffers.resize(3);
-	uniformBuffers[0].init(vkDevice, vmaAllocator, 4, getLayerCount());
-	uniformBuffers[1].init(vkDevice, vmaAllocator, 256, getLayerCount());
-	uniformBuffers[2].init(vkDevice, vmaAllocator, 16, getLayerCount());
+	descriptorSetArrays.resize(3);
+	
+	descriptorSetArrays[0].setSetCount(getLayerCount());
+	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
+	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
+	
+	descriptorSetArrays[1].setSetCount(getLayerCount());
+	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
+	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
+
+	descriptorSetArrays[2].setSetCount(getLayerCount());
+	descriptorSetArrays[2].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 16);
+	descriptorSetArrays[2].init(vkDevice, vmaAllocator);
 
 
 	return GraphicsRendererBase::init();
@@ -27,9 +36,9 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 													  uint layerIndex, double dt) {
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
-	for (uint setIndex = 0; setIndex < uniformBuffers.size(); setIndex++) {
+	for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-										 &uniformBuffers[setIndex].getVkDescriptorSet(layerIndex), 0, nullptr);
+										 &descriptorSetArrays[setIndex].getVkDescriptorSet(layerIndex), 0, nullptr);
 	}
 
 
@@ -66,7 +75,7 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
 
-	uniformBuffers[1].update(layerIndex, &cameraBlock, sizeof(cameraBlock));
+	descriptorSetArrays[1].updateBuffer(layerIndex, 0, &cameraBlock, sizeof(cameraBlock));
 
 
 	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(

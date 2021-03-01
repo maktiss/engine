@@ -4,7 +4,7 @@
 #include "engine/managers/ShaderManager.hpp"
 #include "engine/managers/TextureManager.hpp"
 
-#include "engine/graphics/UniqueUniformBuffer.hpp"
+#include "engine/graphics/DescriptorSetArray.hpp"
 
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
@@ -50,7 +50,7 @@ protected:
 	vk::PipelineLayout vkPipelineLayout {};
 	std::vector<vk::Pipeline> vkPipelines {};
 
-	std::vector<Engine::Graphics::UniqueUniformBuffer> uniformBuffers {};
+	std::vector<Engine::Graphics::DescriptorSetArray> descriptorSetArrays {};
 
 
 public:
@@ -164,16 +164,16 @@ public:
 
 
 	const auto getVkDescriptorSetLayouts() {
-		std::vector<vk::DescriptorSetLayout> layouts(uniformBuffers.size());
+		std::vector<vk::DescriptorSetLayout> layouts(descriptorSetArrays.size());
 		for (uint i = 0; i < layouts.size(); i++) {
-			layouts[i] = uniformBuffers[i].getVkDescriptorSetLayout();
+			layouts[i] = descriptorSetArrays[i].getVkDescriptorSetLayout();
 		}
 		return layouts;
 	}
 
 
 	void dispose() {
-		for (auto& uniformBuffer : uniformBuffers) {
+		for (auto& uniformBuffer : descriptorSetArrays) {
 			uniformBuffer.dispose();
 		}
 	}

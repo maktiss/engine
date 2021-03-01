@@ -13,10 +13,16 @@ int DepthNormalRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
-	uniformBuffers.resize(3);
-	uniformBuffers[0].init(vkDevice, vmaAllocator, 4, 1);
-	uniformBuffers[1].init(vkDevice, vmaAllocator, 256, 1);
-	uniformBuffers[2].init(vkDevice, vmaAllocator, 16, 1);
+	descriptorSetArrays.resize(3);
+
+	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
+	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
+	
+	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
+	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
+
+	descriptorSetArrays[2].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 16);
+	descriptorSetArrays[2].init(vkDevice, vmaAllocator);
 
 
 	return GraphicsRendererBase::init();
@@ -27,9 +33,9 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 														uint layerIndex, double dt) {
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
-	for (uint setIndex = 0; setIndex < uniformBuffers.size(); setIndex++) {
+	for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-										 &uniformBuffers[setIndex].getVkDescriptorSet(0), 0, nullptr);
+										 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
 	}
 
 	struct {
@@ -56,7 +62,7 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
 
-	uniformBuffers[1].update(0, &cameraBlock, sizeof(cameraBlock));
+	descriptorSetArrays[1].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
 
 
 	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(

@@ -21,10 +21,10 @@ add_executable(
 	src/engine/components/Transform.hpp
 	src/engine/graphics/Buffer.cpp
 	src/engine/graphics/Buffer.hpp
+	src/engine/graphics/DescriptorSetArray.cpp
+	src/engine/graphics/DescriptorSetArray.hpp
 	src/engine/graphics/StagingBuffer.cpp
 	src/engine/graphics/StagingBuffer.hpp
-	src/engine/graphics/UniqueUniformBuffer.cpp
-	src/engine/graphics/UniqueUniformBuffer.hpp
 	src/engine/graphics/materials/MaterialBase.hpp
 	src/engine/graphics/materials/SimpleMaterial.hpp
 	src/engine/graphics/meshes/MeshBase.hpp
