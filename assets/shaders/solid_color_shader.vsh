@@ -14,6 +14,8 @@ layout(location = 0) out OutData {
 	vec3 position;
 	vec2 texCoord;
 
+	vec3 worldPosition;
+
 	mat3 tbnMatrix;
 } outData;
 
@@ -24,14 +26,16 @@ layout(push_constant) uniform ModelBlock {
 
 
 void main() {
-	mat4 modelViewMatrix = uCamera.viewMatrix * uModel.transformMatrix;
+	vec4 position = uModel.transformMatrix * vec4(aPosition, 1.0);
 
-	vec4 position = modelViewMatrix * vec4(aPosition, 1.0);
+	outData.worldPosition = position.xyz;
+
+	position = uCamera.viewMatrix * position;
 
 	outData.position = position.xyz;
 	outData.texCoord = aTexCoord;
 
-	outData.tbnMatrix = mat3(modelViewMatrix) * mat3(aTangent, aBitangent, aNormal);
+	outData.tbnMatrix = mat3(uCamera.viewMatrix * uModel.transformMatrix) * mat3(aTangent, aBitangent, aNormal);
 
 	gl_Position = uCamera.projectionMatrix * position;
 }

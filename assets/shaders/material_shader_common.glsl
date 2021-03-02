@@ -4,7 +4,7 @@
 #define MATERIAL_BLOCK_SET 3
 
 
-layout(constant_id = 0) const int DIRECTIONAL_LIGHT_CASCADE_COUNT = 1;
+layout(constant_id = 0) const int DIRECTIONAL_LIGHT_CASCADE_COUNT = 3;
 
 layout(constant_id = 1) const int MAX_POINT_LIGHTS_PER_CLUSTER = 8;
 
@@ -36,6 +36,8 @@ layout(set = FRAME_BLOCK_SET, binding = 0) uniform FrameBlock {
 	float dt;
 } uFrame;
 
+layout(set = FRAME_BLOCK_SET, binding = 1) uniform sampler2DArrayShadow uShadowMapBuffer;
+
 
 layout(set = CAMERA_BLOCK_SET, binding = 0) uniform CameraBlock {
 	mat4 viewMatrix;
@@ -44,6 +46,7 @@ layout(set = CAMERA_BLOCK_SET, binding = 0) uniform CameraBlock {
 	mat4 invViewMatrix;
 	mat4 invProjectionMatrix;
 } uCamera;
+
 
 layout(set = ENVIRONMENT_BLOCK_SET, binding = 0) uniform EnvironmentBlock {
 	DirectionalLight directionalLight;

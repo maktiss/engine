@@ -150,6 +150,8 @@ int DescriptorSetArray::updateBuffer(uint setIndex, uint bindingIndex, void* pDa
 }
 
 int DescriptorSetArray::updateImage(uint setIndex, uint bindingIndex, vk::Sampler sampler, vk::ImageView imageView) {
+	assert(vkDevice != vk::Device());
+
 	vk::DescriptorImageInfo descriptorImageInfo {};
 	descriptorImageInfo.sampler		= sampler;
 	descriptorImageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;

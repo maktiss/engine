@@ -13,10 +13,38 @@ int ForwardRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
+	vk::SamplerCreateInfo samplerCreateInfo {};
+	samplerCreateInfo.minFilter				  = vk::Filter::eLinear;
+	samplerCreateInfo.magFilter				  = vk::Filter::eLinear;
+	samplerCreateInfo.addressModeU			  = vk::SamplerAddressMode::eClampToEdge;
+	samplerCreateInfo.addressModeV			  = vk::SamplerAddressMode::eClampToEdge;
+	samplerCreateInfo.addressModeW			  = vk::SamplerAddressMode::eClampToEdge;
+	samplerCreateInfo.anisotropyEnable		  = false;
+	samplerCreateInfo.maxAnisotropy			  = 0.0f;
+	samplerCreateInfo.unnormalizedCoordinates = false;
+	samplerCreateInfo.compareEnable			  = true;
+	samplerCreateInfo.compareOp				  = vk::CompareOp::eLessOrEqual;
+	samplerCreateInfo.mipmapMode			  = vk::SamplerMipmapMode::eLinear;
+	samplerCreateInfo.mipLodBias			  = 0.0f;
+	samplerCreateInfo.minLod				  = 0.0f;
+	samplerCreateInfo.maxLod				  = 0.0f;
+
+	vk::Sampler sampler;
+	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &sampler);
+	if (result != vk::Result::eSuccess) {
+		spdlog::error("[ForwardRenderer] Failed to create image sampler. Error code: {} ({})", result,
+					  vk::to_string(vk::Result(result)));
+		return 1;
+	}
+
+
 	descriptorSetArrays.resize(3);
 	
+	descriptorSetArrays[0].setBindingCount(2);
 	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
+	descriptorSetArrays[0].setBindingLayoutInfo(1, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
+	descriptorSetArrays[0].updateImage(0, 1, sampler, Engine::Managers::TextureManager::getTextureInfo(inputs[0]).imageView);
 	
 	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
 	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
@@ -78,6 +106,24 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 
 				environmentBlock.directionalLight.direction = glm::vec3(cameraBlock.viewMatrix * direction);
 				environmentBlock.directionalLight.color		= light.color;
+				environmentBlock.directionalLight.shadowMapIndex = light.shadowMapIndex;
+
+				for (uint cascadeIndex = 0; cascadeIndex < 3; cascadeIndex++) {
+					auto& lightSpaceMatrix = environmentBlock.directionalLight.lightSpaceMatrices[cascadeIndex];
+				
+					// FIXME
+					const float cascadeHalfSizes[] = { 2.0f, 4.0f, 8.0f };
+					const float cascadeHalfSize	   = cascadeHalfSizes[cascadeIndex];
+
+					lightSpaceMatrix = glm::lookAtLH(
+						transform.position, transform.position + glm::vec3(direction),
+						glm::vec3(0.0f, 1.0f, 0.0f));
+
+					lightSpaceMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize,
+																   cascadeHalfSize, -cascadeHalfSize, cascadeHalfSize) * lightSpaceMatrix;
+
+					// lightSpaceMatrix *= cameraBlock.invViewMatrix;
+				}
 			}
 		});
 

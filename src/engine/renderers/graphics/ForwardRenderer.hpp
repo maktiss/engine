@@ -11,7 +11,7 @@ private:
 			alignas(16) glm::vec3 direction;
 			alignas(16) glm::vec3 color;
 			alignas(4) int32_t shadowMapIndex;
-			glm::mat4 lightSpaceMatrices[1];
+			glm::mat4 lightSpaceMatrices[3]; // FIXME cascade count
 		} directionalLight;
 
 		alignas(16) int pointLightCount;

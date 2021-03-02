@@ -50,11 +50,12 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 		glm::mat4 invProjectionMatrix;
 	} cameraBlock;
 
+	// FIXME
 	const float cascadeHalfSizes[] = { 2.0f, 4.0f, 8.0f };
 	const float cascadeHalfSize	   = cascadeHalfSizes[layerIndex];
 
 	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Light>(
-		[cascadeHalfSize, &cameraBlock](const auto& transform, const auto& light) {
+		[cascadeHalfSize, &cameraBlock](const auto& transform, auto& light) {
 			if (light.castsShadows) {
 				if (light.type == Engine::Components::Light::Type::DIRECTIONAL) {
 
@@ -68,6 +69,8 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 
 					cameraBlock.projectionMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize,
 																   cascadeHalfSize, -cascadeHalfSize, cascadeHalfSize);
+
+					light.shadowMapIndex = 0;
 				}
 			}
 		});
