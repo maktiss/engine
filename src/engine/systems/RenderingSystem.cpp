@@ -479,7 +479,9 @@ int RenderingSystem::init() {
 				}
 			}
 		}
+	}
 
+	for (const auto& renderer : renderers) {
 		renderer->init();
 	}
 
