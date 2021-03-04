@@ -961,8 +961,12 @@ int RenderingSystem::initVulkanMemoryAllocator() {
 int RenderingSystem::createSwapchain() {
 	auto swapchainSupportInfo = getSwapchainSupportInfo(getActivePhysicalDevice());
 
-	// TODO: choose the best format
 	auto surfaceFormat = swapchainSupportInfo.formats[0];
+	for (auto format : swapchainSupportInfo.formats) {
+		if (format.format == vk::Format::eB8G8R8A8Srgb) {
+			surfaceFormat = format;
+		}
+	}
 	auto presentMode   = vk::PresentModeKHR::eFifo;
 
 	auto extent = swapchainSupportInfo.capabilities.maxImageExtent;

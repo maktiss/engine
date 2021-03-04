@@ -46,7 +46,9 @@ void main() {
 
 	vec3 lightDir = normalize(vec3(0.0, 0.0, 1.0));
 
-	vec3 color = colorAlbedo * 0.5;
+	vec3 ambientLight = vec3(0.30, 0.33, 0.34);
+
+	vec3 color = colorAlbedo * ambientLight;
 
 	for (int cascadeIndex = 0; cascadeIndex < 1; cascadeIndex++) {
 		vec4 lightSpaceCoord = uEnvironment.directionalLight.lightSpaceMatrices[cascadeIndex] * vec4(inData.worldPosition, 1.0);
