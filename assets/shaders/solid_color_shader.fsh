@@ -1,5 +1,7 @@
 #version 460
 
+// #define DEBUG
+
 #include "material_shader_common.glsl"
 
 
@@ -10,16 +12,17 @@ layout(location = 0) in InData {
 	vec3 worldPosition;
 
 	mat3 tbnMatrix;
-} inData;
+}
+inData;
 
 
 layout(location = 0) out vec4 outColor;
 
 
-
 layout(set = MATERIAL_BLOCK_SET, binding = 0) uniform MaterialBlock {
 	vec4 color;
-} uMaterial;
+}
+uMaterial;
 
 layout(set = MATERIAL_BLOCK_SET, binding = 1) uniform sampler2D uTextures[8];
 
@@ -36,34 +39,63 @@ void main() {
 	colorAlbedo *= texture(uTextures[ALBEDO], inData.texCoord).rgb;
 #endif
 
-	vec3 normal = inData.tbnMatrix[2];
-
 #ifdef USE_TEXTURE_NORMAL
-	normal = inData.tbnMatrix * (texture(uTextures[NORMAL], inData.texCoord).rgb * 2.0 - 1.0);
+	vec3 normal = inData.tbnMatrix * (texture(uTextures[NORMAL], inData.texCoord).rgb * 2.0 - 1.0);
+#else
+	vec3 normal = inData.tbnMatrix[2];
 #endif
+#line 46
 
 	normal = normalize(normal);
-
-	vec3 lightDir = normalize(vec3(0.0, 0.0, 1.0));
 
 	vec3 ambientLight = vec3(0.30, 0.33, 0.34);
 
 	vec3 color = colorAlbedo * ambientLight;
 
-	for (int cascadeIndex = 0; cascadeIndex < 1; cascadeIndex++) {
-		vec4 lightSpaceCoord = uEnvironment.directionalLight.lightSpaceMatrices[cascadeIndex] * vec4(inData.worldPosition, 1.0);
+	if (uEnvironment.useDirectionalLight) {
+		float shadowAmount = 1.0f;
+
+		vec4 baseLightSpaceCoord = uEnvironment.directionalLight.baseLightSpaceMatrix * vec4(inData.worldPosition, 1.0);
+
+		const float directionalLightCascadeBase = 2.0;
+
+		vec4 cameraDir = uEnvironment.directionalLight.baseLightSpaceMatrix *
+						 vec4(uCamera.viewMatrix[0][2], uCamera.viewMatrix[1][2], uCamera.viewMatrix[2][2], 0.0) *
+						 directionalLightCascadeBase;
+
+		const float offset = 0.75;
+
+		// TODO: more meaningful name?
+		vec2 cascadeRelatedPos =
+			baseLightSpaceCoord.xy / (cameraDir.xy * (2 * offset * step(0.0, baseLightSpaceCoord.xy) - offset) + 1.0);
+
+		uint cascade = uint(max(0.0, log2(max(abs(cascadeRelatedPos.x), abs(cascadeRelatedPos.y))) + 1.0));
+
+#ifdef DEBUG
+		if (cascade == 0) {
+			color.r += 0.2;
+		} else if (cascade == 1) {
+			color.g += 0.2;
+		} else if (cascade == 2) {
+			color.b += 0.2;
+		}
+#endif
+
+		vec4 lightSpaceCoord =
+			uEnvironment.directionalLight.lightSpaceMatrices[cascade] * vec4(inData.worldPosition, 1.0);
+
 		lightSpaceCoord.xy *= vec2(0.5, -0.5);
 		lightSpaceCoord.xy += vec2(0.5);
-		float shadowAmount = texture(uShadowMapBuffer, vec4(lightSpaceCoord.xy, cascadeIndex, lightSpaceCoord.z - 0.01)).r;
+
+		// TODO: normal bias
+		float bias = 0.00001;
+
+		shadowAmount *=
+			texture(uDirectionalShadowMapBuffer, vec4(lightSpaceCoord.xy, cascade, lightSpaceCoord.z - bias)).r;
 
 		color += shadowAmount * colorAlbedo * uEnvironment.directionalLight.color *
-				max(dot(-uEnvironment.directionalLight.direction, normal), 0.0);
-
-		// color = lightSpaceCoord.xyz;
-		// color = vec3(max(0.5, shadowAmount));
+				 max(dot(-uEnvironment.directionalLight.direction, normal), 0.0);
 	}
-
-
 
 	outColor = vec4(color, 1.0);
 }

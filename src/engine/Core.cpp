@@ -117,11 +117,29 @@ int Core::init(int argc, char** argv) {
 	auto directionalLightEntity =
 		Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Light>();
 	directionalLightEntity.getComponent<Components::Light>().type			= Components::Light::Type::DIRECTIONAL;
-	directionalLightEntity.getComponent<Components::Light>().color			= { 2.0f, 1.3f, 0.6f };
+	directionalLightEntity.getComponent<Components::Light>().color			= { 2.00f, 1.98f, 1.95f };
 	directionalLightEntity.getComponent<Components::Light>().castsShadows	= true;
 	directionalLightEntity.getComponent<Components::Transform>().rotation.x = -0.8f;
 	directionalLightEntity.getComponent<Components::Transform>().rotation.y = 0.3f;
 	directionalLightEntity.getComponent<Components::Transform>().rotation.z = 0.2f;
+
+
+
+	auto tileEntity =
+		Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Model>();
+	// std::vector<Engine::Managers::MeshManager::Handle> meshHandles {};
+	if (Engine::Utils::Importer::importMesh("assets/models/tile.fbx", meshHandles)) {
+		return 1;
+	}
+	tileEntity.getComponent<Components::Model>().meshHandles[0] = meshHandles[0];
+	// materialHandle = Engine::Managers::MaterialManager::createObject(0);
+	// materialHandle.apply([](auto& material){
+	// 	material.color = glm::vec3(1.0);
+	// });
+	// materialHandle.update();
+	tileEntity.getComponent<Components::Model>().materialHandles[0] = materialHandle;
+	tileEntity.getComponent<Components::Model>().shaderHandles[0] =
+		Engine::Managers::ShaderManager::getHandle(meshHandles[0], materialHandle);
 
 
 	spdlog::info("Initialization completed successfully");

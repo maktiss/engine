@@ -39,17 +39,29 @@ int ForwardRenderer::init() {
 
 
 	descriptorSetArrays.resize(3);
-	
+
 	descriptorSetArrays[0].setBindingCount(2);
 	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
 	descriptorSetArrays[0].setBindingLayoutInfo(1, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-	descriptorSetArrays[0].updateImage(0, 1, sampler, Engine::Managers::TextureManager::getTextureInfo(inputs[0]).imageView);
-	
+	descriptorSetArrays[0].updateImage(0, 1, sampler,
+									   Engine::Managers::TextureManager::getTextureInfo(inputs[0]).imageView);
+
 	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
 	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
 
-	descriptorSetArrays[2].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, sizeof(EnvironmentBlock));
+
+	uint environmentBlockSize =
+		16 + (16 + 16 + 64 * directionalLightCascadeCount) +
+		(2 * sizeof(EnvironmentBlockMap::LightCluster) * clusterCountX * clusterCountY * clusterCountZ);
+
+	uint pointLightsBlockSize = maxVisiblePointLights * sizeof(PointLight);
+	uint spotLightsBlockSize  = maxVisibleSpotLights * sizeof(SpotLight);
+
+	descriptorSetArrays[2].setBindingCount(3);
+	descriptorSetArrays[2].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, environmentBlockSize);
+	descriptorSetArrays[2].setBindingLayoutInfo(1, vk::DescriptorType::eStorageBuffer, pointLightsBlockSize);
+	descriptorSetArrays[2].setBindingLayoutInfo(2, vk::DescriptorType::eStorageBuffer, spotLightsBlockSize);
 	descriptorSetArrays[2].init(vkDevice, vmaAllocator);
 
 
@@ -75,12 +87,20 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 		glm::mat4 invProjectionMatrix;
 	} cameraBlock;
 
+	glm::vec3 cameraPos;
+	glm::vec3 cameraViewDir;
+
 	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Camera>(
-		[&cameraBlock](auto& transform, auto& camera) {
-			glm::vec4 viewVector   = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-			viewVector			   = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
-			viewVector			   = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
-			viewVector			   = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
+		[&](auto& transform, auto& camera) {
+			// TODO: Check if active camera
+			glm::vec4 viewVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+			viewVector			 = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
+			viewVector			 = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
+			viewVector			 = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
+
+			cameraPos	  = transform.position;
+			cameraViewDir = glm::vec3(viewVector);
+
 			cameraBlock.viewMatrix = glm::lookAtLH(
 				transform.position, transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
 				glm::vec3(0.0f, 1.0f, 0.0f));
@@ -94,40 +114,81 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 	descriptorSetArrays[1].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
 
 
-	EnvironmentBlock environmentBlock;
+	void* pEnvironmentBlock;
+	descriptorSetArrays[2].mapBuffer(0, 0, pEnvironmentBlock);
+
+	EnvironmentBlockMap environmentBlockMap;
+
+	// TODO: better/safer way of block mapping
+	environmentBlockMap.useDirectionalLight = static_cast<bool*>(pEnvironmentBlock);
+
+	environmentBlockMap.directionalLight.direction =
+		reinterpret_cast<glm::vec3*>(reinterpret_cast<uint8_t*>(environmentBlockMap.useDirectionalLight) + 16);
+	environmentBlockMap.directionalLight.color =
+		reinterpret_cast<glm::vec3*>(reinterpret_cast<uint8_t*>(environmentBlockMap.directionalLight.direction) + 16);
+	environmentBlockMap.directionalLight.shadowMapIndex =
+		reinterpret_cast<int32_t*>(reinterpret_cast<uint8_t*>(environmentBlockMap.directionalLight.color) + 12);
+	environmentBlockMap.directionalLight.baseLightSpaceMatrix = reinterpret_cast<glm::mat4*>(
+		reinterpret_cast<uint8_t*>(environmentBlockMap.directionalLight.shadowMapIndex) + 4);
+	environmentBlockMap.directionalLight.lightSpaceMatrices = reinterpret_cast<glm::mat4*>(
+		reinterpret_cast<uint8_t*>(environmentBlockMap.directionalLight.baseLightSpaceMatrix) + 64);
+
+	environmentBlockMap.pointLightClusters = reinterpret_cast<EnvironmentBlockMap::LightCluster*>(
+		reinterpret_cast<uint8_t*>(environmentBlockMap.directionalLight.lightSpaceMatrices) +
+		64 * directionalLightCascadeCount);
+	environmentBlockMap.spotLightClusters = reinterpret_cast<EnvironmentBlockMap::LightCluster*>(
+		reinterpret_cast<uint8_t*>(environmentBlockMap.pointLightClusters) +
+		64 * clusterCountX * clusterCountY * clusterCountZ);
+
+
+	*environmentBlockMap.useDirectionalLight = false;
+
 
 	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Light>(
-		[&environmentBlock, &cameraBlock](const auto& transform, const auto& light) {
+		[&](const auto& transform, const auto& light) {
 			if (light.type == Engine::Components::Light::Type::DIRECTIONAL) {
-				glm::vec4 direction = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
-				direction			= glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * direction;
-				direction			= glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * direction;
-				direction			= glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * direction;
+				auto lightDirection = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+				lightDirection		= glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * lightDirection;
+				lightDirection		= glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * lightDirection;
+				lightDirection		= glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * lightDirection;
 
-				environmentBlock.directionalLight.direction = glm::vec3(cameraBlock.viewMatrix * direction);
-				environmentBlock.directionalLight.color		= light.color;
-				environmentBlock.directionalLight.shadowMapIndex = light.shadowMapIndex;
+				*environmentBlockMap.useDirectionalLight		= true;
+				*environmentBlockMap.directionalLight.direction = glm::vec3(cameraBlock.viewMatrix * lightDirection);
+				*environmentBlockMap.directionalLight.color		= light.color;
+				*environmentBlockMap.directionalLight.shadowMapIndex = light.shadowMapIndex;
+
+				// FIXME
+				const float cascadeHalfSizes[] = { 2.0f, 4.0f, 8.0f };
+				float cascadeHalfSize		   = cascadeHalfSizes[0];
+
+				auto lightSpaceMatrix =
+					glm::lookAtLH(cameraPos, cameraPos + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
+
+				lightSpaceMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize, cascadeHalfSize,
+												   -1000.0f, 1000.0f) *
+								   lightSpaceMatrix;
+
+				*environmentBlockMap.directionalLight.baseLightSpaceMatrix = lightSpaceMatrix;
 
 				for (uint cascadeIndex = 0; cascadeIndex < 3; cascadeIndex++) {
-					auto& lightSpaceMatrix = environmentBlock.directionalLight.lightSpaceMatrices[cascadeIndex];
-				
-					// FIXME
-					const float cascadeHalfSizes[] = { 2.0f, 4.0f, 8.0f };
-					const float cascadeHalfSize	   = cascadeHalfSizes[cascadeIndex];
+					cascadeHalfSize = cascadeHalfSizes[cascadeIndex];
 
-					lightSpaceMatrix = glm::lookAtLH(
-						transform.position, transform.position + glm::vec3(direction),
-						glm::vec3(0.0f, 1.0f, 0.0f));
+					glm::vec3 position = cameraPos + cascadeHalfSize * directionalLightCascadeOffset * cameraViewDir;
+
+					auto lightSpaceMatrix =
+						glm::lookAtLH(position, position + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
 
 					lightSpaceMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize,
-																   cascadeHalfSize, -cascadeHalfSize, cascadeHalfSize) * lightSpaceMatrix;
+													   cascadeHalfSize, -1000.0f, 1000.0f) *
+									   lightSpaceMatrix;
 
-					// lightSpaceMatrix *= cameraBlock.invViewMatrix;
+					environmentBlockMap.directionalLight.lightSpaceMatrices[cascadeIndex] = lightSpaceMatrix;
 				}
 			}
 		});
 
-	descriptorSetArrays[2].updateBuffer(0, 0, &environmentBlock, sizeof(environmentBlock));
+
+	descriptorSetArrays[2].unmapBuffer(0, 0);
 
 
 	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(

@@ -38,6 +38,9 @@ public:
 	int updateBuffer(uint setIndex, uint bindingIndex, void* pData, uint64_t size);
 	int updateImage(uint setIndex, uint bindingIndex, vk::Sampler sampler, vk::ImageView imageView);
 
+	int mapBuffer(uint setIndex, uint bindingIndex, void*& pData);
+	int unmapBuffer(uint setIndex, uint bindingIndex);
+
 	void dispose();
 
 

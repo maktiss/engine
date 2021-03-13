@@ -24,12 +24,6 @@ int DescriptorSetArray::init(vk::Device device, VmaAllocator allocator) {
 		descriptorSetLayoutBindings[index].stageFlags	   = vk::ShaderStageFlagBits::eAll;
 	}
 
-	vk::DescriptorSetLayoutBinding descriptorSetLayoutBinding {};
-	descriptorSetLayoutBinding.binding		   = 0;
-	descriptorSetLayoutBinding.descriptorType  = vk::DescriptorType::eUniformBuffer;
-	descriptorSetLayoutBinding.descriptorCount = 1;
-	descriptorSetLayoutBinding.stageFlags	   = vk::ShaderStageFlagBits::eAll;
-
 	vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo {};
 	descriptorSetLayoutCreateInfo.bindingCount = descriptorSetLayoutBindings.size();
 	descriptorSetLayoutCreateInfo.pBindings	   = descriptorSetLayoutBindings.data();
@@ -80,11 +74,21 @@ int DescriptorSetArray::init(vk::Device device, VmaAllocator allocator) {
 		for (uint bindingIndex = 0; bindingIndex < getBindingCount(); bindingIndex++) {
 			const auto& bindingLayoutInfo = bindingLayoutInfos[bindingIndex];
 
-			// TODO: storage buffer and dynamic variations
-			if (bindingLayoutInfo.descriptorType == vk::DescriptorType::eUniformBuffer) {
+			// TODO: dynamic buffer variations
+			if (bindingLayoutInfo.descriptorType == vk::DescriptorType::eUniformBuffer ||
+				bindingLayoutInfo.descriptorType == vk::DescriptorType::eStorageBuffer) {
+
 				vk::BufferCreateInfo bufferCreateInfo {};
-				bufferCreateInfo.usage = vk::BufferUsageFlagBits::eUniformBuffer;
-				bufferCreateInfo.size  = bindingLayoutInfo.size;
+				bufferCreateInfo.size = bindingLayoutInfo.size;
+
+				switch (bindingLayoutInfo.descriptorType) {
+				case vk::DescriptorType::eUniformBuffer:
+					bufferCreateInfo.usage = vk::BufferUsageFlagBits::eUniformBuffer;
+					break;
+				case vk::DescriptorType::eStorageBuffer:
+					bufferCreateInfo.usage = vk::BufferUsageFlagBits::eStorageBuffer;
+					break;
+				}
 
 				VkBufferCreateInfo cBufferCreateInfo(bufferCreateInfo);
 
@@ -97,7 +101,7 @@ int DescriptorSetArray::init(vk::Device device, VmaAllocator allocator) {
 				result = vk::Result(vmaCreateBuffer(vmaAllocator, &cBufferCreateInfo, &allocationCreateInfo, &cBuffer,
 													&bufferInfo.allocation, nullptr));
 				if (result != vk::Result::eSuccess) {
-					spdlog::error("Failed to allocate uniform buffer memory. Error code: {} ({})", result,
+					spdlog::error("Failed to allocate buffer memory. Error code: {} ({})", result,
 								  vk::to_string(result));
 					return 1;
 				}
@@ -139,7 +143,6 @@ int DescriptorSetArray::updateBuffer(uint setIndex, uint bindingIndex, void* pDa
 	auto result = vk::Result(vmaMapMemory(vmaAllocator, allocation, &pBufferData));
 	if (result != vk::Result::eSuccess) {
 		spdlog::error("Failed to write uniform buffer memory. Error code: {} ({})", result, vk::to_string(result));
-
 		return 1;
 	}
 
@@ -166,6 +169,24 @@ int DescriptorSetArray::updateImage(uint setIndex, uint bindingIndex, vk::Sample
 	writeDescriptorSet.pImageInfo	   = &descriptorImageInfo;
 
 	vkDevice.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+	return 0;
+}
+
+
+int DescriptorSetArray::mapBuffer(uint setIndex, uint bindingIndex, void*& pData) {
+	const auto& allocation = bufferInfos[getBufferInfoIndex(setIndex, bindingIndex)].allocation;
+
+	auto result = vk::Result(vmaMapMemory(vmaAllocator, allocation, &pData));
+	if (result != vk::Result::eSuccess) {
+		spdlog::error("Failed to write uniform buffer memory. Error code: {} ({})", result, vk::to_string(result));
+		return 1;
+	}
+	return 0;
+}
+
+int DescriptorSetArray::unmapBuffer(uint setIndex, uint bindingIndex) {
+	const auto& allocation = bufferInfos[getBufferInfoIndex(setIndex, bindingIndex)].allocation;
+	vmaUnmapMemory(vmaAllocator, allocation);
 	return 0;
 }
 

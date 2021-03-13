@@ -4,20 +4,20 @@
 #define MATERIAL_BLOCK_SET 3
 
 
-layout(constant_id = 0) const int DIRECTIONAL_LIGHT_CASCADE_COUNT = 3;
+layout(constant_id = 0) const uint DIRECTIONAL_LIGHT_CASCADE_COUNT = 3;
 
-layout(constant_id = 1) const int MAX_POINT_LIGHTS_PER_CLUSTER = 8;
-
-layout(constant_id = 10) const int CLUSTER_COUNT_X = 1;
-layout(constant_id = 11) const int CLUSTER_COUNT_Y = 1;
-layout(constant_id = 12) const int CLUSTER_COUNT_Z = 1;
+layout(constant_id = 10) const uint CLUSTER_COUNT_X = 1;
+layout(constant_id = 11) const uint CLUSTER_COUNT_Y = 1;
+layout(constant_id = 12) const uint CLUSTER_COUNT_Z = 1;
 
 
 struct DirectionalLight {
 	vec3 direction;
+	
 	vec3 color;
-
 	int shadowMapIndex;
+
+	mat4 baseLightSpaceMatrix;
 	mat4 lightSpaceMatrices[DIRECTIONAL_LIGHT_CASCADE_COUNT];
 };
 
@@ -26,9 +26,28 @@ struct PointLight {
 	float radius;
 
 	vec3 color;
-	int shadowMapIndex;
+	uint shadowMapIndex;
+};
 
-	mat4 lightSpaceMatrices[6];
+// TODO: spot lights
+struct SpotLight {
+	vec3 position;
+	float innerAngle;
+
+	vec3 direction;
+	float outerAngle;
+
+	vec3 color;
+	uint shadowMapIndex;
+
+	mat4 lightSpaceMatrix;
+};
+
+
+struct LightCluster {
+	uint start;
+	uint endShadow;
+	uint end;
 };
 
 
@@ -36,7 +55,8 @@ layout(set = FRAME_BLOCK_SET, binding = 0) uniform FrameBlock {
 	float dt;
 } uFrame;
 
-layout(set = FRAME_BLOCK_SET, binding = 1) uniform sampler2DArrayShadow uShadowMapBuffer;
+layout(set = FRAME_BLOCK_SET, binding = 1) uniform sampler2DArrayShadow uDirectionalShadowMapBuffer;
+// layout(set = FRAME_BLOCK_SET, binding = 2) uniform samplerCubeArrayShadow uPointShadowMapBuffer;
 
 
 layout(set = CAMERA_BLOCK_SET, binding = 0) uniform CameraBlock {
@@ -49,8 +69,22 @@ layout(set = CAMERA_BLOCK_SET, binding = 0) uniform CameraBlock {
 
 
 layout(set = ENVIRONMENT_BLOCK_SET, binding = 0) uniform EnvironmentBlock {
+	bool useDirectionalLight;
 	DirectionalLight directionalLight;
-
-	int pointLightCount;
-	PointLight pointLights[MAX_POINT_LIGHTS_PER_CLUSTER];
+	
+	LightCluster pointLightClusters[CLUSTER_COUNT_X * CLUSTER_COUNT_Y * CLUSTER_COUNT_Z];
+	LightCluster spotLightClusters[CLUSTER_COUNT_X * CLUSTER_COUNT_Y * CLUSTER_COUNT_Z];
 } uEnvironment;
+
+layout(set = ENVIRONMENT_BLOCK_SET, binding = 1) readonly buffer PointLightsBlock {
+	PointLight uPointLights[];
+};
+
+layout(set = ENVIRONMENT_BLOCK_SET, binding = 2) readonly buffer SpotLightsBlock {
+	SpotLight uSpotLights[];
+};
+
+
+uint getClusterIndex(uint x, uint y, uint z) {
+	return x * CLUSTER_COUNT_Y * CLUSTER_COUNT_Z + y * CLUSTER_COUNT_Z + z;
+}

@@ -6,25 +6,65 @@
 namespace Engine::Renderers::Graphics {
 class ForwardRenderer : public GraphicsRendererBase {
 private:
-	struct EnvironmentBlock {
+	uint clusterCountX = 1;
+	uint clusterCountY = 1;
+	uint clusterCountZ = 1;
+
+	uint directionalLightCascadeCount = 3;
+
+	uint maxVisiblePointLights = 256;
+	uint maxVisibleSpotLights  = 256;
+
+	float directionalLightCascadeBase = 2.0f;
+	float directionalLightCascadeOffset = 0.75f;
+
+
+	struct EnvironmentBlockMap {
+		bool* useDirectionalLight {};
 		struct {
-			alignas(16) glm::vec3 direction;
-			alignas(16) glm::vec3 color;
-			alignas(4) int32_t shadowMapIndex;
-			glm::mat4 lightSpaceMatrices[3]; // FIXME cascade count
-		} directionalLight;
+			glm::vec3* direction {};
 
-		alignas(16) int pointLightCount;
-		struct {
-			glm::vec3 position;
-			float radius;
+			glm::vec3* color {};
+			int32_t* shadowMapIndex {};
 
-			glm::vec3 color;
-			int shadowMapIndex;
+			glm::mat4* baseLightSpaceMatrix {};
+			glm::mat4* lightSpaceMatrices {};
+		} directionalLight {};
 
-			glm::mat4 lightSpaceMatrices[6];
-		} pointLights[8];
+		struct LightCluster {
+			uint32_t start {};
+			uint32_t endShadow {};
+			uint32_t end {};
+
+			uint32_t _padding {};
+		};
+
+		LightCluster* pointLightClusters {};
+		LightCluster* spotLightClusters {};
 	};
+
+
+	struct PointLight {
+		glm::vec3 position {};
+		float radius {};
+
+		glm::vec3 color {};
+		uint32_t shadowMapIndex {};
+	};
+
+	struct SpotLight {
+		glm::vec3 position {};
+		float innerAngle {};
+
+		glm::vec3 direction {};
+		float outerAngle {};
+
+		glm::vec3 color {};
+		uint shadowMapIndex {};
+
+		glm::mat4 lightSpaceMatrix {};
+	};
+
 
 public:
 	ForwardRenderer() : GraphicsRendererBase(1, 2) {

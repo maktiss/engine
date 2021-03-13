@@ -14,11 +14,11 @@ int ShadowMapRenderer::init() {
 
 
 	descriptorSetArrays.resize(3);
-	
+
 	descriptorSetArrays[0].setSetCount(getLayerCount());
 	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
 	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-	
+
 	descriptorSetArrays[1].setSetCount(getLayerCount());
 	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
 	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
@@ -50,25 +50,41 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 		glm::mat4 invProjectionMatrix;
 	} cameraBlock;
 
+	glm::vec3 cameraPos;
+	glm::vec3 cameraViewDir;
+
+	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Camera>(
+		[&](const auto& transform, const auto& camera) {
+			// TODO: Check if active camera
+			auto viewVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+			viewVector		= glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
+			viewVector		= glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
+			viewVector		= glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
+
+			cameraPos	  = transform.position;
+			cameraViewDir = glm::vec3(viewVector);
+		});
+
 	// FIXME
 	const float cascadeHalfSizes[] = { 2.0f, 4.0f, 8.0f };
 	const float cascadeHalfSize	   = cascadeHalfSizes[layerIndex];
 
 	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Light>(
-		[cascadeHalfSize, &cameraBlock](const auto& transform, auto& light) {
+		[&](const auto& transform, auto& light) {
 			if (light.castsShadows) {
 				if (light.type == Engine::Components::Light::Type::DIRECTIONAL) {
+					auto lightDirection = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+					lightDirection = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * lightDirection;
+					lightDirection = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * lightDirection;
+					lightDirection = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * lightDirection;
 
-					glm::vec4 viewVector = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
-					viewVector			 = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
-					viewVector			 = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
-					viewVector			 = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
-					cameraBlock.viewMatrix = glm::lookAtLH(
-						transform.position, transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
-						glm::vec3(0.0f, 1.0f, 0.0f));
+					glm::vec3 position = cameraPos + cascadeHalfSize * directionalLightCascadeOffset * cameraViewDir;
+
+					cameraBlock.viewMatrix =
+						glm::lookAtLH(position, position + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
 
 					cameraBlock.projectionMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize,
-																   cascadeHalfSize, -cascadeHalfSize, cascadeHalfSize);
+																   cascadeHalfSize, -1000.0f, 1000.0f);
 
 					light.shadowMapIndex = 0;
 				}
