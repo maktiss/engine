@@ -90,9 +90,9 @@ int StagingBuffer::transfer(vk::Queue transferQueue, vk::CommandPool commandPool
 
 	vk::ImageMemoryBarrier imageMemoryBarrierAfter {};
 	imageMemoryBarrierAfter.oldLayout					  = vk::ImageLayout::eTransferDstOptimal;
-	imageMemoryBarrierAfter.newLayout					  = vk::ImageLayout::eShaderReadOnlyOptimal;
+	imageMemoryBarrierAfter.newLayout					  = vk::ImageLayout::eTransferSrcOptimal;
 	imageMemoryBarrierAfter.srcAccessMask				  = vk::AccessFlagBits::eTransferWrite;
-	imageMemoryBarrierAfter.dstAccessMask				  = vk::AccessFlagBits::eShaderRead;
+	imageMemoryBarrierAfter.dstAccessMask				  = vk::AccessFlagBits::eTransferRead;
 	imageMemoryBarrierAfter.image						  = dstImage;
 	imageMemoryBarrierAfter.subresourceRange.aspectMask	  = vk::ImageAspectFlagBits::eColor;
 	imageMemoryBarrierAfter.subresourceRange.baseMipLevel = 0;
@@ -114,27 +114,13 @@ int StagingBuffer::transfer(vk::Queue transferQueue, vk::CommandPool commandPool
 	region.imageExtent = size;
 
 
-	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
-								  vk::PipelineStageFlagBits::eTransfer,
-								  {},
-								  0,
-								  nullptr,
-								  0,
-								  nullptr,
-								  1,
-								  &imageMemoryBarrierBefore);
+	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer, {}, 0,
+								  nullptr, 0, nullptr, 1, &imageMemoryBarrierBefore);
 
 	commandBuffer.copyBufferToImage(vkBuffer, dstImage, vk::ImageLayout::eTransferDstOptimal, 1, &region);
 
-	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
-								  vk::PipelineStageFlagBits::eFragmentShader,
-								  {},
-								  0,
-								  nullptr,
-								  0,
-								  nullptr,
-								  1,
-								  &imageMemoryBarrierAfter);
+	// commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, {},
+	// 							  0, nullptr, 0, nullptr, 1, &imageMemoryBarrierAfter);
 
 
 	if (endCommandBuffer(transferQueue, commandPool, commandBuffer)) {
@@ -188,16 +174,16 @@ int StagingBuffer::endCommandBuffer(vk::Queue transferQueue, vk::CommandPool com
 	vk::SubmitInfo submitInfo {};
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers	  = &commandBuffer;
-	result						  = transferQueue.submit(1, &submitInfo, nullptr);
+
+	result = transferQueue.submit(1, &submitInfo, nullptr);
 	if (result != vk::Result::eSuccess) {
 		spdlog::error("Failed to submit staging buffer. Error code: {} ({})", result, vk::to_string(result));
 		return 1;
 	}
 
-	transferQueue.waitIdle();
+	result = transferQueue.waitIdle();
 	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to wait for staging command buffer to complete. Error code: {} ({})",
-					  result,
+		spdlog::error("Failed to wait for staging command buffer to complete. Error code: {} ({})", result,
 					  vk::to_string(result));
 		return 1;
 	}

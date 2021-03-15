@@ -57,6 +57,7 @@ public:
 		vkTransferQueue = queue;
 	}
 
+	// FIXME: create own command pool
 	static inline void setVkCommandPool(vk::CommandPool commandPool) {
 		vkCommandPool = commandPool;
 	}
