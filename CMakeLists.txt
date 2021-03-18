@@ -23,6 +23,7 @@ add_executable(
 	src/engine/graphics/Buffer.hpp
 	src/engine/graphics/DescriptorSetArray.cpp
 	src/engine/graphics/DescriptorSetArray.hpp
+	src/engine/graphics/OneTimeCommandBuffer.hpp
 	src/engine/graphics/StagingBuffer.cpp
 	src/engine/graphics/StagingBuffer.hpp
 	src/engine/graphics/materials/MaterialBase.hpp
@@ -33,6 +34,8 @@ add_executable(
 	src/engine/graphics/shaders/SimpleShader.hpp
 	src/engine/graphics/textures/Texture2D.hpp
 	src/engine/graphics/textures/TextureBase.hpp
+	src/engine/managers/ConfigManager.cpp
+	src/engine/managers/ConfigManager.hpp
 	src/engine/managers/EntityManager.cpp
 	src/engine/managers/EntityManager.hpp
 	src/engine/managers/EntityManagerBase.hpp

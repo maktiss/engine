@@ -6,17 +6,17 @@
 namespace Engine::Renderers::Graphics {
 class ForwardRenderer : public GraphicsRendererBase {
 private:
-	uint clusterCountX = 1;
-	uint clusterCountY = 1;
-	uint clusterCountZ = 1;
+	PROPERTY(uint, "Graphics", clusterCountX, 1);
+	PROPERTY(uint, "Graphics", clusterCountY, 1);
+	PROPERTY(uint, "Graphics", clusterCountZ, 1);
 
-	uint directionalLightCascadeCount = 3;
+	PROPERTY(uint, "Graphics", directionalLightCascadeCount, 3);
 
-	uint maxVisiblePointLights = 256;
-	uint maxVisibleSpotLights  = 256;
+	PROPERTY(uint, "Graphics", maxVisiblePointLights, 256);
+	PROPERTY(uint, "Graphics", maxVisibleSpotLights, 256);
 
-	float directionalLightCascadeBase = 2.0f;
-	float directionalLightCascadeOffset = 0.75f;
+	PROPERTY(float, "Graphics", directionalLightCascadeBase, 2.0f);
+	PROPERTY(float, "Graphics", directionalLightCascadeOffset, 0.75f);
 
 
 	struct EnvironmentBlockMap {

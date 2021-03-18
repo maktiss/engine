@@ -967,7 +967,13 @@ int RenderingSystem::createSwapchain() {
 			surfaceFormat = format;
 		}
 	}
-	auto presentMode   = vk::PresentModeKHR::eFifo;
+
+	auto presentMode = vk::PresentModeKHR::eImmediate;
+	switch (vSync) {
+	case 1:
+		presentMode = vk::PresentModeKHR::eFifo;
+		break;
+	}
 
 	auto extent = swapchainSupportInfo.capabilities.maxImageExtent;
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/managers/ConfigManager.hpp"
 #include "engine/managers/MeshManager.hpp"
 #include "engine/managers/ShaderManager.hpp"
 #include "engine/managers/TextureManager.hpp"
@@ -54,6 +55,7 @@ protected:
 
 
 public:
+	// FIXME: function for layers
 	RendererBase(uint inputCount, uint outputCount, uint layerCount = 1) : layerCount(layerCount) {
 		inputs.resize(inputCount);
 		outputs.resize(outputCount);

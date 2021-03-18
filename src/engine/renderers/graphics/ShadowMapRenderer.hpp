@@ -6,9 +6,8 @@
 namespace Engine::Renderers::Graphics {
 class ShadowMapRenderer : public GraphicsRendererBase {
 private:
-	// FIXME 
-	float directionalLightCascadeBase = 2.0f;
-	float directionalLightCascadeOffset = 0.75f;
+	PROPERTY(float, "Graphics", directionalLightCascadeBase, 2.0f);
+	PROPERTY(float, "Graphics", directionalLightCascadeOffset, 0.75f);
 
 
 public:

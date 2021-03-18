@@ -131,6 +131,8 @@ private:
 
 
 private:
+	PROPERTY(int, "Video", vSync, 1);
+
 	GLFWwindow* glfwWindow = nullptr;
 
 	vk::Instance vkInstance;
