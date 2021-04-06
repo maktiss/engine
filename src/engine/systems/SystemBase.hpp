@@ -2,11 +2,11 @@
 
 #include "engine/managers/ConfigManager.hpp"
 #include "engine/managers/EntityManager.hpp"
+#include "engine/managers/GraphicsShaderManager.hpp"
 #include "engine/managers/InputManager.hpp"
 #include "engine/managers/MaterialManager.hpp"
 #include "engine/managers/MeshManager.hpp"
 #include "engine/managers/ScriptManager.hpp"
-#include "engine/managers/ShaderManager.hpp"
 #include "engine/managers/TextureManager.hpp"
 
 #include <memory>

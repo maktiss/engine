@@ -10,6 +10,9 @@ layout(location = 3) in vec3 aTangent;
 layout(location = 4) in vec3 aBitangent;
 
 
+#if defined(RENDER_PASS_FORWARD) || defined(RENDER_PASS_DEPTH_NORMAL) || defined(RENDER_PASS_SHADOW_MAP)
+
+
 layout(location = 0) out OutData {
 	vec3 position;
 	vec2 texCoord;
@@ -39,3 +42,9 @@ void main() {
 
 	gl_Position = uCamera.projectionMatrix * position;
 }
+
+
+#else
+void main() {
+}
+#endif

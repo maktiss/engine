@@ -1,12 +1,12 @@
 #pragma once
 
-#include "ShaderBase.hpp"
+#include "GraphicsShaderBase.hpp"
 
 #include <glm/glm.hpp>
 
 
 namespace Engine::Graphics::Shaders {
-class SimpleShader : public ShaderBase<SimpleShader> {
+class SimpleShader : public GraphicsShaderBase<SimpleShader> {
 public:
 	enum Flags {
 		USE_TEXTURE_ALBEDO = 1 << 0,

@@ -1,3 +1,6 @@
+#if defined(RENDER_PASS_FORWARD) || defined(RENDER_PASS_DEPTH_NORMAL) || defined(RENDER_PASS_SHADOW_MAP)
+
+
 #define FRAME_BLOCK_SET 0
 #define CAMERA_BLOCK_SET 1
 #define ENVIRONMENT_BLOCK_SET 2
@@ -88,3 +91,6 @@ layout(set = ENVIRONMENT_BLOCK_SET, binding = 2) readonly buffer SpotLightsBlock
 uint getClusterIndex(uint x, uint y, uint z) {
 	return x * CLUSTER_COUNT_Y * CLUSTER_COUNT_Z + y * CLUSTER_COUNT_Z + z;
 }
+
+
+#endif

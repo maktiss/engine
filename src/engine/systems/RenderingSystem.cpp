@@ -3,6 +3,7 @@
 #include "engine/renderers/graphics/DepthNormalRenderer.hpp"
 #include "engine/renderers/graphics/ForwardRenderer.hpp"
 #include "engine/renderers/graphics/ShadowMapRenderer.hpp"
+#include "engine/renderers/graphics/SkyboxRenderer.hpp"
 
 
 namespace Engine::Systems {
@@ -16,6 +17,17 @@ void RenderingSystem::RenderGraph::addInputConnection(uint srcNodeIndex, uint sr
 					 srcNodeIndex, srcOutputIndex, dstNodeIndex, dstInputIndex);
 	}
 	nodes[dstNodeIndex].backwardInputReferences[dstInputIndex] = { srcNodeIndex, srcOutputIndex, nextFrame };
+}
+void RenderingSystem::RenderGraph::addInputConnection2(std::string srcName, uint srcOutputIndex, std::string dstName,
+													  uint dstInputIndex, bool nextFrame) {
+	nodes2[srcName].inputReferenceSets[srcOutputIndex].insert({ dstName, dstInputIndex, nextFrame });
+
+	if (!nodes2[dstName].backwardInputReferences[dstInputIndex].rendererName.empty()) {
+		spdlog::warn("Attempt to connect additional output ({}, {}) to an input slot ({}, {}), using last "
+					 "specified connection",
+					 srcName, srcOutputIndex, dstName, dstInputIndex);
+	}
+	nodes2[dstName].backwardInputReferences[dstInputIndex] = { srcName, srcOutputIndex, nextFrame };
 }
 
 void RenderingSystem::RenderGraph::addOutputConnection(uint srcNodeIndex, uint srcOutputIndex, uint dstNodeIndex,
@@ -33,6 +45,22 @@ void RenderingSystem::RenderGraph::addOutputConnection(uint srcNodeIndex, uint s
 					 srcNodeIndex, srcOutputIndex, dstNodeIndex, dstOutputIndex);
 	}
 	nodes[dstNodeIndex].backwardOutputReferences[dstOutputIndex] = { srcNodeIndex, srcOutputIndex, nextFrame };
+}
+void RenderingSystem::RenderGraph::addOutputConnection2(std::string srcName, uint srcOutputIndex, std::string dstName,
+													   uint dstOutputIndex, bool nextFrame) {
+	if (!nodes2[srcName].outputReferences[srcOutputIndex].rendererName.empty()) {
+		spdlog::warn("Attempt to connect an output ({}, {}) to additional output slot ({}, {}), using last "
+					 "specified connection",
+					 srcName, srcOutputIndex, dstName, dstOutputIndex);
+	}
+	nodes2[srcName].outputReferences[srcOutputIndex] = { dstName, dstOutputIndex, nextFrame };
+
+	if (!nodes2[dstName].backwardOutputReferences[dstOutputIndex].rendererName.empty()) {
+		spdlog::warn("Attempt to connect additional output ({}, {}) to an output slot ({}, {}), using last "
+					 "specified connection",
+					 srcName, srcOutputIndex, dstName, dstOutputIndex);
+	}
+	nodes2[dstName].backwardOutputReferences[dstOutputIndex] = { srcName, srcOutputIndex, nextFrame };
 }
 
 
@@ -86,12 +114,18 @@ int RenderingSystem::init() {
 
 	// FIXME testing
 
-	Engine::Managers::ShaderManager::setVkDevice(vkDevice);
-	Engine::Managers::ShaderManager::init();
+	Engine::Managers::GraphicsShaderManager::setVkDevice(vkDevice);
+	Engine::Managers::GraphicsShaderManager::init();
 
-	if (Engine::Managers::ShaderManager::importShaderSources<Engine::Graphics::Shaders::SimpleShader>(
+	if (Engine::Managers::GraphicsShaderManager::importShaderSources<Engine::Graphics::Shaders::SimpleShader>(
 			std::array<std::string, 6> { "assets/shaders/solid_color_shader.vsh", "", "", "",
 										 "assets/shaders/solid_color_shader.fsh", "" })) {
+		return 1;
+	}
+
+	if (Engine::Managers::GraphicsShaderManager::importShaderSources<Engine::Graphics::Shaders::SkyboxShader>(
+			std::array<std::string, 6> { "assets/shaders/skybox_shader.vsh", "", "", "",
+										 "assets/shaders/skybox_shader.fsh", "" })) {
 		return 1;
 	}
 
@@ -145,10 +179,21 @@ int RenderingSystem::init() {
 	shadowMapRenderer->setOutputSize({ 1920, 1080 });
 	shadowMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
+	auto skyboxRenderer = std::make_shared<Engine::Renderers::Graphics::SkyboxRenderer>();
+	skyboxRenderer->setVkDevice(vkDevice);
+	skyboxRenderer->setOutputSize({ 1920, 1080 });
+	skyboxRenderer->setVulkanMemoryAllocator(vmaAllocator);
+
 
 	renderers.push_back(depthNormalRenderer);
 	renderers.push_back(forwardRenderer);
 	renderers.push_back(shadowMapRenderer);
+	renderers.push_back(skyboxRenderer);
+
+	renderers2["DepthNormalRenderer"] = depthNormalRenderer;
+	renderers2["ForwardRenderer"] = forwardRenderer;
+	renderers2["ShadowMapRenderer"] = shadowMapRenderer;
+	renderers2["SkyboxRenderer"] = skyboxRenderer;
 
 
 	renderGraph.setNodeCount(renderers.size());
@@ -157,19 +202,109 @@ int RenderingSystem::init() {
 		renderGraph.setOutputCount(i, renderers[i]->getOutputCount());
 	}
 
+	for (const auto& [name, renderer] : renderers2) {
+		renderGraph.setInputCount2(name, renderer->getInputCount());
+		renderGraph.setOutputCount2(name, renderer->getOutputCount());
+	}
+
 	// DepthNormalRenderer depth output -> ForwardRenderer depth output
 	// TODO: better readability
 	renderGraph.addOutputConnection(0, 0, 1, 1);
 	renderGraph.addInputConnection(2, 0, 1, 0);
+
+	renderGraph.addOutputConnection(3, 0, 1, 0);
+
+
+	renderGraph.addOutputConnection2("SkyboxRenderer", 0, "ForwardRenderer", 0);
+	renderGraph.addOutputConnection2("DepthNormalRenderer", 0, "ForwardRenderer", 1);
+	renderGraph.addInputConnection2("ShadowMapRenderer", 0, "ForwardRenderer", 0);
+
+
+	finalOutputReference2 = { "ForwardRenderer", 0 };
 
 	// ForwardRenderer color output -> swapchain image
 	finalOutputReference.rendererIndex	 = 1;
 	finalOutputReference.attachmentIndex = 0;
 
 
+
+
+	spdlog::info("Compiling render graph...");
+
+
 	// Lower value == higher priority
 	std::vector<uint> executionPrioriries(renderers.size(), 0);
+	std::unordered_map<std::string, uint> executionPrioriries2 {};
 
+	for (const auto& [rendererName, renderer] : renderers2) {
+		const auto& renderGraphNode = renderGraph.nodes2[rendererName];
+
+		auto& rendererPriority = executionPrioriries2[rendererName];
+
+		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
+			const auto& inputReferenceSet = renderGraphNode.inputReferenceSets[outputIndex];
+			const auto& outputReference	  = renderGraphNode.outputReferences[outputIndex];
+
+			// Deal with output first, so it will have lower priority over inputs
+			if (!outputReference.rendererName.empty()) {
+				if (outputReference.attachmentIndex == -1) {
+					spdlog::error("Failed to compile render graph: output attachment index is not specified");
+					return 1;
+				}
+
+				auto& referencedPriority = executionPrioriries2[outputReference.rendererName];
+
+				if (outputReference.nextFrame) {
+					spdlog::error("Failed to compile render graph: output cannot be used for writing next frame");
+					return 1;
+				}
+
+				if (referencedPriority <= rendererPriority) {
+					referencedPriority = rendererPriority + 1;
+				}
+
+				// Shift lower priorities
+				for (auto& [rendererName, priority] : executionPrioriries2) {
+					if (outputReference.rendererName != rendererName) {
+						if (referencedPriority <= priority) {
+							priority++;
+						}
+					}
+				}
+			}
+
+			for (const auto& inputReference : inputReferenceSet) {
+				if (!inputReference.rendererName.empty() && inputReference.attachmentIndex == -1) {
+					spdlog::error("Failed to compile render graph: input attachment index is not specified");
+					return 1;
+				}
+
+				auto& referencedPriority = executionPrioriries2[inputReference.rendererName];
+
+				if (inputReference.nextFrame) {
+					// FIXME: check output dependencies
+					if (rendererPriority <= referencedPriority) {
+						rendererPriority = referencedPriority + 1;
+					}
+				} else {
+					if (referencedPriority <= rendererPriority) {
+						referencedPriority = rendererPriority + 1;
+					}
+				}
+
+				// Shift lower priorities
+				for (auto& [rendererName, priority] : executionPrioriries2) {
+					if (inputReference.rendererName != rendererName) {
+						if (referencedPriority <= priority) {
+							priority++;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// TODO: remove old rendergraph
 	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
 		const auto& renderer		= renderers[rendererIndex];
 		const auto& renderGraphNode = renderGraph.nodes[rendererIndex];
@@ -242,22 +377,59 @@ int RenderingSystem::init() {
 
 	// Deal with duplicate priorities
 
+	for (const auto& [firstRendererName, firstPriority] : executionPrioriries2) {
+		for (auto& [secondRendererName, secondPriority] : executionPrioriries2) {
+			if (firstRendererName != secondRendererName && firstPriority <= secondPriority) {
+				secondPriority++;
+			}
+		}
+	}
+
+	// TODO: remove
 	for (uint i = 0; i < executionPrioriries.size(); i++) {
-		for (uint j = i + 1; j < executionPrioriries.size(); j++) {
-			if (executionPrioriries[i] <= executionPrioriries[j]) {
+		for (uint j = 0; j < executionPrioriries.size(); j++) {
+			if (i != j && executionPrioriries[i] <= executionPrioriries[j]) {
 				executionPrioriries[j]++;
 			}
 		}
 	}
 
 
+	// Convert priorities to ordered sequence of renderer names
+
+	rendererExecutionOrder2.resize(renderers2.size());
+
+	std::string logMessage = "Compiled renderer execution order:";
+
+	uint nextPriority = 0;
+	for (uint orderIndex = 0; orderIndex < rendererExecutionOrder2.size(); orderIndex++) {
+		auto iter = executionPrioriries2.end();
+		while (iter == executionPrioriries2.end()) {
+			for (iter = executionPrioriries2.begin(); iter != executionPrioriries2.end(); iter++) {
+				if (iter->second == nextPriority) {
+					break;
+				}
+			}
+			nextPriority++;
+		}
+
+		rendererExecutionOrder2[orderIndex] = iter->first;
+
+		logMessage += "\n\t";
+		logMessage += std::to_string(orderIndex + 1) + ". ";
+		logMessage += rendererExecutionOrder2[orderIndex];
+	}
+	spdlog::warn(logMessage);
+
+	
+
 	// Convert priorities to ordered sequence of renderer indices
 
 	rendererExecutionOrder.resize(renderers.size());
 
-	std::string logMessage = "Compiled renderer execution order: ";
+	logMessage = "Compiled renderer execution order: ";
 
-	uint nextPriority = 0;
+	nextPriority = 0;
 	for (uint orderIndex = 0; orderIndex < rendererExecutionOrder.size(); orderIndex++) {
 		// auto iter = std::lower_bound(executionPrioriries.begin(), executionPrioriries.end(), nextPriority);
 		// assert(iter != executionPrioriries.end());

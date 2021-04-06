@@ -1,7 +1,7 @@
 #include "GraphicsRendererBase.hpp"
 
 #include "engine/managers/MeshManager.hpp"
-#include "engine/managers/ShaderManager.hpp"
+#include "engine/managers/GraphicsShaderManager.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -13,6 +13,10 @@ int GraphicsRendererBase::init() {
 	}
 
 	if (createFramebuffer()) {
+		return 1;
+	}
+
+	if (createVkPipelineLayout()) {
 		return 1;
 	}
 
@@ -196,10 +200,10 @@ int GraphicsRendererBase::createFramebuffer() {
 }
 
 int GraphicsRendererBase::createGraphicsPipelines() {
-	constexpr auto shaderTypeCount = Engine::Managers::ShaderManager::getTypeCount();
+	constexpr auto shaderTypeCount = Engine::Managers::GraphicsShaderManager::getTypeCount();
 	constexpr auto meshTypeCount   = Engine::Managers::MeshManager::getTypeCount();
 
-	auto renderPassIndex = Engine::Managers::ShaderManager::getRenderPassIndex(getRenderPassName());
+	auto renderPassIndex = Engine::Managers::GraphicsShaderManager::getRenderPassIndex(getRenderPassName());
 
 	const auto& pipelineInputAssemblyStateCreateInfo = getVkPipelineInputAssemblyStateCreateInfo();
 	const auto& viewport							 = getVkViewport();
@@ -221,31 +225,6 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 	pipelineColorBlendStateCreateInfo.pAttachments	  = &pipelineColorBlendAttachmentState;
 
 
-	// FIXME pipeline layout creation must be in RendererBase since it's not graphics exclusive
-
-	auto descriptorSetLayouts = getVkDescriptorSetLayouts();
-	descriptorSetLayouts.push_back(Engine::Managers::MaterialManager::getVkDescriptorSetLayout());
-
-	// FIXME should be set by derived renderers
-	vk::PushConstantRange pushConstantRange {};
-	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eAll;
-	pushConstantRange.offset	 = 0;
-	pushConstantRange.size		 = 64;
-
-	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {};
-	pipelineLayoutCreateInfo.setLayoutCount = descriptorSetLayouts.size();
-	pipelineLayoutCreateInfo.pSetLayouts	= descriptorSetLayouts.data();
-
-	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-	pipelineLayoutCreateInfo.pPushConstantRanges	= &pushConstantRange;
-
-	auto result = vkDevice.createPipelineLayout(&pipelineLayoutCreateInfo, nullptr, &vkPipelineLayout);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("Failed to create pipeline layout. Error code: {} ({})", result, vk::to_string(result));
-		return 1;
-	}
-
-
 	std::vector<vk::Pipeline> graphicsPipelines {};
 	for (uint shaderTypeIndex = 0; shaderTypeIndex < shaderTypeCount; shaderTypeIndex++) {
 		for (uint meshTypeIndex = 0; meshTypeIndex < meshTypeCount; meshTypeIndex++) {
@@ -261,13 +240,13 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 			pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = vertexBindingDescriptions.size();
 			pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions	 = vertexBindingDescriptions.data();
 
-			auto signatureCount = Engine::Managers::ShaderManager::getShaderSignatureCount(shaderTypeIndex);
+			auto signatureCount = Engine::Managers::GraphicsShaderManager::getShaderSignatureCount(shaderTypeIndex);
 
 			for (uint signature = 0; signature < signatureCount; signature++) {
 				uint32_t shaderStageCount = 0;
 				vk::PipelineShaderStageCreateInfo pipelineShaderStageCreateInfos[6];
 
-				auto shaderInfo = Engine::Managers::ShaderManager::getShaderInfo(renderPassIndex, shaderTypeIndex,
+				auto shaderInfo = Engine::Managers::GraphicsShaderManager::getShaderInfo(renderPassIndex, shaderTypeIndex,
 																				 meshTypeIndex, signature);
 				for (uint shaderStageIndex = 0; shaderStageIndex < 6; shaderStageIndex++) {
 					if (shaderInfo.shaderModules[shaderStageIndex] != vk::ShaderModule()) {
@@ -319,7 +298,7 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 				graphicsPipelineCreateInfo.subpass	  = 0;
 
 				vk::Pipeline pipeline;
-				result = vkDevice.createGraphicsPipelines(nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline);
+				auto result = vkDevice.createGraphicsPipelines(nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline);
 				if (result != vk::Result::eSuccess) {
 					spdlog::error("Failed to create graphics pipeline. Error code: {} ({})", result,
 								  vk::to_string(result));

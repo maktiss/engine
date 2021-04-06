@@ -107,7 +107,7 @@ int Core::init(int argc, char** argv) {
 	modelEntity.getComponent<Components::Model>().materialHandles[0] = materialHandle;
 
 	modelEntity.getComponent<Components::Model>().shaderHandles[0] =
-		Engine::Managers::ShaderManager::getHandle(meshHandles[0], materialHandle);
+		Engine::Managers::GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
 
 
 	modelEntity.getComponent<Components::Script>().handle =
@@ -139,7 +139,7 @@ int Core::init(int argc, char** argv) {
 	// materialHandle.update();
 	tileEntity.getComponent<Components::Model>().materialHandles[0] = materialHandle;
 	tileEntity.getComponent<Components::Model>().shaderHandles[0] =
-		Engine::Managers::ShaderManager::getHandle(meshHandles[0], materialHandle);
+		Engine::Managers::GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
 
 
 	spdlog::info("Initialization completed successfully");

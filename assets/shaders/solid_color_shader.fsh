@@ -5,6 +5,9 @@
 #include "material_shader_common.glsl"
 
 
+#ifdef RENDER_PASS_FORWARD
+
+
 layout(location = 0) in InData {
 	vec3 position;
 	vec2 texCoord;
@@ -31,7 +34,6 @@ layout(set = MATERIAL_BLOCK_SET, binding = 1) uniform sampler2D uTextures[8];
 #define NORMAL 1
 
 
-#ifdef RENDER_PASS_FORWARD
 void main() {
 	vec3 colorAlbedo = uMaterial.color.rgb;
 

@@ -22,6 +22,7 @@
 #include "vk_mem_alloc.h"
 
 #include <set>
+#include <unordered_map>
 #include <vector>
 
 
@@ -87,6 +88,22 @@ private:
 				return rendererIndex == other.rendererIndex;
 			}
 		};
+		struct NodeReference2 {
+			std::string rendererName {};
+			uint attachmentIndex = -1;
+
+			// Specifies whenever a resource would be used by renderer next frame and sould be preserved
+			bool nextFrame = false;
+
+
+			bool operator<(const NodeReference2& other) const {
+				return rendererName < other.rendererName;
+			}
+
+			bool operator==(const NodeReference2& other) const {
+				return rendererName == other.rendererName;
+			}
+		};
 
 		struct Node {
 			// One output can be connected to multiple inputs but to only one output
@@ -97,8 +114,18 @@ private:
 			std::vector<NodeReference> backwardInputReferences {};
 			std::vector<NodeReference> backwardOutputReferences {};
 		};
+		struct Node2 {
+			// One output can be connected to multiple inputs but to only one output
+			std::vector<std::set<NodeReference2>> inputReferenceSets {};
+			std::vector<NodeReference2> outputReferences {};
+
+			// References to what is connected to input/output slot
+			std::vector<NodeReference2> backwardInputReferences {};
+			std::vector<NodeReference2> backwardOutputReferences {};
+		};
 
 		std::vector<Node> nodes {};
+		std::unordered_map<std::string, Node2> nodes2 {};
 
 	public:
 		inline void setNodeCount(uint count) {
@@ -108,12 +135,21 @@ private:
 		inline void setInputCount(uint nodeIndex, uint count) {
 			nodes[nodeIndex].backwardInputReferences.resize(count);
 		}
+		inline void setInputCount2(std::string name, uint count) {
+			nodes2[name].backwardInputReferences.resize(count);
+		}
 
 		inline void setOutputCount(uint nodeIndex, uint count) {
 			nodes[nodeIndex].inputReferenceSets.resize(count);
 			nodes[nodeIndex].outputReferences.resize(count);
 
 			nodes[nodeIndex].backwardOutputReferences.resize(count);
+		}
+		inline void setOutputCount2(std::string name, uint count) {
+			nodes2[name].inputReferenceSets.resize(count);
+			nodes2[name].outputReferences.resize(count);
+
+			nodes2[name].backwardOutputReferences.resize(count);
 		}
 
 		inline const auto& getNodes() const {
@@ -123,9 +159,13 @@ private:
 		// Connects source output to destination input slot
 		void addInputConnection(uint srcNodeIndex, uint srcOutputIndex, uint dstNodeIndex, uint dstInputIndex,
 								bool nextFrame = false);
+		void addInputConnection2(std::string srcName, uint srcOutputIndex, std::string dstName, uint dstInputIndex,
+								bool nextFrame = false);
 
 		// Connects source output to destination output slot
 		void addOutputConnection(uint srcNodeIndex, uint srcOutputIndex, uint dstNodeIndex, uint dstOutputIndex,
+								 bool nextFrame = false);
+		void addOutputConnection2(std::string srcName, uint srcOutputIndex, std::string dstName, uint dstOutputIndex,
 								 bool nextFrame = false);
 	};
 
@@ -195,17 +235,17 @@ private:
 	VmaAllocator vmaAllocator = nullptr;
 
 	std::vector<std::shared_ptr<Engine::Renderers::RendererBase>> renderers {};
-
-	// // The graph is positioned from left to right
-	// std::vector<RenderGraphNode> renderGraph {};
+	std::unordered_map<std::string, std::shared_ptr<Engine::Renderers::RendererBase>> renderers2 {};
 
 	RenderGraph renderGraph {};
 
 	// Compiled from render graph
 	std::vector<uint> rendererExecutionOrder {};
+	std::vector<std::string> rendererExecutionOrder2 {};
 
 	// Output to blit from into swapchain image
 	RenderGraphNodeReference finalOutputReference {};
+	RenderGraph::NodeReference2 finalOutputReference2 {};
 
 
 public:

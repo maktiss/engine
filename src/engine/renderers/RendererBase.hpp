@@ -2,7 +2,7 @@
 
 #include "engine/managers/ConfigManager.hpp"
 #include "engine/managers/MeshManager.hpp"
-#include "engine/managers/ShaderManager.hpp"
+#include "engine/managers/GraphicsShaderManager.hpp"
 #include "engine/managers/TextureManager.hpp"
 
 #include "engine/graphics/DescriptorSetArray.hpp"
@@ -165,13 +165,16 @@ public:
 	}
 
 
-	const auto getVkDescriptorSetLayouts() {
+	virtual const std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() {
 		std::vector<vk::DescriptorSetLayout> layouts(descriptorSetArrays.size());
 		for (uint i = 0; i < layouts.size(); i++) {
 			layouts[i] = descriptorSetArrays[i].getVkDescriptorSetLayout();
 		}
 		return layouts;
 	}
+
+
+	int createVkPipelineLayout();
 
 
 	void dispose() {

@@ -30,8 +30,10 @@ add_executable(
 	src/engine/graphics/materials/SimpleMaterial.hpp
 	src/engine/graphics/meshes/MeshBase.hpp
 	src/engine/graphics/meshes/StaticMesh.hpp
-	src/engine/graphics/shaders/ShaderBase.hpp
+	src/engine/graphics/shaders/GraphicsShaderBase.hpp
+	src/engine/graphics/shaders/Shader.hpp
 	src/engine/graphics/shaders/SimpleShader.hpp
+	src/engine/graphics/shaders/SkyboxShader.hpp
 	src/engine/graphics/textures/Texture2D.hpp
 	src/engine/graphics/textures/TextureBase.hpp
 	src/engine/managers/ConfigManager.cpp
@@ -39,6 +41,9 @@ add_executable(
 	src/engine/managers/EntityManager.cpp
 	src/engine/managers/EntityManager.hpp
 	src/engine/managers/EntityManagerBase.hpp
+	src/engine/managers/GraphicsShaderManager.cpp
+	src/engine/managers/GraphicsShaderManager.hpp
+	src/engine/managers/GraphicsShaderManagerBase.hpp
 	src/engine/managers/InputManager.cpp
 	src/engine/managers/InputManager.hpp
 	src/engine/managers/MaterialManager.cpp
@@ -49,9 +54,6 @@ add_executable(
 	src/engine/managers/ScriptManager.cpp
 	src/engine/managers/ScriptManager.hpp
 	src/engine/managers/ScriptManagerBase.hpp
-	src/engine/managers/ShaderManager.cpp
-	src/engine/managers/ShaderManager.hpp
-	src/engine/managers/ShaderManagerBase.hpp
 	src/engine/managers/TextureManager.cpp
 	src/engine/managers/TextureManager.hpp
 	src/engine/renderers/compute/ComputeRendererBase.hpp
@@ -63,6 +65,9 @@ add_executable(
 	src/engine/renderers/graphics/ForwardRenderer.hpp
 	src/engine/renderers/graphics/ShadowMapRenderer.cpp
 	src/engine/renderers/graphics/ShadowMapRenderer.hpp
+	src/engine/renderers/graphics/SkyboxRenderer.cpp
+	src/engine/renderers/graphics/SkyboxRenderer.hpp
+	src/engine/renderers/RendererBase.cpp
 	src/engine/renderers/RendererBase.hpp
 	src/engine/scripts/CameraScript.cpp
 	src/engine/scripts/CameraScript.hpp

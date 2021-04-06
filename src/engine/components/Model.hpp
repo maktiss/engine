@@ -4,7 +4,7 @@
 
 #include "engine/managers/MeshManager.hpp"
 #include "engine/managers/MaterialManager.hpp"
-#include "engine/managers/ShaderManager.hpp"
+#include "engine/managers/GraphicsShaderManager.hpp"
 
 #include <array>
 #include <vector>
@@ -17,6 +17,6 @@ public:
 	std::array<Engine::Managers::MaterialManager::Handle, 4> materialHandles;
 
 	// Cached shader handles, have to be updated on mesh and/or material handle change
-	std::array<Engine::Managers::ShaderManager::Handle, 4> shaderHandles;
+	std::array<Engine::Managers::GraphicsShaderManager::Handle, 4> shaderHandles;
 };
 } // namespace Engine::Components

@@ -125,7 +125,7 @@ public:
 	}
 
 
-	inline std::vector<vk::ClearValue> getVkClearValues() {
+	inline std::vector<vk::ClearValue> getVkClearValues() override {
 		std::vector<vk::ClearValue> clearValues {};
 		clearValues.resize(2);
 
@@ -136,7 +136,7 @@ public:
 	}
 
 
-	inline std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() {
+	inline std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() override {
 		std::vector<vk::AttachmentDescription> attachmentDescriptions {};
 		attachmentDescriptions.resize(2);
 
@@ -144,7 +144,7 @@ public:
 
 		attachmentDescriptions[0].format		 = outputDescriptions[0].format;
 		attachmentDescriptions[0].samples		 = vk::SampleCountFlagBits::e1;
-		attachmentDescriptions[0].loadOp		 = vk::AttachmentLoadOp::eClear;
+		attachmentDescriptions[0].loadOp		 = vk::AttachmentLoadOp::eLoad;
 		attachmentDescriptions[0].storeOp		 = vk::AttachmentStoreOp::eStore;
 		attachmentDescriptions[0].stencilLoadOp	 = vk::AttachmentLoadOp::eDontCare;
 		attachmentDescriptions[0].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
@@ -159,7 +159,7 @@ public:
 		return attachmentDescriptions;
 	}
 
-	inline std::vector<vk::AttachmentReference> getVkAttachmentReferences() {
+	inline std::vector<vk::AttachmentReference> getVkAttachmentReferences() override {
 		std::vector<vk::AttachmentReference> attachmentReferences {};
 		attachmentReferences.resize(2);
 
@@ -172,72 +172,13 @@ public:
 	}
 
 
-	inline vk::PipelineInputAssemblyStateCreateInfo getVkPipelineInputAssemblyStateCreateInfo() {
-		vk::PipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo {};
-		pipelineInputAssemblyStateCreateInfo.topology				= vk::PrimitiveTopology::eTriangleList;
-		pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = false;
-
-		return pipelineInputAssemblyStateCreateInfo;
-	}
-
-	inline vk::Viewport getVkViewport() {
-		vk::Viewport viewport {};
-		viewport.x		  = 0.0f;
-		viewport.y		  = outputSize.height;
-		viewport.width	  = outputSize.width;
-		viewport.height	  = -(static_cast<int>(outputSize.height));
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-
-		return viewport;
-	}
-
-	inline vk::Rect2D getVkScissor() {
-		vk::Rect2D scissor {};
-		scissor.offset = vk::Offset2D(0, 0);
-		scissor.extent = outputSize;
-
-		return scissor;
-	}
-
-	inline vk::PipelineRasterizationStateCreateInfo getVkPipelineRasterizationStateCreateInfo() {
-		vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {};
-		pipelineRasterizationStateCreateInfo.depthClampEnable		 = false;
-		pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;
-		pipelineRasterizationStateCreateInfo.polygonMode			 = vk::PolygonMode::eFill;
-		pipelineRasterizationStateCreateInfo.cullMode				 = vk::CullModeFlagBits::eBack;
-		pipelineRasterizationStateCreateInfo.frontFace				 = vk::FrontFace::eCounterClockwise;
-		pipelineRasterizationStateCreateInfo.depthBiasEnable		 = false;
-		pipelineRasterizationStateCreateInfo.lineWidth				 = 1.0f;
-
-		return pipelineRasterizationStateCreateInfo;
-	}
-
-	inline vk::PipelineMultisampleStateCreateInfo getVkPipelineMultisampleStateCreateInfo() {
-		vk::PipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {};
-		pipelineMultisampleStateCreateInfo.sampleShadingEnable	= false;
-		pipelineMultisampleStateCreateInfo.rasterizationSamples = vk::SampleCountFlagBits::e1;
-
-		return pipelineMultisampleStateCreateInfo;
-	}
-
-	inline vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() {
+	inline vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() override {
 		vk::PipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {};
 		pipelineDepthStencilStateCreateInfo.depthTestEnable	 = true;
 		pipelineDepthStencilStateCreateInfo.depthWriteEnable = false;
 		pipelineDepthStencilStateCreateInfo.depthCompareOp	 = vk::CompareOp::eEqual;
 
 		return pipelineDepthStencilStateCreateInfo;
-	}
-
-	inline vk::PipelineColorBlendAttachmentState getVkPipelineColorBlendAttachmentState() {
-		vk::PipelineColorBlendAttachmentState pipelineColorBlendAttachmentState {};
-		pipelineColorBlendAttachmentState.colorWriteMask =
-			vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
-			vk::ColorComponentFlagBits::eA;
-		pipelineColorBlendAttachmentState.blendEnable = false;
-
-		return pipelineColorBlendAttachmentState;
 	}
 };
 } // namespace Engine::Renderers::Graphics

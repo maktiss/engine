@@ -29,6 +29,13 @@ public:
 					   const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) override;
 
 
+	virtual const std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() override {
+		auto layouts = Engine::Renderers::RendererBase::getVkDescriptorSetLayouts();
+		layouts.push_back(Engine::Managers::MaterialManager::getVkDescriptorSetLayout());
+		return layouts;
+	}
+
+
 	int createRenderPass();
 	int createFramebuffer();
 	int createGraphicsPipelines();
@@ -49,31 +56,71 @@ public:
 
 
 	virtual vk::PipelineInputAssemblyStateCreateInfo getVkPipelineInputAssemblyStateCreateInfo() {
-		return vk::PipelineInputAssemblyStateCreateInfo();
+		vk::PipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo {};
+		pipelineInputAssemblyStateCreateInfo.topology				= vk::PrimitiveTopology::eTriangleList;
+		pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = false;
+
+		return pipelineInputAssemblyStateCreateInfo;
 	}
 
 	virtual vk::Viewport getVkViewport() {
-		return vk::Viewport();
+		vk::Viewport viewport {};
+		viewport.x		  = 0.0f;
+		viewport.y		  = outputSize.height;
+		viewport.width	  = outputSize.width;
+		viewport.height	  = -(static_cast<int>(outputSize.height));
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+
+		return viewport;
 	}
 
 	virtual vk::Rect2D getVkScissor() {
-		return vk::Rect2D();
+		vk::Rect2D scissor {};
+		scissor.offset = vk::Offset2D(0, 0);
+		scissor.extent = outputSize;
+
+		return scissor;
 	}
 
 	virtual vk::PipelineRasterizationStateCreateInfo getVkPipelineRasterizationStateCreateInfo() {
-		return vk::PipelineRasterizationStateCreateInfo();
+		vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {};
+		pipelineRasterizationStateCreateInfo.depthClampEnable		 = false;
+		pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;
+		pipelineRasterizationStateCreateInfo.polygonMode			 = vk::PolygonMode::eFill;
+		pipelineRasterizationStateCreateInfo.cullMode				 = vk::CullModeFlagBits::eBack;
+		pipelineRasterizationStateCreateInfo.frontFace				 = vk::FrontFace::eCounterClockwise;
+		pipelineRasterizationStateCreateInfo.depthBiasEnable		 = false;
+		pipelineRasterizationStateCreateInfo.lineWidth				 = 1.0f;
+
+		return pipelineRasterizationStateCreateInfo;
 	}
 
 	virtual vk::PipelineMultisampleStateCreateInfo getVkPipelineMultisampleStateCreateInfo() {
-		return vk::PipelineMultisampleStateCreateInfo();
+		vk::PipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {};
+		pipelineMultisampleStateCreateInfo.sampleShadingEnable	= false;
+		pipelineMultisampleStateCreateInfo.rasterizationSamples = vk::SampleCountFlagBits::e1;
+
+		return pipelineMultisampleStateCreateInfo;
 	}
 
 	virtual vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() {
-		return vk::PipelineDepthStencilStateCreateInfo();
+		vk::PipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {};
+		pipelineDepthStencilStateCreateInfo.depthTestEnable	 = false;
+		pipelineDepthStencilStateCreateInfo.depthWriteEnable = false;
+		pipelineDepthStencilStateCreateInfo.depthCompareOp	 = vk::CompareOp::eAlways;
+
+		return pipelineDepthStencilStateCreateInfo;
 	}
 
 	virtual vk::PipelineColorBlendAttachmentState getVkPipelineColorBlendAttachmentState() {
-		return vk::PipelineColorBlendAttachmentState();
+		vk::PipelineColorBlendAttachmentState pipelineColorBlendAttachmentState {};
+		pipelineColorBlendAttachmentState.colorWriteMask =
+			vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
+			vk::ColorComponentFlagBits::eA;
+		pipelineColorBlendAttachmentState.blendEnable = false;
+
+		return pipelineColorBlendAttachmentState;
 	}
 };
 } // namespace Engine::Renderers::Graphics

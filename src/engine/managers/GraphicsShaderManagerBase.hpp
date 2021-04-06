@@ -21,7 +21,7 @@
 
 namespace Engine::Managers {
 template <typename DerivedManager, typename... ShaderTypes>
-class ShaderManagerBase {
+class GraphicsShaderManagerBase {
 public:
 	class Handle {
 		uint32_t index = 0;
@@ -38,7 +38,7 @@ public:
 
 	struct ShaderInfo {
 		// TODO: access with enum
-		std::array<vk::ShaderModule, 6> shaderModules;
+		std::array<vk::ShaderModule, 6> shaderModules {};
 	};
 
 private:
@@ -56,13 +56,13 @@ public:
 		// Resize shader object arrays to fit all of their variations
 		(std::get<std::vector<ShaderTypes>>(shaderObjectArrays)
 			 .resize(pow(2, ShaderTypes::getFlagCount()) * MeshManager::getTypeCount() *
-					 ShaderManagerBase::getRenderPassStringCount()),
+					 GraphicsShaderManagerBase::getRenderPassStringCount()),
 		 ...);
 
 		uint32_t totalShaderCount = 0;
 		((totalShaderCount += ShaderTypes::getSignatureCount() * MeshManager::getTypeCount()), ...);
 
-		shaderInfoArrays.resize(ShaderManagerBase::getRenderPassStringCount());
+		shaderInfoArrays.resize(GraphicsShaderManagerBase::getRenderPassStringCount());
 		for (auto& shaderInfos : shaderInfoArrays) {
 			shaderInfos.resize(totalShaderCount);
 		}
@@ -70,29 +70,42 @@ public:
 		return 0;
 	}
 
-	static Handle getHandle(MeshManager::Handle meshHandle, MaterialManager::Handle materialHandle) {
-		auto shaderTypeIndex = getCompatibleShaderTypeIndex(materialHandle);
 
+	static Handle getHandle(uint meshTypeIndex, uint shaderTypeIndex, uint signature) {
+		uint32_t index = getShaderInfoIndex(shaderTypeIndex, meshTypeIndex, signature);
+
+		return Handle(index);
+	}
+
+	static Handle getHandle(MeshManager::Handle meshHandle, MaterialManager::Handle materialHandle) {
 		auto meshTypeIndex = MeshManager::getTypeIndex(meshHandle);
+		auto shaderTypeIndex = getCompatibleShaderTypeIndex(materialHandle);
 
 		uint32_t signature = 0;
 		MaterialManager::apply(materialHandle, [&signature](auto& material) {
 			signature = material.getSignature();
 		});
 
-		uint32_t index = getShaderInfoIndex(shaderTypeIndex, meshTypeIndex, signature);
-
-		return Handle(index);
+		return getHandle(meshTypeIndex, shaderTypeIndex, signature);
 	}
 
-	static inline ShaderInfo& getShaderInfo(Handle handle, uint32_t renderPass) {
-		assert(renderPass < ShaderManagerBase::getRenderPassStringCount());
-		return shaderInfoArrays[renderPass][handle.getIndex()];
+	template <typename ShaderType>
+	static Handle getHandle(MeshManager::Handle meshHandle, uint signature = 0) {
+		auto meshTypeIndex = MeshManager::getTypeIndex(meshHandle);
+		auto shaderTypeIndex = getTypeIndex<ShaderType>();
+
+		return getHandle(meshTypeIndex, shaderTypeIndex, signature);
 	}
+
+
+	// static inline ShaderInfo& getShaderInfo(Handle handle, uint32_t renderPass) {
+	// 	assert(renderPass < GraphicsShaderManagerBase::getRenderPassStringCount());
+	// 	return shaderInfoArrays[renderPass][handle.getIndex()];
+	// }
 
 	static inline ShaderInfo& getShaderInfo(uint32_t renderPass, uint32_t shaderTypeIndex, uint32_t meshTypeIndex,
 											uint32_t signature) {
-		assert(renderPass < ShaderManagerBase::getRenderPassStringCount());
+		assert(renderPass < GraphicsShaderManagerBase::getRenderPassStringCount());
 		return shaderInfoArrays[renderPass][getShaderInfoIndex(shaderTypeIndex, meshTypeIndex, signature)];
 	}
 
@@ -172,8 +185,6 @@ public:
 
 					options.SetOptimizationLevel(shaderc_optimization_level_size);
 
-					auto test = DerivedManager::getRenderPassStrings()[renderPassIndex];
-
 					options.AddMacroDefinition(DerivedManager::getRenderPassStrings()[renderPassIndex]);
 					options.AddMacroDefinition(MeshManager::getMeshTypeString(meshTypeIndex));
 
@@ -223,7 +234,8 @@ public:
 							std::vector<uint32_t> spirvSource(result.cbegin(), result.cend());
 
 							std::get<shaderTypeIndex>(shaderObjectArrays)[index].setShaderSource(
-								shaderStageIndex, spirvSource.data(), spirvSource.size() * 4);
+								shaderStageIndex,
+								spirvSource.data(), spirvSource.size() * 4);
 						}
 					}
 				}
@@ -249,8 +261,8 @@ public:
 					uint32_t shaderInfoIndex = getShaderInfoIndex(shaderTypeIndex, meshTypeIndex, signature);
 
 					for (uint shaderStageIndex = 0; shaderStageIndex < 6; shaderStageIndex++) {
-						auto shaderSource =
-							std::get<shaderTypeIndex>(shaderObjectArrays)[index].getShaderSource(shaderStageIndex);
+						auto shaderSource = std::get<shaderTypeIndex>(shaderObjectArrays)[index].getShaderSource(
+							shaderStageIndex);
 
 						if (!shaderSource.empty()) {
 							vk::ShaderModuleCreateInfo shaderModuleCreateInfo {};
@@ -335,7 +347,7 @@ public:
 
 
 protected:
-	ShaderManagerBase() {
+	GraphicsShaderManagerBase() {
 	}
 
 
@@ -374,12 +386,12 @@ private:
 
 
 template <typename DerivedManager, typename... ShaderTypes>
-std::tuple<std::vector<ShaderTypes>...> ShaderManagerBase<DerivedManager, ShaderTypes...>::shaderObjectArrays {};
+std::tuple<std::vector<ShaderTypes>...> GraphicsShaderManagerBase<DerivedManager, ShaderTypes...>::shaderObjectArrays {};
 
 template <typename DerivedManager, typename... ShaderTypes>
-std::vector<std::vector<typename ShaderManagerBase<DerivedManager, ShaderTypes...>::ShaderInfo>>
-	ShaderManagerBase<DerivedManager, ShaderTypes...>::shaderInfoArrays {};
+std::vector<std::vector<typename GraphicsShaderManagerBase<DerivedManager, ShaderTypes...>::ShaderInfo>>
+	GraphicsShaderManagerBase<DerivedManager, ShaderTypes...>::shaderInfoArrays {};
 
 template <typename DerivedManager, typename... ShaderTypes>
-vk::Device ShaderManagerBase<DerivedManager, ShaderTypes...>::vkDevice {};
+vk::Device GraphicsShaderManagerBase<DerivedManager, ShaderTypes...>::vkDevice {};
 } // namespace Engine::Managers
