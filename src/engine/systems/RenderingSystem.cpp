@@ -7,60 +7,33 @@
 
 
 namespace Engine::Systems {
-void RenderingSystem::RenderGraph::addInputConnection(uint srcNodeIndex, uint srcOutputIndex, uint dstNodeIndex,
+void RenderingSystem::RenderGraph::addInputConnection(std::string srcName, uint srcOutputIndex, std::string dstName,
 													  uint dstInputIndex, bool nextFrame) {
-	nodes[srcNodeIndex].inputReferenceSets[srcOutputIndex].insert({ dstNodeIndex, dstInputIndex, nextFrame });
+	nodes[srcName].inputReferenceSets[srcOutputIndex].insert({ dstName, dstInputIndex, nextFrame });
 
-	if (nodes[dstNodeIndex].backwardInputReferences[dstInputIndex].rendererIndex != -1) {
-		spdlog::warn("Attempt to connect additional output ({}, {}) to an input slot ({}, {}), using last "
-					 "specified connection",
-					 srcNodeIndex, srcOutputIndex, dstNodeIndex, dstInputIndex);
-	}
-	nodes[dstNodeIndex].backwardInputReferences[dstInputIndex] = { srcNodeIndex, srcOutputIndex, nextFrame };
-}
-void RenderingSystem::RenderGraph::addInputConnection2(std::string srcName, uint srcOutputIndex, std::string dstName,
-													  uint dstInputIndex, bool nextFrame) {
-	nodes2[srcName].inputReferenceSets[srcOutputIndex].insert({ dstName, dstInputIndex, nextFrame });
-
-	if (!nodes2[dstName].backwardInputReferences[dstInputIndex].rendererName.empty()) {
+	if (!nodes[dstName].backwardInputReferences[dstInputIndex].rendererName.empty()) {
 		spdlog::warn("Attempt to connect additional output ({}, {}) to an input slot ({}, {}), using last "
 					 "specified connection",
 					 srcName, srcOutputIndex, dstName, dstInputIndex);
 	}
-	nodes2[dstName].backwardInputReferences[dstInputIndex] = { srcName, srcOutputIndex, nextFrame };
+	nodes[dstName].backwardInputReferences[dstInputIndex] = { srcName, srcOutputIndex, nextFrame };
 }
 
-void RenderingSystem::RenderGraph::addOutputConnection(uint srcNodeIndex, uint srcOutputIndex, uint dstNodeIndex,
+void RenderingSystem::RenderGraph::addOutputConnection(std::string srcName, uint srcOutputIndex, std::string dstName,
 													   uint dstOutputIndex, bool nextFrame) {
-	if (nodes[srcNodeIndex].outputReferences[srcOutputIndex].rendererIndex != -1) {
-		spdlog::warn("Attempt to connect an output ({}, {}) to additional output slot ({}, {}), using last "
-					 "specified connection",
-					 srcNodeIndex, srcOutputIndex, dstNodeIndex, dstOutputIndex);
-	}
-	nodes[srcNodeIndex].outputReferences[srcOutputIndex] = { dstNodeIndex, dstOutputIndex, nextFrame };
-
-	if (nodes[dstNodeIndex].backwardOutputReferences[dstOutputIndex].rendererIndex != -1) {
-		spdlog::warn("Attempt to connect additional output ({}, {}) to an output slot ({}, {}), using last "
-					 "specified connection",
-					 srcNodeIndex, srcOutputIndex, dstNodeIndex, dstOutputIndex);
-	}
-	nodes[dstNodeIndex].backwardOutputReferences[dstOutputIndex] = { srcNodeIndex, srcOutputIndex, nextFrame };
-}
-void RenderingSystem::RenderGraph::addOutputConnection2(std::string srcName, uint srcOutputIndex, std::string dstName,
-													   uint dstOutputIndex, bool nextFrame) {
-	if (!nodes2[srcName].outputReferences[srcOutputIndex].rendererName.empty()) {
+	if (!nodes[srcName].outputReferences[srcOutputIndex].rendererName.empty()) {
 		spdlog::warn("Attempt to connect an output ({}, {}) to additional output slot ({}, {}), using last "
 					 "specified connection",
 					 srcName, srcOutputIndex, dstName, dstOutputIndex);
 	}
-	nodes2[srcName].outputReferences[srcOutputIndex] = { dstName, dstOutputIndex, nextFrame };
+	nodes[srcName].outputReferences[srcOutputIndex] = { dstName, dstOutputIndex, nextFrame };
 
-	if (!nodes2[dstName].backwardOutputReferences[dstOutputIndex].rendererName.empty()) {
+	if (!nodes[dstName].backwardOutputReferences[dstOutputIndex].rendererName.empty()) {
 		spdlog::warn("Attempt to connect additional output ({}, {}) to an output slot ({}, {}), using last "
 					 "specified connection",
 					 srcName, srcOutputIndex, dstName, dstOutputIndex);
 	}
-	nodes2[dstName].backwardOutputReferences[dstOutputIndex] = { srcName, srcOutputIndex, nextFrame };
+	nodes[dstName].backwardOutputReferences[dstOutputIndex] = { srcName, srcOutputIndex, nextFrame };
 }
 
 
@@ -185,61 +158,35 @@ int RenderingSystem::init() {
 	skyboxRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 
-	renderers.push_back(depthNormalRenderer);
-	renderers.push_back(forwardRenderer);
-	renderers.push_back(shadowMapRenderer);
-	renderers.push_back(skyboxRenderer);
-
-	renderers2["DepthNormalRenderer"] = depthNormalRenderer;
-	renderers2["ForwardRenderer"] = forwardRenderer;
-	renderers2["ShadowMapRenderer"] = shadowMapRenderer;
-	renderers2["SkyboxRenderer"] = skyboxRenderer;
+	renderers["DepthNormalRenderer"] = depthNormalRenderer;
+	renderers["ForwardRenderer"]	 = forwardRenderer;
+	renderers["ShadowMapRenderer"]	 = shadowMapRenderer;
+	renderers["SkyboxRenderer"]		 = skyboxRenderer;
 
 
-	renderGraph.setNodeCount(renderers.size());
-	for (uint i = 0; i < renderers.size(); i++) {
-		renderGraph.setInputCount(i, renderers[i]->getInputCount());
-		renderGraph.setOutputCount(i, renderers[i]->getOutputCount());
+	for (const auto& [name, renderer] : renderers) {
+		renderGraph.setInputCount(name, renderer->getInputCount());
+		renderGraph.setOutputCount(name, renderer->getOutputCount());
 	}
 
-	for (const auto& [name, renderer] : renderers2) {
-		renderGraph.setInputCount2(name, renderer->getInputCount());
-		renderGraph.setOutputCount2(name, renderer->getOutputCount());
-	}
 
-	// DepthNormalRenderer depth output -> ForwardRenderer depth output
-	// TODO: better readability
-	renderGraph.addOutputConnection(0, 0, 1, 1);
-	renderGraph.addInputConnection(2, 0, 1, 0);
-
-	renderGraph.addOutputConnection(3, 0, 1, 0);
+	renderGraph.addOutputConnection("SkyboxRenderer", 0, "ForwardRenderer", 0);
+	renderGraph.addOutputConnection("DepthNormalRenderer", 0, "ForwardRenderer", 1);
+	renderGraph.addInputConnection("ShadowMapRenderer", 0, "ForwardRenderer", 0);
 
 
-	renderGraph.addOutputConnection2("SkyboxRenderer", 0, "ForwardRenderer", 0);
-	renderGraph.addOutputConnection2("DepthNormalRenderer", 0, "ForwardRenderer", 1);
-	renderGraph.addInputConnection2("ShadowMapRenderer", 0, "ForwardRenderer", 0);
-
-
-	finalOutputReference2 = { "ForwardRenderer", 0 };
-
-	// ForwardRenderer color output -> swapchain image
-	finalOutputReference.rendererIndex	 = 1;
-	finalOutputReference.attachmentIndex = 0;
-
-
+	finalOutputReference = { "ForwardRenderer", 0 };
 
 
 	spdlog::info("Compiling render graph...");
 
-
 	// Lower value == higher priority
-	std::vector<uint> executionPrioriries(renderers.size(), 0);
-	std::unordered_map<std::string, uint> executionPrioriries2 {};
+	std::unordered_map<std::string, uint> executionPrioriries {};
 
-	for (const auto& [rendererName, renderer] : renderers2) {
-		const auto& renderGraphNode = renderGraph.nodes2[rendererName];
+	for (const auto& [rendererName, renderer] : renderers) {
+		const auto& renderGraphNode = renderGraph.nodes[rendererName];
 
-		auto& rendererPriority = executionPrioriries2[rendererName];
+		auto& rendererPriority = executionPrioriries[rendererName];
 
 		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
 			const auto& inputReferenceSet = renderGraphNode.inputReferenceSets[outputIndex];
@@ -252,7 +199,7 @@ int RenderingSystem::init() {
 					return 1;
 				}
 
-				auto& referencedPriority = executionPrioriries2[outputReference.rendererName];
+				auto& referencedPriority = executionPrioriries[outputReference.rendererName];
 
 				if (outputReference.nextFrame) {
 					spdlog::error("Failed to compile render graph: output cannot be used for writing next frame");
@@ -264,7 +211,7 @@ int RenderingSystem::init() {
 				}
 
 				// Shift lower priorities
-				for (auto& [rendererName, priority] : executionPrioriries2) {
+				for (auto& [rendererName, priority] : executionPrioriries) {
 					if (outputReference.rendererName != rendererName) {
 						if (referencedPriority <= priority) {
 							priority++;
@@ -279,7 +226,7 @@ int RenderingSystem::init() {
 					return 1;
 				}
 
-				auto& referencedPriority = executionPrioriries2[inputReference.rendererName];
+				auto& referencedPriority = executionPrioriries[inputReference.rendererName];
 
 				if (inputReference.nextFrame) {
 					// FIXME: check output dependencies
@@ -293,7 +240,7 @@ int RenderingSystem::init() {
 				}
 
 				// Shift lower priorities
-				for (auto& [rendererName, priority] : executionPrioriries2) {
+				for (auto& [rendererName, priority] : executionPrioriries) {
 					if (inputReference.rendererName != rendererName) {
 						if (referencedPriority <= priority) {
 							priority++;
@@ -304,92 +251,13 @@ int RenderingSystem::init() {
 		}
 	}
 
-	// TODO: remove old rendergraph
-	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
-		const auto& renderer		= renderers[rendererIndex];
-		const auto& renderGraphNode = renderGraph.nodes[rendererIndex];
-
-		auto& rendererPriority = executionPrioriries[rendererIndex];
-
-		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
-			const auto& inputReferenceSet = renderGraphNode.inputReferenceSets[outputIndex];
-			const auto& outputReference	  = renderGraphNode.outputReferences[outputIndex];
-
-			// Deal with output first, so it will have lower priority over inputs
-			if (outputReference.rendererIndex != -1) {
-				if (outputReference.attachmentIndex == -1) {
-					spdlog::error("Failed to compile render graph: output attachment index is not specified");
-					return 1;
-				}
-
-				auto& referencedPriority = executionPrioriries[outputReference.rendererIndex];
-
-				if (outputReference.nextFrame) {
-					spdlog::error("Failed to compile render graph: output cannot be used for writing next frame");
-					return 1;
-				}
-
-				if (referencedPriority <= rendererPriority) {
-					referencedPriority = rendererPriority + 1;
-				}
-
-				// Shift lower priorities
-				for (uint i = 0; i < executionPrioriries.size(); i++) {
-					if (outputReference.rendererIndex != i) {
-						if (referencedPriority <= executionPrioriries[i]) {
-							executionPrioriries[i]++;
-						}
-					}
-				}
-			}
-
-			for (const auto& inputReference : inputReferenceSet) {
-				if (inputReference.rendererIndex != -1 && inputReference.attachmentIndex == -1) {
-					spdlog::error("Failed to compile render graph: input attachment index is not specified");
-					return 1;
-				}
-
-				auto& referencedPriority = executionPrioriries[inputReference.rendererIndex];
-
-				if (inputReference.nextFrame) {
-					// FIXME: check output dependencies
-					if (rendererPriority <= referencedPriority) {
-						rendererPriority = referencedPriority + 1;
-					}
-				} else {
-					if (referencedPriority <= rendererPriority) {
-						referencedPriority = rendererPriority + 1;
-					}
-				}
-
-				// Shift lower priorities
-				for (uint i = 0; i < executionPrioriries.size(); i++) {
-					if (inputReference.rendererIndex != i) {
-						if (referencedPriority <= executionPrioriries[i]) {
-							executionPrioriries[i]++;
-						}
-					}
-				}
-			}
-		}
-	}
-
 
 	// Deal with duplicate priorities
 
-	for (const auto& [firstRendererName, firstPriority] : executionPrioriries2) {
-		for (auto& [secondRendererName, secondPriority] : executionPrioriries2) {
+	for (const auto& [firstRendererName, firstPriority] : executionPrioriries) {
+		for (auto& [secondRendererName, secondPriority] : executionPrioriries) {
 			if (firstRendererName != secondRendererName && firstPriority <= secondPriority) {
 				secondPriority++;
-			}
-		}
-	}
-
-	// TODO: remove
-	for (uint i = 0; i < executionPrioriries.size(); i++) {
-		for (uint j = 0; j < executionPrioriries.size(); j++) {
-			if (i != j && executionPrioriries[i] <= executionPrioriries[j]) {
-				executionPrioriries[j]++;
 			}
 		}
 	}
@@ -397,15 +265,15 @@ int RenderingSystem::init() {
 
 	// Convert priorities to ordered sequence of renderer names
 
-	rendererExecutionOrder2.resize(renderers2.size());
+	rendererExecutionOrder.resize(renderers.size());
 
 	std::string logMessage = "Compiled renderer execution order:";
 
 	uint nextPriority = 0;
-	for (uint orderIndex = 0; orderIndex < rendererExecutionOrder2.size(); orderIndex++) {
-		auto iter = executionPrioriries2.end();
-		while (iter == executionPrioriries2.end()) {
-			for (iter = executionPrioriries2.begin(); iter != executionPrioriries2.end(); iter++) {
+	for (uint orderIndex = 0; orderIndex < rendererExecutionOrder.size(); orderIndex++) {
+		auto iter = executionPrioriries.end();
+		while (iter == executionPrioriries.end()) {
+			for (iter = executionPrioriries.begin(); iter != executionPrioriries.end(); iter++) {
 				if (iter->second == nextPriority) {
 					break;
 				}
@@ -413,39 +281,12 @@ int RenderingSystem::init() {
 			nextPriority++;
 		}
 
-		rendererExecutionOrder2[orderIndex] = iter->first;
+		rendererExecutionOrder[orderIndex] = iter->first;
+		rendererIndexMap[iter->first]	   = orderIndex;
 
 		logMessage += "\n\t";
 		logMessage += std::to_string(orderIndex + 1) + ". ";
-		logMessage += rendererExecutionOrder2[orderIndex];
-	}
-	spdlog::warn(logMessage);
-
-	
-
-	// Convert priorities to ordered sequence of renderer indices
-
-	rendererExecutionOrder.resize(renderers.size());
-
-	logMessage = "Compiled renderer execution order: ";
-
-	nextPriority = 0;
-	for (uint orderIndex = 0; orderIndex < rendererExecutionOrder.size(); orderIndex++) {
-		// auto iter = std::lower_bound(executionPrioriries.begin(), executionPrioriries.end(), nextPriority);
-		// assert(iter != executionPrioriries.end());
-
-		auto iter = executionPrioriries.end();
-		while (iter == executionPrioriries.end()) {
-			iter = std::find(executionPrioriries.begin(), executionPrioriries.end(), nextPriority);
-			nextPriority++;
-		}
-
-		rendererExecutionOrder[orderIndex] = iter - executionPrioriries.begin();
-
-		nextPriority = *iter + 1;
-
-		logMessage += std::to_string(rendererExecutionOrder[orderIndex]);
-		logMessage += " ";
+		logMessage += rendererExecutionOrder[orderIndex];
 	}
 	spdlog::warn(logMessage);
 
@@ -458,22 +299,23 @@ int RenderingSystem::init() {
 	std::vector<std::vector<std::vector<vk::Semaphore>>> rendererSignalSemaphores(
 		framesInFlightCount, std::vector<std::vector<vk::Semaphore>>(renderers.size()));
 
-	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
-		const auto& renderer		= renderers[rendererIndex];
-		const auto& renderGraphNode = renderGraph.nodes[rendererIndex];
+	for (const auto& [rendererName, renderer] : renderers) {
+		const auto rendererIndex = getRendererIndex(rendererName);
+
+		const auto& renderGraphNode = renderGraph.nodes[rendererName];
 
 		auto inputInitialLayouts  = renderer->getInputInitialLayouts();
 		auto outputInitialLayouts = renderer->getOutputInitialLayouts();
 
 
 		for (uint inputIndex = 0; inputIndex < renderer->getInputCount(); inputIndex++) {
-			if (renderGraphNode.backwardInputReferences[inputIndex].rendererIndex != -1) {
+			if (!renderGraphNode.backwardInputReferences[inputIndex].rendererName.empty()) {
 				renderer->setInputInitialLayout(inputIndex, inputInitialLayouts[inputIndex]);
 			}
 		}
 
 		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
-			if (renderGraphNode.backwardOutputReferences[outputIndex].rendererIndex != -1) {
+			if (!renderGraphNode.backwardOutputReferences[outputIndex].rendererName.empty()) {
 				renderer->setOutputInitialLayout(outputIndex, outputInitialLayouts[outputIndex]);
 			}
 
@@ -485,7 +327,8 @@ int RenderingSystem::init() {
 					RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
 									   "Failed to create rendering semaphore");
 
-					rendererWaitSemaphores[frameInFlight][inputReference.rendererIndex].push_back(semaphore);
+					rendererWaitSemaphores[frameInFlight][getRendererIndex(inputReference.rendererName)].push_back(
+						semaphore);
 					rendererSignalSemaphores[frameInFlight][rendererIndex].push_back(semaphore);
 				}
 
@@ -493,12 +336,13 @@ int RenderingSystem::init() {
 			}
 
 			const auto& outputReference = renderGraphNode.outputReferences[outputIndex];
-			if (outputReference.rendererIndex != -1) {
+			if (!outputReference.rendererName.empty()) {
 				for (uint frameInFlight = 0; frameInFlight < framesInFlightCount; frameInFlight++) {
 					RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
 									   "Failed to create rendering semaphore");
 
-					rendererWaitSemaphores[frameInFlight][outputReference.rendererIndex].push_back(semaphore);
+					rendererWaitSemaphores[frameInFlight][getRendererIndex(outputReference.rendererName)].push_back(
+						semaphore);
 					rendererSignalSemaphores[frameInFlight][rendererIndex].push_back(semaphore);
 				}
 			}
@@ -542,11 +386,10 @@ int RenderingSystem::init() {
 
 	// Iterate over render graph again to link initial and final render pass layouts
 
-	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
-		const auto& renderer		= renderers[rendererIndex];
-		const auto& renderGraphNode = renderGraph.nodes[rendererIndex];
+	for (const auto& [rendererName, renderer] : renderers) {
+		const auto& renderGraphNode = renderGraph.nodes[rendererName];
 
-		auto& rendererPriority = executionPrioriries[rendererIndex];
+		auto& rendererPriority = executionPrioriries[rendererName];
 
 		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
 			const auto& inputReferenceSet = renderGraphNode.inputReferenceSets[outputIndex];
@@ -563,7 +406,7 @@ int RenderingSystem::init() {
 				}
 
 				renderer->setOutputFinalLayout(
-					outputIndex, renderers[sortedInputReferences[0].rendererIndex]
+					outputIndex, renderers[sortedInputReferences[0].rendererName]
 									 ->getInputInitialLayouts()[sortedInputReferences[0].attachmentIndex]);
 
 				for (uint inputReferenceIndex = 0; inputReferenceIndex < sortedInputReferences.size() - 1;
@@ -571,23 +414,23 @@ int RenderingSystem::init() {
 					const auto& inputReference	   = sortedInputReferences[inputReferenceIndex];
 					const auto& nextInputReference = sortedInputReferences[inputReferenceIndex + 1];
 
-					renderers[inputReference.rendererIndex]->setInputFinalLayout(
+					renderers[inputReference.rendererName]->setInputFinalLayout(
 						inputReference.attachmentIndex,
-						renderers[nextInputReference.rendererIndex]
+						renderers[nextInputReference.rendererName]
 							->getInputInitialLayouts()[nextInputReference.attachmentIndex]);
 				}
 			}
 
-			if (outputReference.rendererIndex != -1) {
+			if (!outputReference.rendererName.empty()) {
 				if (sortedInputReferences.empty()) {
 					renderer->setOutputFinalLayout(outputIndex,
-												   renderers[outputReference.rendererIndex]
+												   renderers[outputReference.rendererName]
 													   ->getOutputInitialLayouts()[outputReference.attachmentIndex]);
 				} else {
 					const auto& lastOutputReference = sortedInputReferences[sortedInputReferences.size() - 1];
-					renderers[lastOutputReference.rendererIndex]->setInputFinalLayout(
+					renderers[lastOutputReference.rendererName]->setInputFinalLayout(
 						lastOutputReference.attachmentIndex,
-						renderers[outputReference.rendererIndex]
+						renderers[outputReference.rendererName]
 							->getOutputInitialLayouts()[outputReference.attachmentIndex]);
 				}
 			}
@@ -595,24 +438,24 @@ int RenderingSystem::init() {
 	}
 
 	// Set final layout for output to blit result from
-	renderers[finalOutputReference.rendererIndex]->setOutputFinalLayout(finalOutputReference.attachmentIndex,
-																		vk::ImageLayout::eTransferSrcOptimal);
+	renderers[finalOutputReference.rendererName]->setOutputFinalLayout(finalOutputReference.attachmentIndex,
+																	   vk::ImageLayout::eTransferSrcOptimal);
+
 
 	// Iterate over render graph again to create and link inputs/outputs
 
-	for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
-		const auto& renderer		   = renderers[rendererIndex];
-		const auto& renderGraphNode	   = renderGraph.nodes[rendererIndex];
+	for (const auto& [rendererName, renderer] : renderers) {
+		const auto& renderGraphNode	   = renderGraph.nodes[rendererName];
 		const auto& outputDescriptions = renderer->getOutputDescriptions();
 
 		const auto layerCount = renderer->getLayerCount();
 
 		for (uint outputIndex = 0; outputIndex < outputDescriptions.size(); outputIndex++) {
-			if (renderGraphNode.backwardOutputReferences[outputIndex].rendererIndex == -1) {
+			if (renderGraphNode.backwardOutputReferences[outputIndex].rendererName.empty()) {
 				auto textureHandle = Engine::Managers::TextureManager::createObject(0);
 
 				bool isFinal = false;
-				if (finalOutputReference.rendererIndex == rendererIndex &&
+				if (finalOutputReference.rendererName == rendererName &&
 					finalOutputReference.attachmentIndex == outputIndex) {
 					isFinal = true;
 				}
@@ -639,25 +482,25 @@ int RenderingSystem::init() {
 				renderer->setOutput(outputIndex, textureHandle);
 
 				for (auto& inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
-					renderers[inputReference.rendererIndex]->setInput(inputReference.attachmentIndex, textureHandle);
+					renderers[inputReference.rendererName]->setInput(inputReference.attachmentIndex, textureHandle);
 				}
 
 				// Iterate over chain of outputs
 				auto outputReference = renderGraphNode.outputReferences[outputIndex];
-				while (outputReference.rendererIndex != -1) {
-					renderers[outputReference.rendererIndex]->setOutput(outputReference.attachmentIndex, textureHandle);
-					outputReference = renderGraph.nodes[outputReference.rendererIndex]
+				while (!outputReference.rendererName.empty()) {
+					renderers[outputReference.rendererName]->setOutput(outputReference.attachmentIndex, textureHandle);
+					outputReference = renderGraph.nodes[outputReference.rendererName]
 										  .outputReferences[outputReference.attachmentIndex];
 				}
 			}
 		}
 	}
 
-	for (const auto& renderer : renderers) {
+	for (const auto& [rendererName, renderer] : renderers) {
 		renderer->init();
 	}
 
-	finalTextureHandle = renderers[finalOutputReference.rendererIndex]->getOutput(finalOutputReference.attachmentIndex);
+	finalTextureHandle = renderers[finalOutputReference.rendererName]->getOutput(finalOutputReference.attachmentIndex);
 
 	// for (auto& renderer : renderers) {
 	// 	const auto& outputDescriptions = renderer->getOutputDescriptions();
@@ -703,7 +546,8 @@ int RenderingSystem::init() {
 	vkSecondaryCommandBuffersViews.resize(framesInFlightCount * renderers.size());
 
 	for (uint frameIndex = 0; frameIndex < framesInFlightCount; frameIndex++) {
-		for (uint rendererIndex = 0; rendererIndex < renderers.size(); rendererIndex++) {
+		for (const auto& [rendererName, renderer] : renderers) {
+			auto rendererIndex = getRendererIndex(rendererName);
 
 			auto& primaryCommandBuffersView	  = getPrimaryCommandBuffersView(frameIndex, rendererIndex);
 			auto& secondaryCommandBuffersView = getSecondaryCommandBuffersView(frameIndex, rendererIndex);
@@ -711,7 +555,7 @@ int RenderingSystem::init() {
 			primaryCommandBuffersView.first	  = vkPrimaryCommandBuffers.size();
 			secondaryCommandBuffersView.first = vkSecondaryCommandBuffers.size();
 
-			const auto renderLayerCount = renderers[rendererIndex]->getLayerCount();
+			const auto renderLayerCount = renderers[rendererName]->getLayerCount();
 
 			primaryCommandBuffersView.second   = renderLayerCount;
 			secondaryCommandBuffersView.second = renderLayerCount * threadCount;
@@ -835,9 +679,9 @@ int RenderingSystem::run(double dt) {
 	}
 
 
-	for (uint orderIndex = 0; orderIndex < rendererExecutionOrder.size(); orderIndex++) {
-		auto rendererIndex = rendererExecutionOrder[orderIndex];
-		auto& renderer	   = renderers[rendererIndex];
+	for (const auto& rendererName : rendererExecutionOrder) {
+		auto& renderer	   = renderers[rendererName];
+		auto rendererIndex = getRendererIndex(rendererName);
 
 		const auto& primaryCommandBuffersView = getPrimaryCommandBuffersView(currentFrameInFlight, rendererIndex);
 		const auto* pPrimaryCommandBuffers	  = &vkPrimaryCommandBuffers[primaryCommandBuffersView.first];
@@ -864,8 +708,11 @@ int RenderingSystem::run(double dt) {
 		submitInfo.pWaitSemaphores	  = pRendererWaitSemaphores;
 		submitInfo.waitSemaphoreCount = rendererWaitSemaphoresCount;
 
-		vk::PipelineStageFlags pipelineStageFlags = vk::PipelineStageFlagBits::eBottomOfPipe;
-		submitInfo.pWaitDstStageMask			  = &pipelineStageFlags;
+		// FIXME: proper wait semaphores dst stage masks
+		vk::PipelineStageFlags pipelineStageFlags[] = { vk::PipelineStageFlagBits::eBottomOfPipe,
+														vk::PipelineStageFlagBits::eBottomOfPipe,
+														vk::PipelineStageFlagBits::eBottomOfPipe };
+		submitInfo.pWaitDstStageMask				= pipelineStageFlags;
 
 		submitInfo.commandBufferCount = primaryCommandBuffersCount;
 		submitInfo.pCommandBuffers	  = pPrimaryCommandBuffers;
