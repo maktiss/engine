@@ -14,9 +14,13 @@ VmaAllocator TextureManager::vmaAllocator {};
 vk::Queue TextureManager::vkTransferQueue {};
 vk::CommandPool TextureManager::vkCommandPool {};
 
-float TextureManager::maxAnisotropy {};
-
 Engine::Graphics::StagingBuffer TextureManager::stagingBuffer {};
+
+Engine::Graphics::DescriptorSetArray TextureManager::descriptorSetArray {};
+
+vk::Sampler TextureManager::sampler {};
+
+TextureManager::Properties TextureManager::properties {};
 
 
 int TextureManager::init() {
@@ -27,8 +31,8 @@ int TextureManager::init() {
 	assert(vkTransferQueue != vk::Queue());
 	assert(vkCommandPool != vk::CommandPool());
 
-	// TODO: not hardcoded max staging buffer size
-	if (stagingBuffer.init(vkDevice, vmaAllocator, 4096 * 4096 * 4)) {
+	uint maxTextureSize = properties.maxTextureSize;
+	if (stagingBuffer.init(vkDevice, vmaAllocator, maxTextureSize * maxTextureSize * 4)) {
 		return 1;
 	}
 
@@ -36,6 +40,40 @@ int TextureManager::init() {
 	if (ResourceManagerBase::init()) {
 		return 1;
 	}
+
+
+	// Create image sampler
+
+	vk::SamplerCreateInfo samplerCreateInfo {};
+	samplerCreateInfo.minFilter				  = vk::Filter::eLinear;
+	samplerCreateInfo.magFilter				  = vk::Filter::eLinear;
+	samplerCreateInfo.addressModeU			  = vk::SamplerAddressMode::eRepeat;
+	samplerCreateInfo.addressModeV			  = vk::SamplerAddressMode::eRepeat;
+	samplerCreateInfo.addressModeW			  = vk::SamplerAddressMode::eRepeat;
+	samplerCreateInfo.anisotropyEnable		  = properties.anisotropy > 0.0f;
+	samplerCreateInfo.maxAnisotropy			  = properties.anisotropy;
+	samplerCreateInfo.unnormalizedCoordinates = false;
+	samplerCreateInfo.compareEnable			  = false;
+	samplerCreateInfo.compareOp				  = vk::CompareOp::eAlways;
+	samplerCreateInfo.mipmapMode			  = vk::SamplerMipmapMode::eLinear;
+	samplerCreateInfo.mipLodBias			  = 0.0f;
+	samplerCreateInfo.minLod				  = 0.0f;
+	samplerCreateInfo.maxLod				  = VK_LOD_CLAMP_NONE;
+
+	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &sampler);
+	if (result != vk::Result::eSuccess) {
+		spdlog::error("[TextureManager] Failed to create image sampler. Error code: {} ({})", result,
+					  vk::to_string(vk::Result(result)));
+		return 1;
+	}
+
+
+	descriptorSetArray.setBindingCount(2);
+	descriptorSetArray.setBindingLayoutInfo(0, vk::DescriptorType::eSampler, 0);
+	descriptorSetArray.setBindingLayoutInfo(1, vk::DescriptorType::eSampledImage, 0, properties.maxTextureHandles);
+	descriptorSetArray.init(vkDevice, vmaAllocator);
+
+	descriptorSetArray.updateImage(0, 0, 0, sampler, {});
 
 
 	// Update fallback textures
@@ -52,6 +90,13 @@ int TextureManager::init() {
 		texture.setPixelData(textureData, 4);
 	});
 	fallbackTextureHandle.update();
+
+
+	// TODO: update all at once
+	for (uint i = 1; i < properties.maxTextureHandles; i++) {
+		descriptorSetArray.updateImage(0, 1, i, {}, textureInfos[0].imageView);
+	}
+
 
 	return 0;
 }
@@ -150,6 +195,15 @@ void TextureManager::update(Handle handle) {
 	}
 
 
+	// Update descriptor set
+
+	// TODO: another way of preventing reading from texture used as an attachment
+	if (!(imageCreateInfo.usage & vk::ImageUsageFlagBits::eColorAttachment) &&
+		!(imageCreateInfo.usage & vk::ImageUsageFlagBits::eDepthStencilAttachment)) {
+		descriptorSetArray.updateImage(0, 1, handle.getIndex(), {}, textureInfo.imageView);
+	}
+
+
 	// Create image sampler
 
 	vk::SamplerCreateInfo samplerCreateInfo {};
@@ -158,15 +212,15 @@ void TextureManager::update(Handle handle) {
 	samplerCreateInfo.addressModeU			  = vk::SamplerAddressMode::eRepeat;
 	samplerCreateInfo.addressModeV			  = vk::SamplerAddressMode::eRepeat;
 	samplerCreateInfo.addressModeW			  = vk::SamplerAddressMode::eRepeat;
-	samplerCreateInfo.anisotropyEnable		  = maxAnisotropy > 0.0f;
-	samplerCreateInfo.maxAnisotropy			  = maxAnisotropy;
+	samplerCreateInfo.anisotropyEnable		  = properties.anisotropy > 0.0f;
+	samplerCreateInfo.maxAnisotropy			  = properties.anisotropy;
 	samplerCreateInfo.unnormalizedCoordinates = false;
 	samplerCreateInfo.compareEnable			  = false;
 	samplerCreateInfo.compareOp				  = vk::CompareOp::eAlways;
 	samplerCreateInfo.mipmapMode			  = vk::SamplerMipmapMode::eLinear;
 	samplerCreateInfo.mipLodBias			  = 0.0f;
 	samplerCreateInfo.minLod				  = 0.0f;
-	samplerCreateInfo.maxLod				  = static_cast<float>(mipLevels);
+	samplerCreateInfo.maxLod				  = VK_LOD_CLAMP_NONE;
 
 	result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &textureInfo.sampler);
 	if (result != vk::Result::eSuccess) {

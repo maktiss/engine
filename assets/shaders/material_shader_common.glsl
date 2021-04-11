@@ -5,6 +5,7 @@
 #define CAMERA_BLOCK_SET 1
 #define ENVIRONMENT_BLOCK_SET 2
 #define MATERIAL_BLOCK_SET 3
+#define TEXTURE_BLOCK_SET 4
 
 
 layout(constant_id = 0) const uint DIRECTIONAL_LIGHT_CASCADE_COUNT = 3;

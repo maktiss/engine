@@ -25,6 +25,7 @@ private:
 	struct BindingLayoutInfo {
 		vk::DescriptorType descriptorType {};
 		vk::DeviceSize size {};
+		uint32_t descriptorCount = 1;
 	};
 	std::vector<BindingLayoutInfo> bindingLayoutInfos { 1, BindingLayoutInfo() };
 
@@ -36,7 +37,8 @@ public:
 	int init(vk::Device device, VmaAllocator allocator);
 
 	int updateBuffer(uint setIndex, uint bindingIndex, void* pData, uint64_t size);
-	int updateImage(uint setIndex, uint bindingIndex, vk::Sampler sampler, vk::ImageView imageView);
+	int updateImage(uint setIndex, uint bindingIndex, uint descriptorIndex, vk::Sampler sampler,
+					vk::ImageView imageView);
 
 	int mapBuffer(uint setIndex, uint bindingIndex, void*& pData);
 	int unmapBuffer(uint setIndex, uint bindingIndex);
@@ -52,8 +54,9 @@ public:
 		bindingLayoutInfos.resize(count);
 	}
 
-	inline void setBindingLayoutInfo(uint bindingIndex, vk::DescriptorType descriptorType, vk::DeviceSize size) {
-		bindingLayoutInfos[bindingIndex] = { descriptorType, size };
+	inline void setBindingLayoutInfo(uint bindingIndex, vk::DescriptorType descriptorType, vk::DeviceSize size,
+									 uint32_t descriptorCount = 1) {
+		bindingLayoutInfos[bindingIndex] = { descriptorType, size, descriptorCount };
 	}
 
 

@@ -27,23 +27,17 @@ int MaterialManager::init() {
 
 	// Create descriptor set layout
 
-	std::array<vk::DescriptorSetLayoutBinding, 2> descriptorSetLayoutBindings {};
+	vk::DescriptorSetLayoutBinding descriptorSetLayoutBinding {};
 
 	// uniform buffer
-	descriptorSetLayoutBindings[0].binding		   = 0;
-	descriptorSetLayoutBindings[0].descriptorType  = vk::DescriptorType::eUniformBuffer;
-	descriptorSetLayoutBindings[0].descriptorCount = 1;
-	descriptorSetLayoutBindings[0].stageFlags	   = vk::ShaderStageFlagBits::eAll;
-
-	// texture samplers array
-	descriptorSetLayoutBindings[1].binding		   = 1;
-	descriptorSetLayoutBindings[1].descriptorType  = vk::DescriptorType::eCombinedImageSampler;
-	descriptorSetLayoutBindings[1].descriptorCount = 8;
-	descriptorSetLayoutBindings[1].stageFlags	   = vk::ShaderStageFlagBits::eAll;
+	descriptorSetLayoutBinding.binding		   = 0;
+	descriptorSetLayoutBinding.descriptorType  = vk::DescriptorType::eUniformBuffer;
+	descriptorSetLayoutBinding.descriptorCount = 1;
+	descriptorSetLayoutBinding.stageFlags	   = vk::ShaderStageFlagBits::eAll;
 
 	vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo {};
-	descriptorSetLayoutCreateInfo.bindingCount = descriptorSetLayoutBindings.size();
-	descriptorSetLayoutCreateInfo.pBindings	   = descriptorSetLayoutBindings.data();
+	descriptorSetLayoutCreateInfo.bindingCount = 1;
+	descriptorSetLayoutCreateInfo.pBindings	   = &descriptorSetLayoutBinding;
 
 	auto result = vkDevice.createDescriptorSetLayout(&descriptorSetLayoutCreateInfo, nullptr, &vkDescriptorSetLayout);
 	if (result != vk::Result::eSuccess) {
@@ -151,8 +145,6 @@ void MaterialManager::update(Handle handle) {
 	auto& allocationInfo = allocationInfos[handle.getIndex()];
 
 
-	// Update UBO
-
 	void* pBufferData;
 	auto result = vk::Result(vmaMapMemory(vmaAllocator, allocationInfo.vmaAllocation, &pBufferData));
 	if (result != vk::Result::eSuccess) {
@@ -167,37 +159,6 @@ void MaterialManager::update(Handle handle) {
 		material.writeBuffer(pBufferData);
 	});
 	vmaUnmapMemory(vmaAllocator, allocationInfo.vmaAllocation);
-
-
-	// Update samplers
-
-	std::vector<vk::DescriptorImageInfo> descriptorImageInfos(8);
-	apply(handle, [&descriptorImageInfos](auto& material) {
-		for (uint i = 0; i < material.textureHandles.size(); i++) {
-			auto textureInfo = Engine::Managers::TextureManager::getTextureInfo(material.textureHandles[i]);
-			descriptorImageInfos[i].sampler		= textureInfo.sampler;
-			descriptorImageInfos[i].imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-			descriptorImageInfos[i].imageView	= textureInfo.imageView;
-		}
-
-		auto fallbackTextureHandle = Engine::Managers::TextureManager::getHandle(0);
-		auto fallbackTextureInfo   = Engine::Managers::TextureManager::getTextureInfo(fallbackTextureHandle);
-		for (uint i = material.textureHandles.size(); i < 8; i++) {
-			descriptorImageInfos[i].sampler		= fallbackTextureInfo.sampler;
-			descriptorImageInfos[i].imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-			descriptorImageInfos[i].imageView	= fallbackTextureInfo.imageView;
-		}
-	});
-
-	vk::WriteDescriptorSet writeDescriptorSet {};
-	writeDescriptorSet.dstSet		   = materialInfos[handle.getIndex()].descriptorSet;
-	writeDescriptorSet.dstBinding	   = 1;
-	writeDescriptorSet.dstArrayElement = 0;
-	writeDescriptorSet.descriptorType  = vk::DescriptorType::eCombinedImageSampler;
-	writeDescriptorSet.descriptorCount = descriptorImageInfos.size();
-	writeDescriptorSet.pImageInfo	   = descriptorImageInfos.data();
-
-	vkDevice.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 }
 
 

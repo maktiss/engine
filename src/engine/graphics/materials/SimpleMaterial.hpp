@@ -12,15 +12,18 @@ class SimpleMaterial : public MaterialBase<SimpleMaterial, Engine::Graphics::Sha
 public:
 	glm::vec3 color = { 1.0f, 1.0f, 1.0f };
 
+	Engine::Managers::TextureManager::Handle textureAlbedo {};
+	Engine::Managers::TextureManager::Handle textureNormal {};
+
 public:
 	uint32_t getSignature() const {
 		uint32_t flags = 0;
 
-		if (textureHandles[0].getIndex()) {
+		if (textureAlbedo.getIndex()) {
 			flags |= Flags::USE_TEXTURE_ALBEDO;
 		}
 
-		if (textureHandles[1].getIndex()) {
+		if (textureNormal.getIndex()) {
 			flags |= Flags::USE_TEXTURE_NORMAL;
 		}
 
@@ -29,6 +32,9 @@ public:
 
 	void writeMaterialUniformBlock(MaterialUniformBlock* buffer) {
 		buffer->color = glm::vec4(color, 1.0f);
+
+		buffer->textureAlbedo = textureAlbedo.getIndex();
+		buffer->textureNormal = textureNormal.getIndex();
 	}
 };
 } // namespace Engine::Graphics::Materials

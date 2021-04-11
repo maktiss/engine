@@ -57,9 +57,5 @@ public:
 	static constexpr uint32_t getMaterialUniformBlockSize() {
 		return sizeof(typename DerivedShader::MaterialUniformBlock);
 	}
-
-	static constexpr uint32_t getTextureCount() {
-		return 0;
-	}
 };
 } // namespace Engine::Graphics::Shaders

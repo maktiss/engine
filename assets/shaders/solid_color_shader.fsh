@@ -24,29 +24,29 @@ layout(location = 0) out vec4 outColor;
 
 layout(set = MATERIAL_BLOCK_SET, binding = 0) uniform MaterialBlock {
 	vec4 color;
+
+	uint textureAlbedo;
+	uint textureNormal;
 }
 uMaterial;
 
-layout(set = MATERIAL_BLOCK_SET, binding = 1) uniform sampler2D uTextures[8];
-
-
-#define ALBEDO 0
-#define NORMAL 1
+layout(set = TEXTURE_BLOCK_SET, binding = 0) uniform sampler uSampler;
+layout(set = TEXTURE_BLOCK_SET, binding = 1) uniform texture2D uTextures[1024];
 
 
 void main() {
 	vec3 colorAlbedo = uMaterial.color.rgb;
 
 #ifdef USE_TEXTURE_ALBEDO
-	colorAlbedo *= texture(uTextures[ALBEDO], inData.texCoord).rgb;
+	colorAlbedo *= texture(sampler2D(uTextures[uMaterial.textureAlbedo], uSampler), inData.texCoord).rgb;
 #endif
 
 #ifdef USE_TEXTURE_NORMAL
-	vec3 normal = inData.tbnMatrix * (texture(uTextures[NORMAL], inData.texCoord).rgb * 2.0 - 1.0);
+	vec3 normal = inData.tbnMatrix *
+				  (texture(sampler2D(uTextures[uMaterial.textureNormal], uSampler), inData.texCoord).rgb * 2.0 - 1.0);
 #else
 	vec3 normal = inData.tbnMatrix[2];
 #endif
-#line 46
 
 	normal = normalize(normal);
 

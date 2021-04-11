@@ -20,7 +20,7 @@ int DescriptorSetArray::init(vk::Device device, VmaAllocator allocator) {
 	for (uint index = 0; index < descriptorSetLayoutBindings.size(); index++) {
 		descriptorSetLayoutBindings[index].binding		   = index;
 		descriptorSetLayoutBindings[index].descriptorType  = bindingLayoutInfos[index].descriptorType;
-		descriptorSetLayoutBindings[index].descriptorCount = 1;
+		descriptorSetLayoutBindings[index].descriptorCount = bindingLayoutInfos[index].descriptorCount;
 		descriptorSetLayoutBindings[index].stageFlags	   = vk::ShaderStageFlagBits::eAll;
 	}
 
@@ -152,7 +152,8 @@ int DescriptorSetArray::updateBuffer(uint setIndex, uint bindingIndex, void* pDa
 	return 0;
 }
 
-int DescriptorSetArray::updateImage(uint setIndex, uint bindingIndex, vk::Sampler sampler, vk::ImageView imageView) {
+int DescriptorSetArray::updateImage(uint setIndex, uint bindingIndex, uint descriptorIndex, vk::Sampler sampler,
+									vk::ImageView imageView) {
 	assert(vkDevice != vk::Device());
 
 	vk::DescriptorImageInfo descriptorImageInfo {};
@@ -163,7 +164,7 @@ int DescriptorSetArray::updateImage(uint setIndex, uint bindingIndex, vk::Sample
 	vk::WriteDescriptorSet writeDescriptorSet {};
 	writeDescriptorSet.dstSet		   = vkDescriptorSets[setIndex];
 	writeDescriptorSet.dstBinding	   = bindingIndex;
-	writeDescriptorSet.dstArrayElement = 0;
+	writeDescriptorSet.dstArrayElement = descriptorIndex;
 	writeDescriptorSet.descriptorType  = bindingLayoutInfos[bindingIndex].descriptorType;
 	writeDescriptorSet.descriptorCount = 1;
 	writeDescriptorSet.pImageInfo	   = &descriptorImageInfo;

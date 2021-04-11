@@ -14,10 +14,6 @@ public:
 
 
 public:
-	std::array<Engine::Managers::TextureManager::Handle, ShaderType::getTextureCount()> textureHandles;
-
-
-public:
 	void writeBuffer(void* buffer) {
 		static_cast<DerivedMaterialType*>(this)->writeMaterialUniformBlock(static_cast<MaterialUniformBlock*>(buffer));
 	}

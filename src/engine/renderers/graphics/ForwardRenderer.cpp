@@ -44,7 +44,7 @@ int ForwardRenderer::init() {
 	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
 	descriptorSetArrays[0].setBindingLayoutInfo(1, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-	descriptorSetArrays[0].updateImage(0, 1, sampler,
+	descriptorSetArrays[0].updateImage(0, 1, 0, sampler,
 									   Engine::Managers::TextureManager::getTextureInfo(inputs[0]).imageView);
 
 	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
@@ -77,6 +77,10 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
 										 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
 	}
+
+	const auto textureDescriptorSet = Engine::Managers::TextureManager::getVkDescriptorSet();
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, 4, 1,
+										&textureDescriptorSet, 0, nullptr);
 
 
 	struct {

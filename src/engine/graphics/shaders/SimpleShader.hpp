@@ -14,14 +14,14 @@ public:
 	};
 
 	struct MaterialUniformBlock {
-		glm::vec4 color;
+		glm::vec4 color {};
+
+		uint textureAlbedo {};
+		uint textureNormal {};
 	};
 
-public:
-	static constexpr uint32_t getTextureCount() {
-		return 2;
-	}
 
+public:
 	static constexpr const char* getFlagName(Flags flag) {
 		switch (flag) {
 		case Flags::USE_TEXTURE_ALBEDO:

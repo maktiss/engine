@@ -4,7 +4,10 @@
 
 #include "engine/graphics/textures/Texture2D.hpp"
 
+#include "engine/graphics/DescriptorSetArray.hpp"
 #include "engine/graphics/StagingBuffer.hpp"
+
+#include "engine/managers/ConfigManager.hpp"
 
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
@@ -33,9 +36,20 @@ private:
 	static vk::Queue vkTransferQueue;
 	static vk::CommandPool vkCommandPool;
 
-	static float maxAnisotropy;
-
 	static Engine::Graphics::StagingBuffer stagingBuffer;
+
+	static Engine::Graphics::DescriptorSetArray descriptorSetArray;
+
+	static vk::Sampler sampler;
+
+	struct Properties {
+		PROPERTY(float, "Graphics", anisotropy, 0.0f);
+
+		PROPERTY(uint, "Graphics", maxTextureHandles, 1024);
+		PROPERTY(uint, "Graphics", maxTextureSize, 4096);
+	};
+
+	static Properties properties;
 
 
 public:
@@ -65,6 +79,15 @@ public:
 
 	static inline TextureInfo& getTextureInfo(Handle handle) {
 		return textureInfos[handle.getIndex()];
+	}
+
+
+	static inline auto getVkDescriptorSet() {
+		return descriptorSetArray.getVkDescriptorSet(0);
+	}
+
+	static inline auto getVkDescriptorSetLayout() {
+		return descriptorSetArray.getVkDescriptorSetLayout();
 	}
 
 

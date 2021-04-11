@@ -32,6 +32,7 @@ public:
 	virtual const std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() override {
 		auto layouts = Engine::Renderers::RendererBase::getVkDescriptorSetLayouts();
 		layouts.push_back(Engine::Managers::MaterialManager::getVkDescriptorSetLayout());
+		layouts.push_back(Engine::Managers::TextureManager::getVkDescriptorSetLayout());
 		return layouts;
 	}
 

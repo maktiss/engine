@@ -99,8 +99,8 @@ int Core::init(int argc, char** argv) {
 	auto materialHandle = Engine::Managers::MaterialManager::createObject(0);
 	materialHandle.apply([&albedoTextureHandle, &normalTextureHandle](auto& material) {
 		// material.color			   = glm::vec3(0.5f, 0.3f, 0.8f);
-		material.textureHandles[0] = albedoTextureHandle;
-		material.textureHandles[1] = normalTextureHandle;
+		material.textureAlbedo = albedoTextureHandle;
+		material.textureNormal = normalTextureHandle;
 	});
 	materialHandle.update();
 
