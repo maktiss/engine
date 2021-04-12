@@ -9,9 +9,11 @@ private:
 	PROPERTY(float, "Graphics", directionalLightCascadeBase, 2.0f);
 	PROPERTY(float, "Graphics", directionalLightCascadeOffset, 0.75f);
 
+	PROPERTY(uint, "Graphics", directionalLightCascadeCount, 3);
+
 
 public:
-	ShadowMapRenderer() : GraphicsRendererBase(0, 1, 3) {
+	ShadowMapRenderer() : GraphicsRendererBase(0, 1) {
 	}
 
 
@@ -22,6 +24,11 @@ public:
 
 	const char* getRenderPassName() const override {
 		return "RENDER_PASS_SHADOW_MAP";
+	}
+
+
+	inline uint getLayerCount() const override {
+		return directionalLightCascadeCount;
 	}
 
 

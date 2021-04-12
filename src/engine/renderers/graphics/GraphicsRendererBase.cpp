@@ -1,7 +1,7 @@
 #include "GraphicsRendererBase.hpp"
 
-#include "engine/managers/MeshManager.hpp"
 #include "engine/managers/GraphicsShaderManager.hpp"
+#include "engine/managers/MeshManager.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -123,11 +123,23 @@ int GraphicsRendererBase::createRenderPass() {
 		attachmentDescriptions[i].finalLayout	= vkOutputFinalLayouts[i];
 	}
 
+	const auto multiviewLayerCount = getMultiviewLayerCount();
+	assert(multiviewLayerCount > 0);
+	uint32_t viewMask = (1 << multiviewLayerCount) - 1;
+
+	vk::RenderPassMultiviewCreateInfo renderPassMultiviewCreateInfo {};
+	renderPassMultiviewCreateInfo.subpassCount = 1;
+	renderPassMultiviewCreateInfo.pViewMasks   = &viewMask;
+
 	vk::RenderPassCreateInfo renderPassCreateInfo {};
 	renderPassCreateInfo.attachmentCount = attachmentDescriptions.size();
 	renderPassCreateInfo.pAttachments	 = attachmentDescriptions.data();
 	renderPassCreateInfo.subpassCount	 = 1;
 	renderPassCreateInfo.pSubpasses		 = &subpassDescription;
+
+	if (multiviewLayerCount > 1) {
+		renderPassCreateInfo.pNext = &renderPassMultiviewCreateInfo;
+	}
 
 	auto result = vkDevice.createRenderPass(&renderPassCreateInfo, nullptr, &vkRenderPass);
 	if (result != vk::Result::eSuccess) {
@@ -141,7 +153,9 @@ int GraphicsRendererBase::createRenderPass() {
 int GraphicsRendererBase::createFramebuffer() {
 	assert(vkRenderPass != vk::RenderPass());
 
-	auto layerCount = getLayerCount();
+	auto layerCount			 = getLayerCount();
+	auto multiviewLayerCount = getMultiviewLayerCount();
+
 	vkFramebuffers.resize(layerCount);
 
 	// Create framebuffer for each layer
@@ -155,14 +169,14 @@ int GraphicsRendererBase::createFramebuffer() {
 			vk::ImageViewCreateInfo imageViewCreateInfo {};
 			imageViewCreateInfo.image = image;
 
-			outputs[i].apply([&imageViewCreateInfo, layerIndex](const auto& texture) {
+			outputs[i].apply([&](const auto& texture) {
 				imageViewCreateInfo.viewType						= vk::ImageViewType::e2D;
 				imageViewCreateInfo.format							= texture.format;
 				imageViewCreateInfo.subresourceRange.aspectMask		= texture.imageAspect;
 				imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
 				imageViewCreateInfo.subresourceRange.levelCount		= 1;
-				imageViewCreateInfo.subresourceRange.baseArrayLayer = layerIndex;
-				imageViewCreateInfo.subresourceRange.layerCount		= 1;
+				imageViewCreateInfo.subresourceRange.baseArrayLayer = layerIndex * multiviewLayerCount;
+				imageViewCreateInfo.subresourceRange.layerCount		= multiviewLayerCount;
 			});
 
 			auto result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &imageView);
@@ -246,8 +260,8 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 				uint32_t shaderStageCount = 0;
 				vk::PipelineShaderStageCreateInfo pipelineShaderStageCreateInfos[6];
 
-				auto shaderInfo = Engine::Managers::GraphicsShaderManager::getShaderInfo(renderPassIndex, shaderTypeIndex,
-																				 meshTypeIndex, signature);
+				auto shaderInfo = Engine::Managers::GraphicsShaderManager::getShaderInfo(
+					renderPassIndex, shaderTypeIndex, meshTypeIndex, signature);
 				for (uint shaderStageIndex = 0; shaderStageIndex < 6; shaderStageIndex++) {
 					if (shaderInfo.shaderModules[shaderStageIndex] != vk::ShaderModule()) {
 						switch (shaderStageIndex) {
@@ -298,7 +312,8 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 				graphicsPipelineCreateInfo.subpass	  = 0;
 
 				vk::Pipeline pipeline;
-				auto result = vkDevice.createGraphicsPipelines(nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline);
+				auto result =
+					vkDevice.createGraphicsPipelines(nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline);
 				if (result != vk::Result::eSuccess) {
 					spdlog::error("Failed to create graphics pipeline. Error code: {} ({})", result,
 								  vk::to_string(result));

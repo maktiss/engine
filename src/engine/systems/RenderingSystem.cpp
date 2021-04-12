@@ -4,6 +4,7 @@
 #include "engine/renderers/graphics/ForwardRenderer.hpp"
 #include "engine/renderers/graphics/ShadowMapRenderer.hpp"
 #include "engine/renderers/graphics/SkyboxRenderer.hpp"
+#include "engine/renderers/graphics/SkymapRenderer.hpp"
 
 
 namespace Engine::Systems {
@@ -102,6 +103,12 @@ int RenderingSystem::init() {
 		return 1;
 	}
 
+	if (Engine::Managers::GraphicsShaderManager::importShaderSources<Engine::Graphics::Shaders::SkymapShader>(
+			std::array<std::string, 6> { "assets/shaders/skymap_shader.vsh", "", "", "",
+										 "assets/shaders/skymap_shader.fsh", "" })) {
+		return 1;
+	}
+
 
 	Engine::Managers::TextureManager::setVkDevice(vkDevice);
 	Engine::Managers::TextureManager::setVkCommandPool(vkCommandPools[0]);
@@ -157,11 +164,17 @@ int RenderingSystem::init() {
 	skyboxRenderer->setOutputSize({ 1920, 1080 });
 	skyboxRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
+	auto skymapRenderer = std::make_shared<Engine::Renderers::Graphics::SkymapRenderer>();
+	skymapRenderer->setVkDevice(vkDevice);
+	skymapRenderer->setOutputSize({ 1024, 1024 });
+	skymapRenderer->setVulkanMemoryAllocator(vmaAllocator);
+
 
 	renderers["DepthNormalRenderer"] = depthNormalRenderer;
 	renderers["ForwardRenderer"]	 = forwardRenderer;
 	renderers["ShadowMapRenderer"]	 = shadowMapRenderer;
 	renderers["SkyboxRenderer"]		 = skyboxRenderer;
+	renderers["SkymapRenderer"]		 = skymapRenderer;
 
 
 	for (const auto& [name, renderer] : renderers) {
@@ -173,6 +186,8 @@ int RenderingSystem::init() {
 	renderGraph.addOutputConnection("SkyboxRenderer", 0, "ForwardRenderer", 0);
 	renderGraph.addOutputConnection("DepthNormalRenderer", 0, "ForwardRenderer", 1);
 	renderGraph.addInputConnection("ShadowMapRenderer", 0, "ForwardRenderer", 0);
+
+	renderGraph.addInputConnection("SkymapRenderer", 0, "SkyboxRenderer", 0);
 
 
 	finalOutputReference = { "ForwardRenderer", 0 };
@@ -448,7 +463,9 @@ int RenderingSystem::init() {
 		const auto& renderGraphNode	   = renderGraph.nodes[rendererName];
 		const auto& outputDescriptions = renderer->getOutputDescriptions();
 
-		const auto layerCount = renderer->getLayerCount();
+		const auto outputSize = renderer->getOutputSize();
+
+		const auto layerCount = renderer->getLayerCount() * renderer->getMultiviewLayerCount();
 
 		for (uint outputIndex = 0; outputIndex < outputDescriptions.size(); outputIndex++) {
 			if (renderGraphNode.backwardOutputReferences[outputIndex].rendererName.empty()) {
@@ -460,9 +477,18 @@ int RenderingSystem::init() {
 					isFinal = true;
 				}
 
-				textureHandle.apply([&outputDescriptions, outputIndex, isFinal, layerCount](auto& texture) {
+				vk::ImageCreateFlags imageFlags {};
+				for (auto& inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
+					for (const auto& inputDescription :
+						 renderers[inputReference.rendererName]->getInputDescriptions()) {
+						imageFlags |= inputDescription.flags;
+					}
+				}
+
+				textureHandle.apply([&](auto& texture) {
 					texture.format = outputDescriptions[outputIndex].format;
 					texture.usage  = outputDescriptions[outputIndex].usage;
+					texture.flags  = outputDescriptions[outputIndex].flags | imageFlags;
 
 					texture.layerCount = layerCount;
 
@@ -470,8 +496,7 @@ int RenderingSystem::init() {
 						texture.imageAspect = vk::ImageAspectFlagBits::eDepth;
 					}
 
-					// FIXME: output size
-					texture.size = vk::Extent3D(1920, 1080, 1);
+					texture.size = vk::Extent3D(outputSize.width, outputSize.height, 1);
 
 					if (isFinal) {
 						texture.usage |= vk::ImageUsageFlagBits::eTransferSrc;

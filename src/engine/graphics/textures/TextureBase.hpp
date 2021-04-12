@@ -20,6 +20,8 @@ public:
 	vk::ImageUsageFlags usage {};
 	vk::ImageAspectFlags imageAspect = vk::ImageAspectFlagBits::eColor;
 
+	vk::ImageCreateFlags flags {};
+
 
 private:
 	std::vector<uint8_t> pixelData;

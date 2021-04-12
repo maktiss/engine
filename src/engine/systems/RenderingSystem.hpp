@@ -182,7 +182,8 @@ private:
 	Engine::Managers::TextureManager::Handle finalTextureHandle {};
 
 	std::vector<const char*> requiredInstanceExtensionNames = {};
-	std::vector<const char*> requiredDeviceExtensionNames	= { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	std::vector<const char*> requiredDeviceExtensionNames	= { VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+																VK_KHR_MULTIVIEW_EXTENSION_NAME };
 
 	std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
@@ -236,7 +237,7 @@ private:
 
 	int present();
 
-	
+
 	inline uint getRendererIndex(std::string rendererName) {
 		assert(rendererIndexMap.find(rendererName) != rendererIndexMap.end());
 		return rendererIndexMap[rendererName];

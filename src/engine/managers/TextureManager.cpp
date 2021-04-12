@@ -18,7 +18,7 @@ Engine::Graphics::StagingBuffer TextureManager::stagingBuffer {};
 
 Engine::Graphics::DescriptorSetArray TextureManager::descriptorSetArray {};
 
-vk::Sampler TextureManager::sampler {};
+vk::Sampler TextureManager::vkSampler {};
 
 TextureManager::Properties TextureManager::properties {};
 
@@ -60,7 +60,7 @@ int TextureManager::init() {
 	samplerCreateInfo.minLod				  = 0.0f;
 	samplerCreateInfo.maxLod				  = VK_LOD_CLAMP_NONE;
 
-	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &sampler);
+	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkSampler);
 	if (result != vk::Result::eSuccess) {
 		spdlog::error("[TextureManager] Failed to create image sampler. Error code: {} ({})", result,
 					  vk::to_string(vk::Result(result)));
@@ -73,7 +73,7 @@ int TextureManager::init() {
 	descriptorSetArray.setBindingLayoutInfo(1, vk::DescriptorType::eSampledImage, 0, properties.maxTextureHandles);
 	descriptorSetArray.init(vkDevice, vmaAllocator);
 
-	descriptorSetArray.updateImage(0, 0, 0, sampler, {});
+	descriptorSetArray.updateImage(0, 0, 0, vkSampler, {});
 
 
 	// Update fallback textures
@@ -132,6 +132,7 @@ void TextureManager::update(Handle handle) {
 		imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
 		imageCreateInfo.usage		  = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc |
 								vk::ImageUsageFlagBits::eTransferDst | texture.usage;
+		imageCreateInfo.flags		= texture.flags;
 		imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;
 		imageCreateInfo.samples		= vk::SampleCountFlagBits::e1;
 
@@ -201,32 +202,6 @@ void TextureManager::update(Handle handle) {
 	if (!(imageCreateInfo.usage & vk::ImageUsageFlagBits::eColorAttachment) &&
 		!(imageCreateInfo.usage & vk::ImageUsageFlagBits::eDepthStencilAttachment)) {
 		descriptorSetArray.updateImage(0, 1, handle.getIndex(), {}, textureInfo.imageView);
-	}
-
-
-	// Create image sampler
-
-	vk::SamplerCreateInfo samplerCreateInfo {};
-	samplerCreateInfo.minFilter				  = vk::Filter::eLinear;
-	samplerCreateInfo.magFilter				  = vk::Filter::eLinear;
-	samplerCreateInfo.addressModeU			  = vk::SamplerAddressMode::eRepeat;
-	samplerCreateInfo.addressModeV			  = vk::SamplerAddressMode::eRepeat;
-	samplerCreateInfo.addressModeW			  = vk::SamplerAddressMode::eRepeat;
-	samplerCreateInfo.anisotropyEnable		  = properties.anisotropy > 0.0f;
-	samplerCreateInfo.maxAnisotropy			  = properties.anisotropy;
-	samplerCreateInfo.unnormalizedCoordinates = false;
-	samplerCreateInfo.compareEnable			  = false;
-	samplerCreateInfo.compareOp				  = vk::CompareOp::eAlways;
-	samplerCreateInfo.mipmapMode			  = vk::SamplerMipmapMode::eLinear;
-	samplerCreateInfo.mipLodBias			  = 0.0f;
-	samplerCreateInfo.minLod				  = 0.0f;
-	samplerCreateInfo.maxLod				  = VK_LOD_CLAMP_NONE;
-
-	result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &textureInfo.sampler);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("[TextureManager] Failed to create image sampler. Error code: {} ({})", result,
-					  vk::to_string(vk::Result(result)));
-		return;
 	}
 
 
@@ -386,9 +361,15 @@ void TextureManager::update(Handle handle) {
 
 
 void TextureManager::destroy(uint32_t index) {
+	if (textureInfos[index].imageView != vk::ImageView()) {
+		vkDevice.destroyImageView(textureInfos[index].imageView);
+	}
 	if (allocationInfos[index] != nullptr) {
 		vmaDestroyImage(vmaAllocator, textureInfos[index].image, allocationInfos[index]);
 	}
+
+	textureInfos[index]	   = {};
+	allocationInfos[index] = {};
 }
 
 void TextureManager::dispose() {
@@ -396,5 +377,7 @@ void TextureManager::dispose() {
 		destroy(i);
 	}
 	stagingBuffer.dispose();
+
+	vkDevice.destroySampler(vkSampler);
 }
 } // namespace Engine::Managers

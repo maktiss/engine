@@ -23,7 +23,7 @@ public:
 public:
 	inline glm::mat4 getProjectionMatrix() const {
 		if (isPerspective) {
-			return glm::perspectiveFovLH(fov, viewport.x, viewport.y, zNear, zFar);
+			return glm::perspectiveFovLH(glm::radians(fov), viewport.x, viewport.y, zNear, zFar);
 		} else {
 			float halfWidth = viewport.x * 0.5f;
 			float halfHeight = viewport.y * 0.5f;

@@ -67,6 +67,8 @@ add_executable(
 	src/engine/renderers/graphics/ShadowMapRenderer.hpp
 	src/engine/renderers/graphics/SkyboxRenderer.cpp
 	src/engine/renderers/graphics/SkyboxRenderer.hpp
+	src/engine/renderers/graphics/SkymapRenderer.cpp
+	src/engine/renderers/graphics/SkymapRenderer.hpp
 	src/engine/renderers/RendererBase.cpp
 	src/engine/renderers/RendererBase.hpp
 	src/engine/scripts/CameraScript.cpp

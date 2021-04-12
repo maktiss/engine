@@ -21,7 +21,6 @@ public:
 	struct TextureInfo {
 		vk::Image image {};
 		vk::ImageView imageView {};
-		vk::Sampler sampler {};
 	};
 
 
@@ -40,7 +39,7 @@ private:
 
 	static Engine::Graphics::DescriptorSetArray descriptorSetArray;
 
-	static vk::Sampler sampler;
+	static vk::Sampler vkSampler;
 
 	struct Properties {
 		PROPERTY(float, "Graphics", anisotropy, 0.0f);

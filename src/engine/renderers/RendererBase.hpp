@@ -20,8 +20,9 @@ class RendererBase {
 public:
 	// TODO: better name?
 	struct AttachmentDescription {
-		vk::Format format;
-		vk::ImageUsageFlags usage;
+		vk::Format format {};
+		vk::ImageUsageFlags usage {};
+		vk::ImageCreateFlags flags {};
 	};
 
 
@@ -33,9 +34,6 @@ protected:
 
 	uint threadCount		 = 1;
 	uint framesInFlightCount = 3;
-
-	// number of layers renderer can to render to
-	uint layerCount = 1;
 
 	// Created and set by rendering system
 	std::vector<Engine::Managers::TextureManager::Handle> inputs {};
@@ -56,7 +54,7 @@ protected:
 
 public:
 	// FIXME: function for layers
-	RendererBase(uint inputCount, uint outputCount, uint layerCount = 1) : layerCount(layerCount) {
+	RendererBase(uint inputCount, uint outputCount) {
 		inputs.resize(inputCount);
 		outputs.resize(outputCount);
 
@@ -94,6 +92,17 @@ public:
 	}
 
 
+	// Number of layers renderer can to render to
+	virtual inline uint getLayerCount() const {
+		return 1;
+	}
+
+	// Number of multiview layers renderer can to render to
+	virtual inline uint getMultiviewLayerCount() const {
+		return 1;
+	}
+
+
 	inline uint getInputCount() const {
 		return inputs.size();
 	}
@@ -103,21 +112,21 @@ public:
 	}
 
 
-	inline auto getLayerCount() const {
-		return layerCount;
-	}
-
-
 	inline void setVkDevice(vk::Device device) {
 		vkDevice = device;
 	}
+
+	inline void setVulkanMemoryAllocator(VmaAllocator allocator) {
+		vmaAllocator = allocator;
+	}
+
 
 	inline void setOutputSize(vk::Extent2D extent) {
 		outputSize = extent;
 	}
 
-	inline void setVulkanMemoryAllocator(VmaAllocator allocator) {
-		vmaAllocator = allocator;
+	inline auto getOutputSize() const {
+		return outputSize;
 	}
 
 

@@ -4,18 +4,14 @@
 
 
 namespace Engine::Renderers::Graphics {
-class SkyboxRenderer : public GraphicsRendererBase {
+class SkymapRenderer : public GraphicsRendererBase {
 private:
-	Engine::Managers::MeshManager::Handle boxMesh {};
+	Engine::Managers::MeshManager::Handle skySphereMesh {};
 	Engine::Managers::GraphicsShaderManager::Handle shaderHandle {};
-
-	// TODO: destroy
-	vk::Sampler vkSampler {};
-	vk::ImageView vkImageView {};
 
 
 public:
-	SkyboxRenderer() : GraphicsRendererBase(1, 1) {
+	SkymapRenderer() : GraphicsRendererBase(0, 1) {
 	}
 
 
@@ -25,7 +21,12 @@ public:
 									   double dt) override;
 
 	const char* getRenderPassName() const override {
-		return "RENDER_PASS_SKYBOX";
+		return "RENDER_PASS_SKYMAP";
+	}
+	
+	
+	inline uint getMultiviewLayerCount() const override {
+		return 6;
 	}
 
 
@@ -39,26 +40,25 @@ public:
 		return outputDescriptions;
 	}
 
-	std::vector<AttachmentDescription> getInputDescriptions() const {
-		std::vector<AttachmentDescription> descriptions {};
-		descriptions.resize(1);
+	// std::vector<AttachmentDescription> getInputDescriptions() const {
+	// 	std::vector<AttachmentDescription> descriptions {};
+	// 	descriptions.resize(1);
 
-		descriptions[0].format = vk::Format::eR8G8B8A8Srgb;
-		descriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
-		descriptions[0].flags = vk::ImageCreateFlagBits::eCubeCompatible;
+	// 	descriptions[0].format = vk::Format::eD24UnormS8Uint;
+	// 	descriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
 
-		return descriptions;
-	}
+	// 	return descriptions;
+	// }
 
 
-	std::vector<vk::ImageLayout> getInputInitialLayouts() const {
-		std::vector<vk::ImageLayout> initialLayouts {};
-		initialLayouts.resize(1);
+	// std::vector<vk::ImageLayout> getInputInitialLayouts() const {
+	// 	std::vector<vk::ImageLayout> initialLayouts {};
+	// 	initialLayouts.resize(1);
 
-		initialLayouts[0] = vk::ImageLayout::eShaderReadOnlyOptimal;
+	// 	initialLayouts[0] = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-		return initialLayouts;
-	}
+	// 	return initialLayouts;
+	// }
 
 	std::vector<vk::ImageLayout> getOutputInitialLayouts() const {
 		std::vector<vk::ImageLayout> outputInitialLayouts {};
