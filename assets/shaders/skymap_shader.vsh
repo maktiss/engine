@@ -15,13 +15,13 @@ layout(location = 0) out OutData {
 
 layout(set = 0, binding = 0) uniform CameraBlock {
 	mat4 viewProjectionMatrices[6];
-} uCameras;
+} uCamera;
 
 
 void main() {
 	outData.texCoord = aPosition;
 
-	vec4 position = uCameras.viewProjectionMatrices[gl_ViewIndex] * vec4(aPosition, 0.0);
+	vec4 position = uCamera.viewProjectionMatrices[gl_ViewIndex] * vec4(aPosition, 0.0);
 
 	gl_Position = position.xyzz;
 }

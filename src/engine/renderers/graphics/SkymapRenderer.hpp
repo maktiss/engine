@@ -95,5 +95,18 @@ public:
 
 		return attachmentReferences;
 	}
+
+	vk::PipelineRasterizationStateCreateInfo getVkPipelineRasterizationStateCreateInfo() override {
+		vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {};
+		pipelineRasterizationStateCreateInfo.depthClampEnable		 = false;
+		pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;
+		pipelineRasterizationStateCreateInfo.polygonMode			 = vk::PolygonMode::eFill;
+		pipelineRasterizationStateCreateInfo.cullMode				 = vk::CullModeFlagBits::eBack;
+		pipelineRasterizationStateCreateInfo.frontFace				 = vk::FrontFace::eCounterClockwise;
+		pipelineRasterizationStateCreateInfo.depthBiasEnable		 = false;
+		pipelineRasterizationStateCreateInfo.lineWidth				 = 1.0f;
+
+		return pipelineRasterizationStateCreateInfo;
+	}
 };
 } // namespace Engine::Renderers::Graphics
