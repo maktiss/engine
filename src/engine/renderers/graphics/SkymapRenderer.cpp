@@ -67,7 +67,7 @@ int SkymapRenderer::init() {
 
 		// 1-\left(\left(\frac{1+\sqrt[5]{0.5}}{2x+1}-1\right)^{5}+0.5\right)\cdot\left(1-\left(x\right)^{3}\right)
 		auto translate = [](float value) {
-			const float left  = 5.0f;
+			const float left  = 3.0f;
 			const float right = 3.0f;
 			return 1.0f - (std::pow((1.0f + std::pow(0.5f, 1.0f / left)) / (2.0f * value + 1.0f) - 1.0f, left) + 0.5f) *
 							  (1.0f - std::pow(value, right));
