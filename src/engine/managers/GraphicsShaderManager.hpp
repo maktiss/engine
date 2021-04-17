@@ -17,7 +17,7 @@ public:
 	// TODO: generate dynamically
 	static constexpr auto getRenderPassStrings() {
 		return std::array { "RENDER_PASS_FORWARD", "RENDER_PASS_DEPTH_NORMAL", "RENDER_PASS_SHADOW_MAP",
-							"RENDER_PASS_SKYBOX", "RENDER_PASS_SKYMAP" };
+							"RENDER_PASS_SKYBOX", "RENDER_PASS_SKYMAP", "RENDER_PASS_IMGUI" };
 	}
 
 

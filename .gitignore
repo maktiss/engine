@@ -95,3 +95,5 @@ assets/*
 
 Engine.log
 Engine.ini
+
+imgui.ini

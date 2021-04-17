@@ -2,6 +2,8 @@
 
 #include "engine/utils/Importer.hpp"
 
+#include "thirdparty/imgui/imgui_impl_glfw.h"
+
 #include <chrono>
 
 
@@ -34,6 +36,14 @@ int Core::init(int argc, char** argv) {
 		spdlog::critical("Failed to create window");
 		return 1;
 	}
+
+
+	// ImGui initial setup
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForVulkan(glfwWindow, true);
 
 
 	auto inputSystem = std::make_shared<Systems::InputSystem>();
@@ -163,6 +173,8 @@ int Core::run() {
 		}
 
 		glfwPollEvents();
+
+		ImGui_ImplGlfw_NewFrame();
 
 		// update systems
 		for (auto& system : systems) {

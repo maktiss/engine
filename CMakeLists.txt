@@ -63,6 +63,8 @@ add_executable(
 	src/engine/renderers/graphics/DepthNormalRenderer.hpp
 	src/engine/renderers/graphics/ForwardRenderer.cpp
 	src/engine/renderers/graphics/ForwardRenderer.hpp
+	src/engine/renderers/graphics/ImGuiRenderer.cpp
+	src/engine/renderers/graphics/ImGuiRenderer.hpp
 	src/engine/renderers/graphics/ShadowMapRenderer.cpp
 	src/engine/renderers/graphics/ShadowMapRenderer.hpp
 	src/engine/renderers/graphics/SkyboxRenderer.cpp
@@ -88,6 +90,13 @@ add_executable(
 	src/engine/utils/IO.hpp
 	src/engine/utils/StbImageImpl.cpp
 	src/engine/utils/VkMemAllocImpl.cpp
+	src/thirdparty/imgui/imgui.cpp
+	src/thirdparty/imgui/imgui_demo.cpp
+	src/thirdparty/imgui/imgui_draw.cpp
+	src/thirdparty/imgui/imgui_impl_glfw.cpp
+	src/thirdparty/imgui/imgui_impl_vulkan.cpp
+	src/thirdparty/imgui/imgui_tables.cpp
+	src/thirdparty/imgui/imgui_widgets.cpp
 	src/main.cpp
 )
 

@@ -2,6 +2,7 @@
 
 #include "engine/renderers/graphics/DepthNormalRenderer.hpp"
 #include "engine/renderers/graphics/ForwardRenderer.hpp"
+#include "engine/renderers/graphics/ImGuiRenderer.hpp"
 #include "engine/renderers/graphics/ShadowMapRenderer.hpp"
 #include "engine/renderers/graphics/SkyboxRenderer.hpp"
 #include "engine/renderers/graphics/SkymapRenderer.hpp"
@@ -169,12 +170,21 @@ int RenderingSystem::init() {
 	skymapRenderer->setOutputSize({ 1024, 1024 });
 	skymapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
+	auto imGuiRenderer = std::make_shared<Engine::Renderers::Graphics::ImGuiRenderer>();
+	imGuiRenderer->setVkDevice(vkDevice);
+	imGuiRenderer->setOutputSize({ 1920, 1080 });
+	imGuiRenderer->setVulkanMemoryAllocator(vmaAllocator);
+	imGuiRenderer->setVkInstance(vkInstance);
+	imGuiRenderer->setVkPhysicalDevice(getActivePhysicalDevice());
+	imGuiRenderer->setVkGraphicsQueue(vkGraphicsQueue);
+
 
 	renderers["DepthNormalRenderer"] = depthNormalRenderer;
 	renderers["ForwardRenderer"]	 = forwardRenderer;
 	renderers["ShadowMapRenderer"]	 = shadowMapRenderer;
 	renderers["SkyboxRenderer"]		 = skyboxRenderer;
 	renderers["SkymapRenderer"]		 = skymapRenderer;
+	renderers["ImGuiRenderer"]		 = imGuiRenderer;
 
 
 	for (const auto& [name, renderer] : renderers) {
@@ -189,8 +199,10 @@ int RenderingSystem::init() {
 
 	renderGraph.addInputConnection("SkymapRenderer", 0, "SkyboxRenderer", 0);
 
+	renderGraph.addOutputConnection("ForwardRenderer", 0, "ImGuiRenderer", 0);
 
-	finalOutputReference = { "ForwardRenderer", 0 };
+
+	finalOutputReference = { "ImGuiRenderer", 0 };
 
 
 	spdlog::info("Compiling render graph...");
