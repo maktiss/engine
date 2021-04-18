@@ -1,8 +1,19 @@
 #include "Core.hpp"
 
+#include "engine/managers/EntityManager.hpp"
+
+#include "engine/systems/ImGuiSystem.hpp"
+#include "engine/systems/InputSystem.hpp"
+#include "engine/systems/RenderingSystem.hpp"
+#include "engine/systems/ScriptingSystem.hpp"
+
 #include "engine/utils/Importer.hpp"
 
-#include "thirdparty/imgui/imgui_impl_glfw.h"
+// #include "thirdparty/imgui/imgui_impl_glfw.h"
+
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_sinks.h>
+#include <spdlog/spdlog.h>
 
 #include <chrono>
 
@@ -38,16 +49,11 @@ int Core::init(int argc, char** argv) {
 	}
 
 
-	// ImGui initial setup
-
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGui::StyleColorsDark();
-	ImGui_ImplGlfw_InitForVulkan(glfwWindow, true);
-
-
 	auto inputSystem = std::make_shared<Systems::InputSystem>();
 	inputSystem->setWindow(glfwWindow);
+
+	auto imGuiSystem = std::make_shared<Systems::ImGuiSystem>();
+	imGuiSystem->setWindow(glfwWindow);
 
 	auto scriptingSystem = std::make_shared<Systems::ScriptingSystem>();
 
@@ -56,6 +62,7 @@ int Core::init(int argc, char** argv) {
 
 
 	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(inputSystem));
+	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(imGuiSystem));
 	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(scriptingSystem));
 	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(renderingSystem));
 
@@ -173,8 +180,6 @@ int Core::run() {
 		}
 
 		glfwPollEvents();
-
-		ImGui_ImplGlfw_NewFrame();
 
 		// update systems
 		for (auto& system : systems) {

@@ -1,21 +1,12 @@
 #pragma once
 
-// Logging
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_sinks.h>
-#include <spdlog/spdlog.h>
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_DEPTH_ZERO_TO_ONE
 
-#include "engine/managers/EntityManager.hpp"
-
-#include "engine/systems/InputSystem.hpp"
-#include "engine/systems/RenderingSystem.hpp"
-#include "engine/systems/ScriptingSystem.hpp"
+#include "engine/systems/SystemBase.hpp"
 
 #include <array>
 #include <memory>

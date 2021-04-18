@@ -748,7 +748,12 @@ int RenderingSystem::run(double dt) {
 		// FIXME: proper wait semaphores dst stage masks
 		vk::PipelineStageFlags pipelineStageFlags[] = { vk::PipelineStageFlagBits::eBottomOfPipe,
 														vk::PipelineStageFlagBits::eBottomOfPipe,
-														vk::PipelineStageFlagBits::eBottomOfPipe };
+														vk::PipelineStageFlagBits::eBottomOfPipe,
+														vk::PipelineStageFlagBits::eBottomOfPipe,
+														vk::PipelineStageFlagBits::eBottomOfPipe,
+														vk::PipelineStageFlagBits::eBottomOfPipe,
+														vk::PipelineStageFlagBits::eBottomOfPipe,
+														vk::PipelineStageFlagBits::eBottomOfPipe, };
 		submitInfo.pWaitDstStageMask				= pipelineStageFlags;
 
 		submitInfo.commandBufferCount = primaryCommandBuffersCount;

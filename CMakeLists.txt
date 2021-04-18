@@ -78,6 +78,8 @@ add_executable(
 	src/engine/scripts/FloatingObjectScript.cpp
 	src/engine/scripts/FloatingObjectScript.hpp
 	src/engine/scripts/ScriptBase.hpp
+	src/engine/systems/ImGuiSystem.cpp
+	src/engine/systems/ImGuiSystem.hpp
 	src/engine/systems/InputSystem.cpp
 	src/engine/systems/InputSystem.hpp
 	src/engine/systems/RenderingSystem.cpp

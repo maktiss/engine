@@ -86,11 +86,6 @@ void ImGuiRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSeco
 												  double dt) {
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
-	ImGui_ImplVulkan_NewFrame();
-	ImGui::NewFrame();
-	ImGui::ShowDemoWindow();
-	ImGui::Render();
-
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 }
 
