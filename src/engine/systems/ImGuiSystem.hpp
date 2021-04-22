@@ -19,5 +19,8 @@ public:
 
 	int init() override;
 	int run(double dt) override;
+
+	void showLogWindow();
+	void showStatisticsWindow();
 };
 } // namespace Engine::Systems

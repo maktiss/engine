@@ -41,6 +41,8 @@ add_executable(
 	src/engine/managers/EntityManager.cpp
 	src/engine/managers/EntityManager.hpp
 	src/engine/managers/EntityManagerBase.hpp
+	src/engine/managers/GlobalStateManager.hpp
+	src/engine/managers/GlobalStateManagerBase.hpp
 	src/engine/managers/GraphicsShaderManager.cpp
 	src/engine/managers/GraphicsShaderManager.hpp
 	src/engine/managers/GraphicsShaderManagerBase.hpp
@@ -78,6 +80,7 @@ add_executable(
 	src/engine/scripts/FloatingObjectScript.cpp
 	src/engine/scripts/FloatingObjectScript.hpp
 	src/engine/scripts/ScriptBase.hpp
+	src/engine/states/DebugState.hpp
 	src/engine/systems/ImGuiSystem.cpp
 	src/engine/systems/ImGuiSystem.hpp
 	src/engine/systems/InputSystem.cpp
@@ -87,6 +90,7 @@ add_executable(
 	src/engine/systems/ScriptingSystem.cpp
 	src/engine/systems/ScriptingSystem.hpp
 	src/engine/systems/SystemBase.hpp
+	src/engine/utils/CPUTimer.hpp
 	src/engine/utils/Importer.cpp
 	src/engine/utils/Importer.hpp
 	src/engine/utils/IO.hpp

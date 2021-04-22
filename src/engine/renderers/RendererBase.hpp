@@ -1,8 +1,8 @@
 #pragma once
 
 #include "engine/managers/ConfigManager.hpp"
-#include "engine/managers/MeshManager.hpp"
 #include "engine/managers/GraphicsShaderManager.hpp"
+#include "engine/managers/MeshManager.hpp"
 #include "engine/managers/TextureManager.hpp"
 
 #include "engine/graphics/DescriptorSetArray.hpp"
@@ -69,7 +69,8 @@ public:
 	virtual int init() = 0;
 
 	virtual int render(const vk::CommandBuffer* pPrimaryCommandBuffers,
-					   const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) = 0;
+					   const vk::CommandBuffer* pSecondaryCommandBuffers, const vk::QueryPool& timestampQueryPool,
+					   double dt) = 0;
 
 
 	virtual std::vector<AttachmentDescription> getOutputDescriptions() const {

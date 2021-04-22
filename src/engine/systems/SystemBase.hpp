@@ -2,6 +2,7 @@
 
 #include "engine/managers/ConfigManager.hpp"
 #include "engine/managers/EntityManager.hpp"
+#include "engine/managers/GlobalStateManager.hpp"
 #include "engine/managers/GraphicsShaderManager.hpp"
 #include "engine/managers/InputManager.hpp"
 #include "engine/managers/MaterialManager.hpp"

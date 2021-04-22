@@ -13,6 +13,7 @@
 
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
+#include <spdlog/sinks/ostream_sink.h>
 #include <spdlog/spdlog.h>
 
 #include <chrono>
@@ -27,10 +28,15 @@ Core::~Core() {
 int Core::init(int argc, char** argv) {
 	// loggers initialization
 
-	std::array<spdlog::sink_ptr, 2> logSinks { std::make_shared<spdlog::sinks::ansicolor_stdout_sink_st>(),
-											   std::make_shared<spdlog::sinks::basic_file_sink_st>("Engine.log") };
+	std::array<spdlog::sink_ptr, 3> logSinks { std::make_shared<spdlog::sinks::ansicolor_stdout_sink_st>(),
+											   std::make_shared<spdlog::sinks::basic_file_sink_st>("Engine.log"),
+											   std::make_shared<spdlog::sinks::ostream_sink_st>(logBuffer) };
 	spdlog::set_default_logger(std::make_shared<spdlog::logger>("logger", logSinks.begin(), logSinks.end()));
 	spdlog::set_pattern("[%Y-%m-%d %T] [%^%l%$] %v");
+
+
+	auto& debugState = Engine::Managers::GlobalStateManager::getWritable<Engine::States::DebugState>();
+	debugState.logs.resize(maxLogEntries, std::vector<char>(maxLogLength));
 
 
 	// window initialization
@@ -167,6 +173,9 @@ int Core::init(int argc, char** argv) {
 int Core::run() {
 	double dt = 0.0;
 
+	uint frameCount = 0;
+	double cumulativeDT = 0.0;
+
 	auto timeNow = std::chrono::high_resolution_clock::now();
 
 	while (!glfwWindowShouldClose(glfwWindow)) {
@@ -180,6 +189,28 @@ int Core::run() {
 		}
 
 		glfwPollEvents();
+
+		auto& debugState = Engine::Managers::GlobalStateManager::getWritable<Engine::States::DebugState>();
+
+		while(logBuffer) {
+			logBuffer.getline(debugState.logs[debugState.logOffset].data(), maxLogLength);
+
+			debugState.logOffset = (debugState.logOffset + 1) % maxLogEntries;
+			if (debugState.logCount < maxLogEntries) {
+				debugState.logCount++;
+			}
+		}
+
+		frameCount++;
+		cumulativeDT += dt;
+		if (cumulativeDT >= 0.1f) {
+			debugState.avgFrameTime = cumulativeDT / frameCount;
+
+			frameCount = 0;
+			cumulativeDT = 0.0;
+		}
+
+		Engine::Managers::GlobalStateManager::update();
 
 		// update systems
 		for (auto& system : systems) {

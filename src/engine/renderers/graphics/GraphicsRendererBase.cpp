@@ -29,7 +29,8 @@ int GraphicsRendererBase::init() {
 
 
 int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers,
-								 const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
+								 const vk::CommandBuffer* pSecondaryCommandBuffers,
+								 const vk::QueryPool& timestampQueryPool, double dt) {
 	for (uint layerIndex = 0; layerIndex < getLayerCount(); layerIndex++) {
 		vk::CommandBufferBeginInfo commandBufferBeginInfo {};
 
@@ -51,6 +52,12 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 			spdlog::error("Failed to record command buffer. Error code: {} ({})", result, vk::to_string(result));
 			return 1;
 		}
+
+		auto queryIndex = layerIndex * getMultiviewLayerCount() * 2;
+
+		commandBuffer.resetQueryPool(timestampQueryPool, queryIndex, getMultiviewLayerCount() * 2);
+		commandBuffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, timestampQueryPool, queryIndex);
+
 
 		commandBuffer.beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eSecondaryCommandBuffers);
 
@@ -86,6 +93,11 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 		commandBuffer.executeCommands(threadCount, pSecondaryCommandBuffersForLayer);
 
 		commandBuffer.endRenderPass();
+
+
+		commandBuffer.writeTimestamp(vk::PipelineStageFlagBits::eFragmentShader, timestampQueryPool,
+									 queryIndex + getMultiviewLayerCount());
+
 		result = commandBuffer.end();
 		if (result != vk::Result::eSuccess) {
 			spdlog::error("Failed to record command buffer. Error code: {} ({})", result, vk::to_string(result));

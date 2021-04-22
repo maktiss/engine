@@ -11,8 +11,7 @@ protected:
 
 
 public:
-	GraphicsRendererBase(uint inputCount, uint outputCount) :
-		Engine::Renderers::RendererBase(inputCount, outputCount) {
+	GraphicsRendererBase(uint inputCount, uint outputCount) : Engine::Renderers::RendererBase(inputCount, outputCount) {
 	}
 
 
@@ -26,7 +25,8 @@ public:
 
 
 	virtual int render(const vk::CommandBuffer* pPrimaryCommandBuffers,
-					   const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) override;
+					   const vk::CommandBuffer* pSecondaryCommandBuffers, const vk::QueryPool& timestampQueryPool,
+					   double dt) override;
 
 
 	virtual const std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() override {

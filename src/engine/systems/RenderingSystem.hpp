@@ -155,6 +155,10 @@ private:
 
 	std::vector<vk::CommandPool> vkCommandPools;
 
+	std::vector<vk::QueryPool> vkTimestampQueryPools {};
+
+	std::vector<uint64_t> timestampQueriesBuffer {};
+
 
 	std::vector<vk::CommandBuffer> vkPrimaryCommandBuffers {};
 	std::vector<std::pair<uint, uint>> vkPrimaryCommandBuffersViews {};
@@ -250,6 +254,15 @@ private:
 
 	inline uint getCommandBufferIndex(uint frameIndex, uint rendererIndex, uint threadIndex) const {
 		return frameIndex * renderers.size() * (threadCount + 1) + rendererIndex * (threadCount + 1) + threadIndex;
+	}
+
+	inline uint getTimestampQueryPoolIndex(uint frameIndex, uint rendererIndex) {
+		return frameIndex * renderers.size() + rendererIndex;
+	}
+
+
+	inline auto& getTimestampQueryPool(uint frameIndex, uint rendererIndex) {
+		return vkTimestampQueryPools[getTimestampQueryPoolIndex(frameIndex, rendererIndex)];
 	}
 
 

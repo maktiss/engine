@@ -679,6 +679,37 @@ int RenderingSystem::init() {
 						   "Failed to create image blit command buffer fence");
 	}
 
+
+	// Create query pools
+
+	vkTimestampQueryPools.resize(framesInFlightCount * renderers.size());
+
+	vk::QueryPoolCreateInfo queryPoolCreateInfo {};
+	queryPoolCreateInfo.queryType = vk::QueryType::eTimestamp;
+
+	auto& debugState = Engine::Managers::GlobalStateManager::getWritable<Engine::States::DebugState>();
+
+	uint maxQueries = 0;
+	for (const auto& [rendererName, renderer] : renderers) {
+		auto rendererIndex = getRendererIndex(rendererName);
+		auto queryCount	   = renderer->getLayerCount() * renderer->getMultiviewLayerCount() * 2;
+
+		maxQueries = std::max(maxQueries, queryCount);
+
+		debugState.rendererExecutionTimes[rendererName].resize(queryCount / 2);
+
+		for (uint frameIndex = 0; frameIndex < framesInFlightCount; frameIndex++) {
+			queryPoolCreateInfo.queryCount = queryCount;
+
+			RETURN_IF_VK_ERROR(vkDevice.createQueryPool(&queryPoolCreateInfo, nullptr,
+														&getTimestampQueryPool(frameIndex, rendererIndex)),
+							   "Failed to create timestamp query pool");
+		}
+	}
+
+	timestampQueriesBuffer.resize(maxQueries);
+
+
 	return 0;
 }
 
@@ -707,6 +738,36 @@ int RenderingSystem::run(double dt) {
 					   "Failed to reset image blit command buffer fences");
 
 
+	// Query timestamps
+
+	for (const auto& rendererName : rendererExecutionOrder) {
+		auto& renderer	   = renderers[rendererName];
+		auto rendererIndex = getRendererIndex(rendererName);
+
+		const auto& queryPool = getTimestampQueryPool(currentFrameInFlight, rendererIndex);
+
+		const auto layerCount		   = renderer->getLayerCount();
+		const auto multiviewLayerCount = renderer->getMultiviewLayerCount();
+
+		const auto queryCount = layerCount * multiviewLayerCount * 2;
+
+		// FIXME: figure out why it returns 0s using multiview
+		if (vkDevice.getQueryPoolResults(queryPool, 0, queryCount, sizeof(uint64_t) * queryCount,
+										 timestampQueriesBuffer.data(), sizeof(uint64_t),
+										 vk::QueryResultFlagBits::e64) == vk::Result::eSuccess) {
+
+			auto& debugState = Engine::Managers::GlobalStateManager::getWritable<Engine::States::DebugState>();
+
+			auto& times = debugState.rendererExecutionTimes[rendererName];
+			for (uint i = 0; i < times.size(); i++) {
+				// FIXME multiply by timeperiod
+				times[i] = (timestampQueriesBuffer[i * 2 + multiviewLayerCount] - timestampQueriesBuffer[i * 2]) /
+						   1'000'000.0f;
+			}
+		}
+	}
+
+
 	// Reset command buffers
 
 	auto commandPoolIndex = getCommandPoolIndex(currentFrameInFlight, 0);
@@ -728,8 +789,10 @@ int RenderingSystem::run(double dt) {
 		const auto* pSecondaryCommandBuffers	= &vkSecondaryCommandBuffers[secondarycommandBuffersView.first];
 		const auto secondaryCommandBuffersCount = secondarycommandBuffersView.second;
 
+		const auto& timestampQueryPool = getTimestampQueryPool(currentFrameInFlight, rendererIndex);
 
-		renderer->render(pPrimaryCommandBuffers, pSecondaryCommandBuffers, dt);
+
+		renderer->render(pPrimaryCommandBuffers, pSecondaryCommandBuffers, timestampQueryPool, dt);
 
 
 		const auto& rendererWaitSemaphoresViews = getRendererWaitSemaphoresView(currentFrameInFlight, rendererIndex);
@@ -746,15 +809,13 @@ int RenderingSystem::run(double dt) {
 		submitInfo.waitSemaphoreCount = rendererWaitSemaphoresCount;
 
 		// FIXME: proper wait semaphores dst stage masks
-		vk::PipelineStageFlags pipelineStageFlags[] = { vk::PipelineStageFlagBits::eBottomOfPipe,
-														vk::PipelineStageFlagBits::eBottomOfPipe,
-														vk::PipelineStageFlagBits::eBottomOfPipe,
-														vk::PipelineStageFlagBits::eBottomOfPipe,
-														vk::PipelineStageFlagBits::eBottomOfPipe,
-														vk::PipelineStageFlagBits::eBottomOfPipe,
-														vk::PipelineStageFlagBits::eBottomOfPipe,
-														vk::PipelineStageFlagBits::eBottomOfPipe, };
-		submitInfo.pWaitDstStageMask				= pipelineStageFlags;
+		vk::PipelineStageFlags pipelineStageFlags[] = {
+			vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eBottomOfPipe,
+			vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eBottomOfPipe,
+			vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eBottomOfPipe,
+			vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eBottomOfPipe,
+		};
+		submitInfo.pWaitDstStageMask = pipelineStageFlags;
 
 		submitInfo.commandBufferCount = primaryCommandBuffersCount;
 		submitInfo.pCommandBuffers	  = pPrimaryCommandBuffers;

@@ -10,6 +10,7 @@
 
 #include <array>
 #include <memory>
+#include <sstream>
 #include <vector>
 
 
@@ -17,9 +18,14 @@ namespace Engine {
 class Core {
 public:
 private:
-	std::vector<std::shared_ptr<Systems::SystemBase>> systems;
+	std::vector<std::shared_ptr<Systems::SystemBase>> systems {};
 
 	GLFWwindow* glfwWindow = nullptr;
+
+	std::stringstream logBuffer {};
+
+	PROPERTY(uint, "Debug", maxLogEntries, 1024);
+	PROPERTY(uint, "Debug", maxLogLength, 1024);
 
 public:
 	~Core();
