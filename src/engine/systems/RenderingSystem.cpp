@@ -3,6 +3,7 @@
 #include "engine/renderers/graphics/DepthNormalRenderer.hpp"
 #include "engine/renderers/graphics/ForwardRenderer.hpp"
 #include "engine/renderers/graphics/ImGuiRenderer.hpp"
+#include "engine/renderers/graphics/PostFxRenderer.hpp"
 #include "engine/renderers/graphics/ShadowMapRenderer.hpp"
 #include "engine/renderers/graphics/SkyboxRenderer.hpp"
 #include "engine/renderers/graphics/SkymapRenderer.hpp"
@@ -110,6 +111,12 @@ int RenderingSystem::init() {
 		return 1;
 	}
 
+	if (Engine::Managers::GraphicsShaderManager::importShaderSources<Engine::Graphics::Shaders::PostFxShader>(
+			std::array<std::string, 6> { "assets/shaders/postfx_shader.vsh", "", "", "",
+										 "assets/shaders/postfx_shader.fsh", "" })) {
+		return 1;
+	}
+
 
 	Engine::Managers::TextureManager::setVkDevice(vkDevice);
 	Engine::Managers::TextureManager::setVkCommandPool(vkCommandPools[0]);
@@ -178,6 +185,11 @@ int RenderingSystem::init() {
 	imGuiRenderer->setVkPhysicalDevice(getActivePhysicalDevice());
 	imGuiRenderer->setVkGraphicsQueue(vkGraphicsQueue);
 
+	auto postFxRenderer = std::make_shared<Engine::Renderers::Graphics::PostFxRenderer>();
+	postFxRenderer->setVkDevice(vkDevice);
+	postFxRenderer->setOutputSize({ 1920, 1080 });
+	postFxRenderer->setVulkanMemoryAllocator(vmaAllocator);
+
 
 	renderers["DepthNormalRenderer"] = depthNormalRenderer;
 	renderers["ForwardRenderer"]	 = forwardRenderer;
@@ -185,6 +197,7 @@ int RenderingSystem::init() {
 	renderers["SkyboxRenderer"]		 = skyboxRenderer;
 	renderers["SkymapRenderer"]		 = skymapRenderer;
 	renderers["ImGuiRenderer"]		 = imGuiRenderer;
+	renderers["PostFxRenderer"]		 = postFxRenderer;
 
 
 	for (const auto& [name, renderer] : renderers) {
@@ -193,13 +206,16 @@ int RenderingSystem::init() {
 	}
 
 
-	renderGraph.addOutputConnection("SkyboxRenderer", 0, "ForwardRenderer", 0);
-	renderGraph.addOutputConnection("DepthNormalRenderer", 0, "ForwardRenderer", 1);
-	renderGraph.addInputConnection("ShadowMapRenderer", 0, "ForwardRenderer", 0);
-
 	renderGraph.addInputConnection("SkymapRenderer", 0, "SkyboxRenderer", 0);
 
-	renderGraph.addOutputConnection("ForwardRenderer", 0, "ImGuiRenderer", 0);
+	renderGraph.addInputConnection("ShadowMapRenderer", 0, "ForwardRenderer", 0);
+
+	renderGraph.addOutputConnection("SkyboxRenderer", 0, "ForwardRenderer", 0);
+	renderGraph.addOutputConnection("DepthNormalRenderer", 0, "ForwardRenderer", 1);
+
+	renderGraph.addInputConnection("ForwardRenderer", 0, "PostFxRenderer", 0);
+
+	renderGraph.addOutputConnection("PostFxRenderer", 0, "ImGuiRenderer", 0);
 
 
 	finalOutputReference = { "ImGuiRenderer", 0 };
@@ -214,6 +230,44 @@ int RenderingSystem::init() {
 		const auto& renderGraphNode = renderGraph.nodes[rendererName];
 
 		auto& rendererPriority = executionPrioriries[rendererName];
+
+		for (const auto backwardInputReference : renderGraphNode.backwardInputReferences) {
+			if (!backwardInputReference.rendererName.empty()) {
+				auto& referencedPriority = executionPrioriries[backwardInputReference.rendererName];
+
+				if (rendererPriority <= referencedPriority) {
+					rendererPriority = referencedPriority + 1;
+				}
+
+				// Shift lower priorities
+				for (auto& [rendererName, priority] : executionPrioriries) {
+					if (backwardInputReference.rendererName != rendererName) {
+						if (referencedPriority <= priority) {
+							priority++;
+						}
+					}
+				}
+			}
+		}
+
+		for (const auto backwardOutputReference : renderGraphNode.backwardOutputReferences) {
+			if (!backwardOutputReference.rendererName.empty()) {
+				auto& referencedPriority = executionPrioriries[backwardOutputReference.rendererName];
+
+				if (rendererPriority <= referencedPriority) {
+					rendererPriority = referencedPriority + 1;
+				}
+
+				// Shift lower priorities
+				for (auto& [rendererName, priority] : executionPrioriries) {
+					if (backwardOutputReference.rendererName != rendererName) {
+						if (referencedPriority <= priority) {
+							priority++;
+						}
+					}
+				}
+			}
+		}
 
 		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
 			const auto& inputReferenceSet = renderGraphNode.inputReferenceSets[outputIndex];
@@ -525,7 +579,14 @@ int RenderingSystem::init() {
 				// Iterate over chain of outputs
 				auto outputReference = renderGraphNode.outputReferences[outputIndex];
 				while (!outputReference.rendererName.empty()) {
+					const auto& inputReferenceSet = renderGraph.nodes[outputReference.rendererName]
+														.inputReferenceSets[outputReference.attachmentIndex];
+					for (auto& inputReference : inputReferenceSet) {
+						renderers[inputReference.rendererName]->setInput(inputReference.attachmentIndex, textureHandle);
+					}
+
 					renderers[outputReference.rendererName]->setOutput(outputReference.attachmentIndex, textureHandle);
+
 					outputReference = renderGraph.nodes[outputReference.rendererName]
 										  .outputReferences[outputReference.attachmentIndex];
 				}

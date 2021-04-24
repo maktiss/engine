@@ -27,7 +27,6 @@ const float uAbsorptionM = 1.1;
 const float uInnerRadius = 6360000.0;
 const float uOuterRadius = 6420000.0;
 
-const vec3 uSunDirection = normalize(vec3(0.5, 0.05, 0.9));
 const float uSunIntensity = 20.0;
 
 const float uScaleR = 8400.0;
@@ -37,22 +36,16 @@ const float uG = 0.9;
 const float uG2 = uG * uG;
 
 
-vec3 ACESFilm(vec3 x) {
-	float a = 2.51f;
-	float b = 0.03f;
-	float c = 2.43f;
-	float d = 0.59f;
-	float e = 0.14f;
-
-	return (x * (a * x + b)) / (x * (c * x + d) + e);
-}
+layout(set = 1, binding = 0) uniform ParamBlock {
+	vec3 sunDirection;
+} uParams;
 
 
 void main() {
 	outColor = vec4(inData.texCoord, 1.0);
 
 
-	float cosTheta = dot(uSunDirection, inData.texCoord) / length(inData.texCoord);
+	float cosTheta = dot(uParams.sunDirection, inData.texCoord) / length(inData.texCoord);
 	float cosTheta2 = cosTheta * cosTheta;
 
 	float phaseR = (3.0 / (16.0 * PI)) * (1.0 + cosTheta2);
@@ -62,8 +55,6 @@ void main() {
 
 	outColor += outColor * uSunIntensity * smoothstep(0.9997, 0.9998, cosTheta);
 	outColor.a = 1.0;
-
-	outColor.rgb = ACESFilm(outColor.rgb);
 }
 
 

@@ -34,7 +34,7 @@ public:
 		std::vector<AttachmentDescription> outputDescriptions {};
 		outputDescriptions.resize(1);
 
-		outputDescriptions[0].format = vk::Format::eR8G8B8A8Srgb;
+		outputDescriptions[0].format = vk::Format::eR16G16B16A16Sfloat;
 		outputDescriptions[0].usage	 = vk::ImageUsageFlagBits::eColorAttachment;
 
 		return outputDescriptions;

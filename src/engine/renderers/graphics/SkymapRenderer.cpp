@@ -13,10 +13,13 @@ int SkymapRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
-	descriptorSetArrays.resize(1);
+	descriptorSetArrays.resize(2);
 
 	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 64 * 6);
 	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
+
+	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 16);
+	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
 
 
 	// Update cameras descriptor set
@@ -170,6 +173,22 @@ void SkymapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
 										 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
 	}
+
+
+	auto sunDirection = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+
+	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Light>(
+		[&](const auto& transform, auto& light) {
+			if (light.castsShadows) {
+				if (light.type == Engine::Components::Light::Type::DIRECTIONAL) {
+					sunDirection = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * sunDirection;
+					sunDirection = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * sunDirection;
+					sunDirection = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * sunDirection;
+				}
+			}
+		});
+
+	descriptorSetArrays[1].updateBuffer(0, 0, &sunDirection, sizeof(sunDirection));
 
 
 	const auto& meshInfo = Engine::Managers::MeshManager::getMeshInfo(skySphereMesh);

@@ -4,9 +4,9 @@
 
 
 namespace Engine::Renderers::Graphics {
-class SkyboxRenderer : public GraphicsRendererBase {
+class PostFxRenderer : public GraphicsRendererBase {
 private:
-	Engine::Managers::MeshManager::Handle boxMesh {};
+	Engine::Managers::MeshManager::Handle mesh {};
 	Engine::Managers::GraphicsShaderManager::Handle shaderHandle {};
 
 	// TODO: destroy
@@ -15,7 +15,7 @@ private:
 
 
 public:
-	SkyboxRenderer() : GraphicsRendererBase(1, 1) {
+	PostFxRenderer() : GraphicsRendererBase(1, 1) {
 	}
 
 
@@ -25,19 +25,9 @@ public:
 									   double dt) override;
 
 	const char* getRenderPassName() const override {
-		return "RENDER_PASS_SKYBOX";
+		return "RENDER_PASS_POSTFX";
 	}
 
-
-	std::vector<AttachmentDescription> getOutputDescriptions() const {
-		std::vector<AttachmentDescription> outputDescriptions {};
-		outputDescriptions.resize(1);
-
-		outputDescriptions[0].format = vk::Format::eR16G16B16A16Sfloat;
-		outputDescriptions[0].usage	 = vk::ImageUsageFlagBits::eColorAttachment;
-
-		return outputDescriptions;
-	}
 
 	std::vector<AttachmentDescription> getInputDescriptions() const {
 		std::vector<AttachmentDescription> descriptions {};
@@ -45,9 +35,18 @@ public:
 
 		descriptions[0].format = vk::Format::eR16G16B16A16Sfloat;
 		descriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
-		descriptions[0].flags = vk::ImageCreateFlagBits::eCubeCompatible;
 
 		return descriptions;
+	}
+
+	std::vector<AttachmentDescription> getOutputDescriptions() const {
+		std::vector<AttachmentDescription> outputDescriptions {};
+		outputDescriptions.resize(1);
+
+		outputDescriptions[0].format = vk::Format::eR8G8B8A8Srgb;
+		outputDescriptions[0].usage	 = vk::ImageUsageFlagBits::eColorAttachment;
+
+		return outputDescriptions;
 	}
 
 

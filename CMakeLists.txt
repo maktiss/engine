@@ -31,6 +31,7 @@ add_executable(
 	src/engine/graphics/meshes/MeshBase.hpp
 	src/engine/graphics/meshes/StaticMesh.hpp
 	src/engine/graphics/shaders/GraphicsShaderBase.hpp
+	src/engine/graphics/shaders/PostFxShader.hpp
 	src/engine/graphics/shaders/Shader.hpp
 	src/engine/graphics/shaders/SimpleShader.hpp
 	src/engine/graphics/shaders/SkyboxShader.hpp
@@ -67,6 +68,8 @@ add_executable(
 	src/engine/renderers/graphics/ForwardRenderer.hpp
 	src/engine/renderers/graphics/ImGuiRenderer.cpp
 	src/engine/renderers/graphics/ImGuiRenderer.hpp
+	src/engine/renderers/graphics/PostFxRenderer.cpp
+	src/engine/renderers/graphics/PostFxRenderer.hpp
 	src/engine/renderers/graphics/ShadowMapRenderer.cpp
 	src/engine/renderers/graphics/ShadowMapRenderer.hpp
 	src/engine/renderers/graphics/SkyboxRenderer.cpp

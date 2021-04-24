@@ -25,7 +25,6 @@ const float uAbsorptionM = 1.1;
 const float uInnerRadius = 6360000.0;
 const float uOuterRadius = 6420000.0;
 
-const vec3 uSunDirection = normalize(vec3(0.5, 0.05, 0.9));
 const float uSunIntensity = 20.0;
 
 const float uScaleR = 8400.0;
@@ -46,6 +45,10 @@ layout(location = 0) out OutData {
 layout(set = 0, binding = 0) uniform CameraBlock {
 	mat4 viewProjectionMatrices[6];
 } uCamera;
+
+layout(set = 1, binding = 0) uniform ParamBlock {
+	vec3 sunDirection;
+} uParams;
 
 
 void main() {
@@ -77,13 +80,13 @@ void main() {
 		opticalDepthR += expScaleR;
 		opticalDepthM += expScaleM;
 
-		vec3 p = samplePos + dot(uSunDirection, -samplePos) * uSunDirection;
+		vec3 p = samplePos + dot(uParams.sunDirection, -samplePos) * uParams.sunDirection;
 		float dist = sqrt(uOuterRadius * uOuterRadius - dot(p, p)) - length(samplePos - p);
 
 		float opticalDepthLightR = 0.0;
 		float opticalDepthLightM = 0.0;
 
-		vec3 segmentLightRay = (uSunDirection * dist) * NUM_INV_SAMPLES_LIGHT;
+		vec3 segmentLightRay = (uParams.sunDirection * dist) * NUM_INV_SAMPLES_LIGHT;
 		float segmentLightLength = length(segmentLightRay);
 
 		vec3 sampleLightPos = samplePos - segmentLightRay * 0.5;
