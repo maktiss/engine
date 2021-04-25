@@ -26,36 +26,42 @@ int ImGuiSystem::init() {
 
 
 int ImGuiSystem::run(double dt) {
+	auto& imGuiState = GlobalStateManager::getWritable<ImGuiState>();
+
+	if (InputManager::isKeyActionStatePressedOnce(InputManager::KeyAction::IMGUI_TOGGLE)) {
+		imGuiState.showUI = !imGuiState.showUI;
+	}
 
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
+	if (imGuiState.showUI) {
+		auto mainWindowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
+							ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+							ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
+							ImGuiWindowFlags_NoBackground;
 
-	auto mainWindowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
-						   ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-						   ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
-						   ImGuiWindowFlags_NoBackground;
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(viewport->WorkPos);
+		ImGui::SetNextWindowSize(viewport->WorkSize);
+		ImGui::SetNextWindowViewport(viewport->ID);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
-	const ImGuiViewport* viewport = ImGui::GetMainViewport();
-	ImGui::SetNextWindowPos(viewport->WorkPos);
-	ImGui::SetNextWindowSize(viewport->WorkSize);
-	ImGui::SetNextWindowViewport(viewport->ID);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+		ImGui::Begin("Main Window", nullptr, mainWindowFlags);
 
-	ImGui::Begin("Main Window", nullptr, mainWindowFlags);
+		ImGui::PopStyleVar(3);
 
-	ImGui::PopStyleVar(3);
+		ImGui::DockSpace(ImGui::GetID("DockSpace"), {}, ImGuiDockNodeFlags_PassthruCentralNode);
 
-	ImGui::DockSpace(ImGui::GetID("DockSpace"), {}, ImGuiDockNodeFlags_PassthruCentralNode);
+		showLogWindow();
+		showStatisticsWindow();
 
-	showLogWindow();
-	showStatisticsWindow();
+		ImGui::ShowDemoWindow();
 
-	ImGui::ShowDemoWindow();
-
-	ImGui::End();
+		ImGui::End();
+	}
 
 	ImGui::Render();
 

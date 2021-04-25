@@ -91,6 +91,8 @@ add_executable(
 	src/engine/scripts/FloatingObjectScript.hpp
 	src/engine/scripts/ScriptBase.hpp
 	src/engine/states/DebugState.hpp
+	src/engine/states/ImGuiState.hpp
+	src/engine/states/States.hpp
 	src/engine/systems/ImGuiSystem.cpp
 	src/engine/systems/ImGuiSystem.hpp
 	src/engine/systems/InputSystem.cpp

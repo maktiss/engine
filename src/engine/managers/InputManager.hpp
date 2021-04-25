@@ -21,6 +21,8 @@ public:
 		CAMERA_MOVE_DOWN,
 
 		CAMERA_ACTIVE,
+
+		IMGUI_TOGGLE,
 	};
 
 	enum class AxisAction {

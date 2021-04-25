@@ -2,9 +2,9 @@
 
 #include "GlobalStateManagerBase.hpp"
 
-#include "engine/states/DebugState.hpp"
+#include "engine/states/States.hpp"
 
 
 namespace Engine {
-class GlobalStateManager : public GlobalStateManagerBase<DebugState> {};
+class GlobalStateManager : public GlobalStateManagerBase<DebugState, ImGuiState> {};
 } // namespace Engine
