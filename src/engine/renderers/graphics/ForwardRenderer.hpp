@@ -3,7 +3,7 @@
 #include "GraphicsRendererBase.hpp"
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 class ForwardRenderer : public GraphicsRendererBase {
 private:
 	PROPERTY(uint, "Graphics", clusterCountX, 1);
@@ -181,4 +181,4 @@ public:
 		return pipelineDepthStencilStateCreateInfo;
 	}
 };
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

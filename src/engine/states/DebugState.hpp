@@ -5,7 +5,7 @@
 #include <vector>
 
 
-namespace Engine::States {
+namespace Engine {
 class DebugState {
 public:
 	float avgFrameTime {};
@@ -15,4 +15,4 @@ public:
 	uint logCount {};
 	std::vector<std::vector<char>> logs {};
 };
-} // namespace Engine::States
+} // namespace Engine

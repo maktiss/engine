@@ -8,7 +8,7 @@
 #include <vector>
 
 
-namespace Engine::Managers {
+namespace Engine {
 template <typename... ComponentTypes>
 class EntityManagerBase {
 public:
@@ -243,7 +243,8 @@ private:
 		for (uint32_t componentTypeIndex = 0; componentTypeIndex < getComponentTypeCount(); componentTypeIndex++) {
 			if ((signature & (1 << (getComponentTypeCount() - 1 - componentTypeIndex))) != 0) {
 				// position should be within range
-				for (uint32_t rangeIndex = 0; rangeIndex < componentRanges[componentTypeIndex].size() - 1; rangeIndex++) {
+				for (uint32_t rangeIndex = 0; rangeIndex < componentRanges[componentTypeIndex].size() - 1;
+					 rangeIndex++) {
 					auto& firstRange  = componentRanges[componentTypeIndex][rangeIndex];
 					auto& secondRange = componentRanges[componentTypeIndex][rangeIndex + 1];
 
@@ -404,4 +405,4 @@ std::vector<int32_t> EntityManagerBase<ComponentTypes...>::referenceCounts;
 template <typename... ComponentTypes>
 std::array<typename EntityManagerBase<ComponentTypes...>::Ranges, sizeof...(ComponentTypes)>
 	EntityManagerBase<ComponentTypes...>::componentRanges;
-} // namespace Engine::Managers
+} // namespace Engine

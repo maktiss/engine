@@ -18,7 +18,7 @@ namespace Engine {
 class Core {
 public:
 private:
-	std::vector<std::shared_ptr<Systems::SystemBase>> systems {};
+	std::vector<std::shared_ptr<SystemBase>> systems {};
 
 	GLFWwindow* glfwWindow = nullptr;
 

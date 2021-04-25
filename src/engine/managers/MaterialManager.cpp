@@ -1,7 +1,7 @@
 #include "MaterialManager.hpp"
 
 
-namespace Engine::Managers {
+namespace Engine {
 std::vector<MaterialManager::MaterialInfo> MaterialManager::materialInfos {};
 std::vector<MaterialManager::AllocationInfo> MaterialManager::allocationInfos {};
 
@@ -41,8 +41,7 @@ int MaterialManager::init() {
 
 	auto result = vkDevice.createDescriptorSetLayout(&descriptorSetLayoutCreateInfo, nullptr, &vkDescriptorSetLayout);
 	if (result != vk::Result::eSuccess) {
-		spdlog::error("[MaterialManager] Failed to create descriptor set layout. Error code: {} ({})",
-					  result,
+		spdlog::error("[MaterialManager] Failed to create descriptor set layout. Error code: {} ({})", result,
 					  vk::to_string(result));
 		return 1;
 	}
@@ -81,11 +80,10 @@ void MaterialManager::postCreate(Handle handle) {
 
 
 	VkBuffer buffer;
-	auto result = vk::Result(vmaCreateBuffer(
-		vmaAllocator, &cBufferCreateInfo, &allocationCreateInfo, &buffer, &allocationInfo.vmaAllocation, nullptr));
+	auto result = vk::Result(vmaCreateBuffer(vmaAllocator, &cBufferCreateInfo, &allocationCreateInfo, &buffer,
+											 &allocationInfo.vmaAllocation, nullptr));
 	if (result != vk::Result::eSuccess) {
-		spdlog::error("[MaterialManager] Failed to allocate uniform buffer memory. Error code: {} ({})",
-					  result,
+		spdlog::error("[MaterialManager] Failed to allocate uniform buffer memory. Error code: {} ({})", result,
 					  vk::to_string(result));
 		return;
 	}
@@ -117,8 +115,8 @@ void MaterialManager::postCreate(Handle handle) {
 
 	result = vkDevice.allocateDescriptorSets(&descriptorSetAllocateInfo, &descriptorSet);
 	if (result != vk::Result::eSuccess) {
-		spdlog::error(
-			"[MaterialManager] Failed to allocate descriptor set. Error code: {} ({})", result, vk::to_string(result));
+		spdlog::error("[MaterialManager] Failed to allocate descriptor set. Error code: {} ({})", result,
+					  vk::to_string(result));
 
 		return;
 	}
@@ -148,8 +146,7 @@ void MaterialManager::update(Handle handle) {
 	void* pBufferData;
 	auto result = vk::Result(vmaMapMemory(vmaAllocator, allocationInfo.vmaAllocation, &pBufferData));
 	if (result != vk::Result::eSuccess) {
-		spdlog::error("[MaterialManager] Failed to write uniform buffer memory. Error code: {} ({})",
-					  result,
+		spdlog::error("[MaterialManager] Failed to write uniform buffer memory. Error code: {} ({})", result,
 					  vk::to_string(result));
 
 		return;
@@ -175,8 +172,8 @@ int MaterialManager::createDescriptorPool() {
 	auto result =
 		vkDevice.createDescriptorPool(&descriptorPoolCreateInfo, nullptr, &descriptorPoolInfo.vkDescriptorPool);
 	if (result != vk::Result::eSuccess) {
-		spdlog::error(
-			"[MaterialManager] Failed to create descriptor pool. Error code: {} ({})", result, vk::to_string(result));
+		spdlog::error("[MaterialManager] Failed to create descriptor pool. Error code: {} ({})", result,
+					  vk::to_string(result));
 		return 1;
 	}
 
@@ -202,4 +199,4 @@ void MaterialManager::dispose() {
 		destroy(i);
 	}
 }
-} // namespace Engine::Managers
+} // namespace Engine

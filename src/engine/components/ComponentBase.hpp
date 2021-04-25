@@ -1,8 +1,8 @@
 #pragma once
 
 
-namespace Engine::Components {
+namespace Engine {
 class ComponentBase {
 public:
 };
-} // namespace Engine::Components
+} // namespace Engine

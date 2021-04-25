@@ -3,7 +3,7 @@
 #include <fstream>
 
 
-namespace Engine::Managers {
+namespace Engine {
 std::map<std::string, std::string> ConfigManager::propertyMap {};
 bool ConfigManager::configLoaded {};
 
@@ -65,7 +65,7 @@ int ConfigManager::saveConfig() {
 		auto splitPos = key.find('.');
 
 		auto currentCategory = key.substr(0, splitPos);
-		auto actualKey = key.substr(splitPos + 1);
+		auto actualKey		 = key.substr(splitPos + 1);
 
 		if (category != currentCategory) {
 			category = currentCategory;
@@ -82,4 +82,4 @@ int ConfigManager::saveConfig() {
 
 	return 0;
 }
-} // namespace Engine::Managers
+} // namespace Engine

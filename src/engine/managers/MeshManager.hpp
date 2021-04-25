@@ -3,25 +3,25 @@
 #include "ResourceManagerBase.hpp"
 
 #include "engine/graphics/Buffer.hpp"
-#include "engine/graphics/meshes/StaticMesh.hpp"
+
+#include "engine/graphics/meshes/Meshes.hpp"
 
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
 
 #include "vk_mem_alloc.h"
 
-namespace Engine::Managers {
-class MeshManager : public ResourceManagerBase<MeshManager, Engine::Graphics::Meshes::StaticMesh> {
+
+namespace Engine {
+class MeshManager : public ResourceManagerBase<MeshManager, StaticMesh> {
 public:
 	// info required for rendering
 	struct MeshInfo {
 		// TODO: keep vk::Buffer's only
-		Engine::Graphics::Buffer vertexBuffer = {
-			vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, VMA_MEMORY_USAGE_GPU_ONLY
-		};
-		Engine::Graphics::Buffer indexBuffer = {
-			vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, VMA_MEMORY_USAGE_GPU_ONLY
-		};
+		Buffer vertexBuffer = { vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+								VMA_MEMORY_USAGE_GPU_ONLY };
+		Buffer indexBuffer	= { vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+								VMA_MEMORY_USAGE_GPU_ONLY };
 
 		vk::Buffer vkVertexBuffer {};
 		vk::Buffer vkIndexBuffer {};
@@ -141,4 +141,4 @@ public:
 private:
 	MeshManager() {};
 };
-} // namespace Engine::Managers
+} // namespace Engine

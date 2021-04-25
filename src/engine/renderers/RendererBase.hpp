@@ -1,9 +1,6 @@
 #pragma once
 
-#include "engine/managers/ConfigManager.hpp"
-#include "engine/managers/GraphicsShaderManager.hpp"
-#include "engine/managers/MeshManager.hpp"
-#include "engine/managers/TextureManager.hpp"
+#include "engine/managers/Managers.hpp"
 
 #include "engine/graphics/DescriptorSetArray.hpp"
 
@@ -15,7 +12,7 @@
 #include <vector>
 
 
-namespace Engine::Renderers {
+namespace Engine {
 class RendererBase {
 public:
 	// TODO: better name?
@@ -36,8 +33,8 @@ protected:
 	uint framesInFlightCount = 3;
 
 	// Created and set by rendering system
-	std::vector<Engine::Managers::TextureManager::Handle> inputs {};
-	std::vector<Engine::Managers::TextureManager::Handle> outputs {};
+	std::vector<TextureManager::Handle> inputs {};
+	std::vector<TextureManager::Handle> outputs {};
 
 	// Set by rendering system based on render graph
 	std::vector<vk::ImageLayout> vkInputInitialLayouts {};
@@ -49,7 +46,7 @@ protected:
 	vk::PipelineLayout vkPipelineLayout {};
 	std::vector<vk::Pipeline> vkPipelines {};
 
-	std::vector<Engine::Graphics::DescriptorSetArray> descriptorSetArrays {};
+	std::vector<DescriptorSetArray> descriptorSetArrays {};
 
 
 public:
@@ -140,20 +137,20 @@ public:
 	}
 
 
-	inline void setOutput(uint index, Engine::Managers::TextureManager::Handle textureHandle) {
+	inline void setOutput(uint index, TextureManager::Handle textureHandle) {
 		outputs[index] = textureHandle;
 	}
 
-	inline void setInput(uint index, Engine::Managers::TextureManager::Handle textureHandle) {
+	inline void setInput(uint index, TextureManager::Handle textureHandle) {
 		inputs[index] = textureHandle;
 	}
 
 
-	inline Engine::Managers::TextureManager::Handle getOutput(uint index) {
+	inline TextureManager::Handle getOutput(uint index) {
 		return outputs[index];
 	}
 
-	inline Engine::Managers::TextureManager::Handle getInput(uint index) {
+	inline TextureManager::Handle getInput(uint index) {
 		return inputs[index];
 	}
 
@@ -193,4 +190,4 @@ public:
 		}
 	}
 };
-} // namespace Engine::Renderers
+} // namespace Engine

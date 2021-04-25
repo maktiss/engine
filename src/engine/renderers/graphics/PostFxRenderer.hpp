@@ -3,11 +3,11 @@
 #include "GraphicsRendererBase.hpp"
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 class PostFxRenderer : public GraphicsRendererBase {
 private:
-	Engine::Managers::MeshManager::Handle mesh {};
-	Engine::Managers::GraphicsShaderManager::Handle shaderHandle {};
+	MeshManager::Handle mesh {};
+	GraphicsShaderManager::Handle shaderHandle {};
 
 	// TODO: destroy
 	vk::Sampler vkSampler {};
@@ -95,4 +95,4 @@ public:
 		return attachmentReferences;
 	}
 };
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

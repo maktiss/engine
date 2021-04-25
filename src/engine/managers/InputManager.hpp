@@ -7,7 +7,7 @@
 #include <vector>
 
 
-namespace Engine::Managers {
+namespace Engine {
 class InputManager {
 public:
 	enum class KeyAction {
@@ -98,4 +98,4 @@ public:
 private:
 	InputManager() {};
 };
-} // namespace Engine::Managers
+} // namespace Engine

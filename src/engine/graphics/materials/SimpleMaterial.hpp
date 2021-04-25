@@ -7,13 +7,13 @@
 #include <glm/glm.hpp>
 
 
-namespace Engine::Graphics::Materials {
-class SimpleMaterial : public MaterialBase<SimpleMaterial, Engine::Graphics::Shaders::SimpleShader> {
+namespace Engine {
+class SimpleMaterial : public MaterialBase<SimpleMaterial, SimpleShader> {
 public:
 	glm::vec3 color = { 1.0f, 1.0f, 1.0f };
 
-	Engine::Managers::TextureManager::Handle textureAlbedo {};
-	Engine::Managers::TextureManager::Handle textureNormal {};
+	TextureManager::Handle textureAlbedo {};
+	TextureManager::Handle textureNormal {};
 
 public:
 	uint32_t getSignature() const {
@@ -37,4 +37,4 @@ public:
 		buffer->textureNormal = textureNormal.getIndex();
 	}
 };
-} // namespace Engine::Graphics::Materials
+} // namespace Engine

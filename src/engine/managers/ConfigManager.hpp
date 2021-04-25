@@ -7,12 +7,11 @@
 #include <string>
 
 
-#define PROPERTY(type, category, name, defaultValue)       \
-	Engine::Managers::ConfigManager::Property<type> name = \
-		Engine::Managers::ConfigManager::Property<type>(category "." #name, defaultValue)
+#define PROPERTY(type, category, name, defaultValue) \
+	ConfigManager::Property<type> name = ConfigManager::Property<type>(category "." #name, defaultValue)
 
 
-namespace Engine::Managers {
+namespace Engine {
 class ConfigManager {
 public:
 	template <typename PropertyType>
@@ -104,4 +103,4 @@ private:
 		return std::to_string(value);
 	}
 };
-} // namespace Engine::Managers
+} // namespace Engine

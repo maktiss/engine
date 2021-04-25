@@ -2,17 +2,12 @@
 
 #include "GraphicsShaderManagerBase.hpp"
 
-#include "engine/graphics/shaders/PostFxShader.hpp"
-#include "engine/graphics/shaders/SimpleShader.hpp"
-#include "engine/graphics/shaders/SkyboxShader.hpp"
-#include "engine/graphics/shaders/SkymapShader.hpp"
+#include "engine/graphics/shaders/Shaders.hpp"
 
 
-namespace Engine::Managers {
+namespace Engine {
 class GraphicsShaderManager
-	: public GraphicsShaderManagerBase<GraphicsShaderManager, Engine::Graphics::Shaders::SimpleShader,
-									   Engine::Graphics::Shaders::SkyboxShader, Engine::Graphics::Shaders::SkymapShader,
-									   Engine::Graphics::Shaders::PostFxShader> {
+	: public GraphicsShaderManagerBase<GraphicsShaderManager, SimpleShader, SkyboxShader, SkymapShader, PostFxShader> {
 public:
 	static int init();
 
@@ -28,4 +23,4 @@ private:
 	GraphicsShaderManager() {
 	}
 };
-} // namespace Engine::Managers
+} // namespace Engine

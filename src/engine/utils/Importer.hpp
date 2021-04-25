@@ -9,16 +9,14 @@
 #include <vector>
 
 
-namespace Engine::Utils {
+namespace Engine {
 class Importer {
 private:
 	static Assimp::Importer assimpImporter;
 
 public:
-	[[nodiscard]] static int importMesh(std::string filename,
-										std::vector<Engine::Managers::MeshManager::Handle>& meshHandles);
+	[[nodiscard]] static int importMesh(std::string filename, std::vector<MeshManager::Handle>& meshHandles);
 
-	[[nodiscard]] static int importTexture(std::string filename,
-										   Engine::Managers::TextureManager::Handle& textureHandle, bool srgb);
+	[[nodiscard]] static int importTexture(std::string filename, TextureManager::Handle& textureHandle, bool srgb);
 };
-} // namespace Engine::Utils
+} // namespace Engine

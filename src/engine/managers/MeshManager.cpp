@@ -1,7 +1,7 @@
 #include "MeshManager.hpp"
 
 
-namespace Engine::Managers {
+namespace Engine {
 std::vector<MeshManager::MeshInfo> MeshManager::meshInfos {};
 
 vk::Device MeshManager::vkDevice {};
@@ -54,4 +54,4 @@ void MeshManager::update(Handle handle) {
 	meshInfo.indexBuffer.writeStaged(vkDevice, vkTransferQueue, vkCommandPool, indexBufferData);
 }
 
-} // namespace Engine::Managers
+} // namespace Engine

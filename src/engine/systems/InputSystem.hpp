@@ -10,22 +10,20 @@
 #include <set>
 
 
-namespace Engine::Systems {
+namespace Engine {
 class InputSystem : public SystemBase {
 private:
 	GLFWwindow* glfwWindow {};
 
-	std::map<uint, Engine::Managers::InputManager::KeyAction> keyMap {};
+	std::map<uint, InputManager::KeyAction> keyMap {};
 
-	std::map<uint, std::set<Engine::Managers::InputManager::KeyAction>> mouseButtonMap {};
+	std::map<uint, std::set<InputManager::KeyAction>> mouseButtonMap {};
 
 	// x and y mouse axes
-	std::array<std::set<Engine::Managers::InputManager::AxisAction>, 2> mouseAxisMap {};
+	std::array<std::set<InputManager::AxisAction>, 2> mouseAxisMap {};
 
 	double lastMousePosX {};
 	double lastMousePosY {};
-
-	using InputManager = Engine::Managers::InputManager;
 
 
 public:
@@ -36,4 +34,4 @@ public:
 	int init() override;
 	int run(double dt) override;
 };
-};
+} // namespace Engine

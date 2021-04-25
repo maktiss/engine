@@ -6,7 +6,7 @@
 #include <spdlog/spdlog.h>
 
 
-namespace Engine::Managers {
+namespace Engine {
 int ScriptManager::init() {
 	spdlog::info("Initializing ScriptManager...");
 
@@ -14,9 +14,9 @@ int ScriptManager::init() {
 		return 1;
 	}
 
-	registerScript<Engine::Scripts::CameraScript>();
-	registerScript<Engine::Scripts::FloatingObjectScript>();
+	registerScript<CameraScript>();
+	registerScript<FloatingObjectScript>();
 
 	return 0;
 }
-} // namespace Engine::Managers
+} // namespace Engine

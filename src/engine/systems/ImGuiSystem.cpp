@@ -5,7 +5,7 @@
 #include <spdlog/spdlog.h>
 
 
-namespace Engine::Systems {
+namespace Engine {
 int ImGuiSystem::init() {
 	spdlog::info("Initializing ImGuiSystem...");
 
@@ -42,10 +42,9 @@ int ImGuiSystem::run(double dt) {
 	ImGui::SetNextWindowViewport(viewport->ID);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
-	ImGui::Begin("Main Window", nullptr,
-				 mainWindowFlags);
+	ImGui::Begin("Main Window", nullptr, mainWindowFlags);
 
 	ImGui::PopStyleVar(3);
 
@@ -65,7 +64,7 @@ int ImGuiSystem::run(double dt) {
 
 
 void ImGuiSystem::showLogWindow() {
-	auto& debugState = Engine::Managers::GlobalStateManager::get<Engine::States::DebugState>();
+	auto& debugState = GlobalStateManager::get<DebugState>();
 
 	if (ImGui::Begin("Log")) {
 		for (uint i = debugState.logOffset; i < debugState.logCount; i++) {
@@ -79,7 +78,7 @@ void ImGuiSystem::showLogWindow() {
 }
 
 void ImGuiSystem::showStatisticsWindow() {
-	auto& debugState = Engine::Managers::GlobalStateManager::get<Engine::States::DebugState>();
+	auto& debugState = GlobalStateManager::get<DebugState>();
 
 	if (ImGui::Begin("Statistics", nullptr)) {
 		ImGui::Text("Avg. Frame Time: %.3f ms (%.1f fps)", debugState.avgFrameTime * 1000.0f,
@@ -145,4 +144,4 @@ void ImGuiSystem::showStatisticsWindow() {
 	}
 	ImGui::End();
 }
-} // namespace Engine::Systems
+} // namespace Engine

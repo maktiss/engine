@@ -5,8 +5,6 @@
 #include "engine/states/DebugState.hpp"
 
 
-namespace Engine::Managers {
-class GlobalStateManager : public GlobalStateManagerBase<Engine::States::DebugState> {
-
-};
-}
+namespace Engine {
+class GlobalStateManager : public GlobalStateManagerBase<DebugState> {};
+} // namespace Engine

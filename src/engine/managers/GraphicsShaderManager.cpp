@@ -5,9 +5,9 @@
 #include <array>
 
 
-namespace Engine::Managers {
+namespace Engine {
 int GraphicsShaderManager::init() {
 	spdlog::info("Initializing GraphicsShaderManager...");
 	return GraphicsShaderManagerBase::init();
 }
-} // namespace Engine::Managers
+} // namespace Engine

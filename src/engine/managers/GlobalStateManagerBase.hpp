@@ -3,7 +3,7 @@
 #include <tuple>
 
 
-namespace Engine::Managers {
+namespace Engine {
 template <typename... States>
 class GlobalStateManagerBase {
 private:
@@ -38,4 +38,4 @@ std::tuple<States...> GlobalStateManagerBase<States...>::states {};
 template <typename... States>
 std::tuple<States...> GlobalStateManagerBase<States...>::nextStates {};
 
-} // namespace Engine::Managers
+} // namespace Engine

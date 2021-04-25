@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 int SkyboxRenderer::init() {
 	spdlog::info("Initializing SkyboxRenderer...");
 
@@ -49,7 +49,7 @@ int SkyboxRenderer::init() {
 	imageViewCreateInfo.subresourceRange.levelCount		= 1;
 	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 	imageViewCreateInfo.subresourceRange.layerCount		= 6;
-	imageViewCreateInfo.image = Engine::Managers::TextureManager::getTextureInfo(inputs[0]).image;
+	imageViewCreateInfo.image							= TextureManager::getTextureInfo(inputs[0]).image;
 
 	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkImageView);
 	if (result != vk::Result::eSuccess) {
@@ -73,7 +73,7 @@ int SkyboxRenderer::init() {
 
 	// Generate skybox mesh
 
-	boxMesh = Engine::Managers::MeshManager::createObject(0);
+	boxMesh = MeshManager::createObject(0);
 	boxMesh.apply([](auto& mesh) {
 		auto& vertexBuffer = mesh.getVertexBuffer();
 		vertexBuffer.resize(8);
@@ -96,7 +96,7 @@ int SkyboxRenderer::init() {
 	});
 	boxMesh.update();
 
-	shaderHandle = Engine::Managers::GraphicsShaderManager::getHandle<Engine::Graphics::Shaders::SkyboxShader>(boxMesh);
+	shaderHandle = GraphicsShaderManager::getHandle<SkyboxShader>(boxMesh);
 
 
 	return GraphicsRendererBase::init();
@@ -119,25 +119,24 @@ void SkyboxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 	} cameraBlock;
 
 
-	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Camera>(
-		[&](auto& transform, auto& camera) {
-			// TODO: Check if active camera
-			glm::vec4 viewVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-			viewVector			 = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
-			viewVector			 = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
-			viewVector			 = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
+	EntityManager::forEach<TransformComponent, CameraComponent>([&](auto& transform, auto& camera) {
+		// TODO: Check if active camera
+		glm::vec4 viewVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+		viewVector			 = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
+		viewVector			 = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
+		viewVector			 = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
 
-			auto viewMatrix = glm::lookAtLH(transform.position,
-											transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
-											glm::vec3(0.0f, 1.0f, 0.0f));
+		auto viewMatrix =
+			glm::lookAtLH(transform.position, transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
+						  glm::vec3(0.0f, 1.0f, 0.0f));
 
-			cameraBlock.viewProjectionMatrix = camera.getProjectionMatrix() * viewMatrix;
-		});
+		cameraBlock.viewProjectionMatrix = camera.getProjectionMatrix() * viewMatrix;
+	});
 
 	descriptorSetArrays[0].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
 
 
-	const auto& meshInfo = Engine::Managers::MeshManager::getMeshInfo(boxMesh);
+	const auto& meshInfo = MeshManager::getMeshInfo(boxMesh);
 
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkPipelines[shaderHandle.getIndex()]);
 
@@ -151,4 +150,4 @@ void SkyboxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 
 	commandBuffer.drawIndexed(meshInfo.indexCount, 1, 0, 0, 0);
 }
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

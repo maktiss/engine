@@ -12,8 +12,8 @@
 // #include "thirdparty/imgui/imgui_impl_glfw.h"
 
 #include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/ostream_sink.h>
+#include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/spdlog.h>
 
 #include <chrono>
@@ -35,7 +35,7 @@ int Core::init(int argc, char** argv) {
 	spdlog::set_pattern("[%Y-%m-%d %T] [%^%l%$] %v");
 
 
-	auto& debugState = Engine::Managers::GlobalStateManager::getWritable<Engine::States::DebugState>();
+	auto& debugState = GlobalStateManager::getWritable<DebugState>();
 	debugState.logs.resize(maxLogEntries, std::vector<char>(maxLogLength));
 
 
@@ -55,22 +55,22 @@ int Core::init(int argc, char** argv) {
 	}
 
 
-	auto inputSystem = std::make_shared<Systems::InputSystem>();
+	auto inputSystem = std::make_shared<InputSystem>();
 	inputSystem->setWindow(glfwWindow);
 
-	auto imGuiSystem = std::make_shared<Systems::ImGuiSystem>();
+	auto imGuiSystem = std::make_shared<ImGuiSystem>();
 	imGuiSystem->setWindow(glfwWindow);
 
-	auto scriptingSystem = std::make_shared<Systems::ScriptingSystem>();
+	auto scriptingSystem = std::make_shared<ScriptingSystem>();
 
-	auto renderingSystem = std::make_shared<Systems::RenderingSystem>();
+	auto renderingSystem = std::make_shared<RenderingSystem>();
 	renderingSystem->setWindow(glfwWindow);
 
 
-	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(inputSystem));
-	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(imGuiSystem));
-	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(scriptingSystem));
-	systems.push_back(std::static_pointer_cast<Systems::SystemBase>(renderingSystem));
+	systems.push_back(std::static_pointer_cast<SystemBase>(inputSystem));
+	systems.push_back(std::static_pointer_cast<SystemBase>(imGuiSystem));
+	systems.push_back(std::static_pointer_cast<SystemBase>(scriptingSystem));
+	systems.push_back(std::static_pointer_cast<SystemBase>(renderingSystem));
 
 
 	// systems initialization
@@ -82,44 +82,40 @@ int Core::init(int argc, char** argv) {
 	}
 
 
-	Engine::Managers::ScriptManager::init();
+	ScriptManager::init();
 
-	Engine::Managers::EntityManager::init();
+	EntityManager::init();
 
 
-	auto cameraEntity =
-		Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Script, Components::Camera>();
-	cameraEntity.apply<Components::Transform, Components::Script, Components::Camera>(
+	auto cameraEntity = EntityManager::createEntity<TransformComponent, ScriptComponent, CameraComponent>();
+	cameraEntity.apply<TransformComponent, ScriptComponent, CameraComponent>(
 		[](auto& transform, auto& script, auto& camera) {
 			transform.position.z = -3.0f;
 
-			script.handle = Engine::Managers::ScriptManager::getScriptHandle("script_camera");
+			script.handle = ScriptManager::getScriptHandle("script_camera");
 
 			camera.viewport = { 1920.0f, 1080.0f };
 		});
 
 
-	auto modelEntity =
-		Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Model, Components::Script>();
+	auto modelEntity = EntityManager::createEntity<TransformComponent, ModelComponent, ScriptComponent>();
 
-	std::vector<Engine::Managers::MeshManager::Handle> meshHandles {};
-	if (Engine::Utils::Importer::importMesh("assets/models/dragon.obj", meshHandles)) {
+	std::vector<MeshManager::Handle> meshHandles {};
+	if (Importer::importMesh("assets/models/dragon.obj", meshHandles)) {
 		return 1;
 	}
-	modelEntity.getComponent<Components::Model>().meshHandles[0] = meshHandles[0];
+	modelEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
 
-	auto albedoTextureHandle = Engine::Managers::TextureManager::createObject(0);
-	if (Engine::Utils::Importer::importTexture("assets/textures/Concrete_Panels_01_Base_Color.jpg", albedoTextureHandle,
-											   true)) {
+	auto albedoTextureHandle = TextureManager::createObject(0);
+	if (Importer::importTexture("assets/textures/Concrete_Panels_01_Base_Color.jpg", albedoTextureHandle, true)) {
 		return 1;
 	}
-	auto normalTextureHandle = Engine::Managers::TextureManager::createObject(0);
-	if (Engine::Utils::Importer::importTexture("assets/textures/Concrete_Panels_01_Normal.jpg", normalTextureHandle,
-											   false)) {
+	auto normalTextureHandle = TextureManager::createObject(0);
+	if (Importer::importTexture("assets/textures/Concrete_Panels_01_Normal.jpg", normalTextureHandle, false)) {
 		return 1;
 	}
 
-	auto materialHandle = Engine::Managers::MaterialManager::createObject(0);
+	auto materialHandle = MaterialManager::createObject(0);
 	materialHandle.apply([&albedoTextureHandle, &normalTextureHandle](auto& material) {
 		// material.color			   = glm::vec3(0.5f, 0.3f, 0.8f);
 		material.textureAlbedo = albedoTextureHandle;
@@ -127,42 +123,38 @@ int Core::init(int argc, char** argv) {
 	});
 	materialHandle.update();
 
-	modelEntity.getComponent<Components::Model>().materialHandles[0] = materialHandle;
+	modelEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
 
-	modelEntity.getComponent<Components::Model>().shaderHandles[0] =
-		Engine::Managers::GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
-
-
-	modelEntity.getComponent<Components::Script>().handle =
-		Engine::Managers::ScriptManager::getScriptHandle("script_floating_object");
+	modelEntity.getComponent<ModelComponent>().shaderHandles[0] =
+		GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
 
 
-	auto directionalLightEntity =
-		Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Light>();
-	directionalLightEntity.getComponent<Components::Light>().type			= Components::Light::Type::DIRECTIONAL;
-	directionalLightEntity.getComponent<Components::Light>().color			= { 2.00f, 1.98f, 1.95f };
-	directionalLightEntity.getComponent<Components::Light>().castsShadows	= true;
-	directionalLightEntity.getComponent<Components::Transform>().rotation.x = -0.8f;
-	directionalLightEntity.getComponent<Components::Transform>().rotation.y = 0.3f;
-	directionalLightEntity.getComponent<Components::Transform>().rotation.z = 0.2f;
+	modelEntity.getComponent<ScriptComponent>().handle = ScriptManager::getScriptHandle("script_floating_object");
 
 
+	auto directionalLightEntity = EntityManager::createEntity<TransformComponent, LightComponent>();
+	directionalLightEntity.getComponent<LightComponent>().type			 = LightComponent::Type::DIRECTIONAL;
+	directionalLightEntity.getComponent<LightComponent>().color			 = { 2.00f, 1.98f, 1.95f };
+	directionalLightEntity.getComponent<LightComponent>().castsShadows	 = true;
+	directionalLightEntity.getComponent<TransformComponent>().rotation.x = -0.8f;
+	directionalLightEntity.getComponent<TransformComponent>().rotation.y = 0.3f;
+	directionalLightEntity.getComponent<TransformComponent>().rotation.z = 0.2f;
 
-	auto tileEntity =
-		Engine::Managers::EntityManager::createEntity<Components::Transform, Components::Model>();
-	// std::vector<Engine::Managers::MeshManager::Handle> meshHandles {};
-	if (Engine::Utils::Importer::importMesh("assets/models/tile.fbx", meshHandles)) {
+
+	auto tileEntity = EntityManager::createEntity<TransformComponent, ModelComponent>();
+	// std::vector<MeshManager::Handle> meshHandles {};
+	if (Importer::importMesh("assets/models/tile.fbx", meshHandles)) {
 		return 1;
 	}
-	tileEntity.getComponent<Components::Model>().meshHandles[0] = meshHandles[0];
-	// materialHandle = Engine::Managers::MaterialManager::createObject(0);
+	tileEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
+	// materialHandle = MaterialManager::createObject(0);
 	// materialHandle.apply([](auto& material){
 	// 	material.color = glm::vec3(1.0);
 	// });
 	// materialHandle.update();
-	tileEntity.getComponent<Components::Model>().materialHandles[0] = materialHandle;
-	tileEntity.getComponent<Components::Model>().shaderHandles[0] =
-		Engine::Managers::GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
+	tileEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
+	tileEntity.getComponent<ModelComponent>().shaderHandles[0] =
+		GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
 
 
 	spdlog::info("Initialization completed successfully");
@@ -173,7 +165,7 @@ int Core::init(int argc, char** argv) {
 int Core::run() {
 	double dt = 0.0;
 
-	uint frameCount = 0;
+	uint frameCount		= 0;
 	double cumulativeDT = 0.0;
 
 	auto timeNow = std::chrono::high_resolution_clock::now();
@@ -190,9 +182,9 @@ int Core::run() {
 
 		glfwPollEvents();
 
-		auto& debugState = Engine::Managers::GlobalStateManager::getWritable<Engine::States::DebugState>();
+		auto& debugState = GlobalStateManager::getWritable<DebugState>();
 
-		while(logBuffer) {
+		while (logBuffer) {
 			logBuffer.getline(debugState.logs[debugState.logOffset].data(), maxLogLength);
 
 			debugState.logOffset = (debugState.logOffset + 1) % maxLogEntries;
@@ -206,11 +198,11 @@ int Core::run() {
 		if (cumulativeDT >= 0.1f) {
 			debugState.avgFrameTime = cumulativeDT / frameCount;
 
-			frameCount = 0;
+			frameCount	 = 0;
 			cumulativeDT = 0.0;
 		}
 
-		Engine::Managers::GlobalStateManager::update();
+		GlobalStateManager::update();
 
 		// update systems
 		for (auto& system : systems) {

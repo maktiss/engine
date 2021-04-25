@@ -1,7 +1,7 @@
 #include "InputManager.hpp"
 
 
-namespace Engine::Managers {
+namespace Engine {
 std::vector<uint> InputManager::actionStates {};
 std::vector<double> InputManager::actionAxes {};
 
@@ -13,4 +13,4 @@ int InputManager::init() {
 
 	return 0;
 }
-} // namespace Engine::Managers
+} // namespace Engine

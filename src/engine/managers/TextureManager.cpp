@@ -3,7 +3,7 @@
 #include <spdlog/spdlog.h>
 
 
-namespace Engine::Managers {
+namespace Engine {
 std::vector<TextureManager::TextureInfo> TextureManager::textureInfos {};
 
 std::vector<VmaAllocation> TextureManager::allocationInfos {};
@@ -14,9 +14,9 @@ VmaAllocator TextureManager::vmaAllocator {};
 vk::Queue TextureManager::vkTransferQueue {};
 vk::CommandPool TextureManager::vkCommandPool {};
 
-Engine::Graphics::StagingBuffer TextureManager::stagingBuffer {};
+StagingBuffer TextureManager::stagingBuffer {};
 
-Engine::Graphics::DescriptorSetArray TextureManager::descriptorSetArray {};
+DescriptorSetArray TextureManager::descriptorSetArray {};
 
 vk::Sampler TextureManager::vkSampler {};
 
@@ -380,4 +380,4 @@ void TextureManager::dispose() {
 
 	vkDevice.destroySampler(vkSampler);
 }
-} // namespace Engine::Managers
+} // namespace Engine

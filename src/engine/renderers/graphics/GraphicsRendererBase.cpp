@@ -6,7 +6,7 @@
 #include <spdlog/spdlog.h>
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 int GraphicsRendererBase::init() {
 	if (createRenderPass()) {
 		return 1;
@@ -175,7 +175,7 @@ int GraphicsRendererBase::createFramebuffer() {
 		std::vector<vk::ImageView> imageViews(outputs.size());
 
 		for (uint i = 0; i < imageViews.size(); i++) {
-			const auto image = Engine::Managers::TextureManager::getTextureInfo(outputs[i]).image;
+			const auto image = TextureManager::getTextureInfo(outputs[i]).image;
 			vk::ImageView imageView {};
 
 			vk::ImageViewCreateInfo imageViewCreateInfo {};
@@ -226,10 +226,10 @@ int GraphicsRendererBase::createFramebuffer() {
 }
 
 int GraphicsRendererBase::createGraphicsPipelines() {
-	constexpr auto shaderTypeCount = Engine::Managers::GraphicsShaderManager::getTypeCount();
-	constexpr auto meshTypeCount   = Engine::Managers::MeshManager::getTypeCount();
+	constexpr auto shaderTypeCount = GraphicsShaderManager::getTypeCount();
+	constexpr auto meshTypeCount   = MeshManager::getTypeCount();
 
-	auto renderPassIndex = Engine::Managers::GraphicsShaderManager::getRenderPassIndex(getRenderPassName());
+	auto renderPassIndex = GraphicsShaderManager::getRenderPassIndex(getRenderPassName());
 
 	const auto& pipelineInputAssemblyStateCreateInfo = getVkPipelineInputAssemblyStateCreateInfo();
 	const auto& viewport							 = getVkViewport();
@@ -256,24 +256,22 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 		for (uint meshTypeIndex = 0; meshTypeIndex < meshTypeCount; meshTypeIndex++) {
 			vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {};
 
-			auto vertexAttributeDescriptions =
-				Engine::Managers::MeshManager::getVertexInputAttributeDescriptions(meshTypeIndex);
+			auto vertexAttributeDescriptions = MeshManager::getVertexInputAttributeDescriptions(meshTypeIndex);
 			pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = vertexAttributeDescriptions.size();
 			pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions	   = vertexAttributeDescriptions.data();
 
-			auto vertexBindingDescriptions =
-				Engine::Managers::MeshManager::getVertexInputBindingDescriptions(meshTypeIndex);
+			auto vertexBindingDescriptions = MeshManager::getVertexInputBindingDescriptions(meshTypeIndex);
 			pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = vertexBindingDescriptions.size();
 			pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions	 = vertexBindingDescriptions.data();
 
-			auto signatureCount = Engine::Managers::GraphicsShaderManager::getShaderSignatureCount(shaderTypeIndex);
+			auto signatureCount = GraphicsShaderManager::getShaderSignatureCount(shaderTypeIndex);
 
 			for (uint signature = 0; signature < signatureCount; signature++) {
 				uint32_t shaderStageCount = 0;
 				vk::PipelineShaderStageCreateInfo pipelineShaderStageCreateInfos[6];
 
-				auto shaderInfo = Engine::Managers::GraphicsShaderManager::getShaderInfo(
-					renderPassIndex, shaderTypeIndex, meshTypeIndex, signature);
+				auto shaderInfo =
+					GraphicsShaderManager::getShaderInfo(renderPassIndex, shaderTypeIndex, meshTypeIndex, signature);
 				for (uint shaderStageIndex = 0; shaderStageIndex < 6; shaderStageIndex++) {
 					if (shaderInfo.shaderModules[shaderStageIndex] != vk::ShaderModule()) {
 						switch (shaderStageIndex) {
@@ -341,4 +339,4 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 
 	return 0;
 }
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

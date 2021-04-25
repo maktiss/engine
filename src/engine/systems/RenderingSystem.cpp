@@ -9,7 +9,7 @@
 #include "engine/renderers/graphics/SkymapRenderer.hpp"
 
 
-namespace Engine::Systems {
+namespace Engine {
 void RenderingSystem::RenderGraph::addInputConnection(std::string srcName, uint srcOutputIndex, std::string dstName,
 													  uint dstInputIndex, bool nextFrame) {
 	nodes[srcName].inputReferenceSets[srcOutputIndex].insert({ dstName, dstInputIndex, nextFrame });
@@ -90,41 +90,37 @@ int RenderingSystem::init() {
 
 	// FIXME testing
 
-	Engine::Managers::GraphicsShaderManager::setVkDevice(vkDevice);
-	Engine::Managers::GraphicsShaderManager::init();
+	GraphicsShaderManager::setVkDevice(vkDevice);
+	GraphicsShaderManager::init();
 
-	if (Engine::Managers::GraphicsShaderManager::importShaderSources<Engine::Graphics::Shaders::SimpleShader>(
-			std::array<std::string, 6> { "assets/shaders/solid_color_shader.vsh", "", "", "",
-										 "assets/shaders/solid_color_shader.fsh", "" })) {
+	if (GraphicsShaderManager::importShaderSources<SimpleShader>(std::array<std::string, 6> {
+			"assets/shaders/solid_color_shader.vsh", "", "", "", "assets/shaders/solid_color_shader.fsh", "" })) {
 		return 1;
 	}
 
-	if (Engine::Managers::GraphicsShaderManager::importShaderSources<Engine::Graphics::Shaders::SkyboxShader>(
-			std::array<std::string, 6> { "assets/shaders/skybox_shader.vsh", "", "", "",
-										 "assets/shaders/skybox_shader.fsh", "" })) {
+	if (GraphicsShaderManager::importShaderSources<SkyboxShader>(std::array<std::string, 6> {
+			"assets/shaders/skybox_shader.vsh", "", "", "", "assets/shaders/skybox_shader.fsh", "" })) {
 		return 1;
 	}
 
-	if (Engine::Managers::GraphicsShaderManager::importShaderSources<Engine::Graphics::Shaders::SkymapShader>(
-			std::array<std::string, 6> { "assets/shaders/skymap_shader.vsh", "", "", "",
-										 "assets/shaders/skymap_shader.fsh", "" })) {
+	if (GraphicsShaderManager::importShaderSources<SkymapShader>(std::array<std::string, 6> {
+			"assets/shaders/skymap_shader.vsh", "", "", "", "assets/shaders/skymap_shader.fsh", "" })) {
 		return 1;
 	}
 
-	if (Engine::Managers::GraphicsShaderManager::importShaderSources<Engine::Graphics::Shaders::PostFxShader>(
-			std::array<std::string, 6> { "assets/shaders/postfx_shader.vsh", "", "", "",
-										 "assets/shaders/postfx_shader.fsh", "" })) {
+	if (GraphicsShaderManager::importShaderSources<PostFxShader>(std::array<std::string, 6> {
+			"assets/shaders/postfx_shader.vsh", "", "", "", "assets/shaders/postfx_shader.fsh", "" })) {
 		return 1;
 	}
 
 
-	Engine::Managers::TextureManager::setVkDevice(vkDevice);
-	Engine::Managers::TextureManager::setVkCommandPool(vkCommandPools[0]);
-	Engine::Managers::TextureManager::setVkTransferQueue(vkGraphicsQueue);
-	Engine::Managers::TextureManager::setVulkanMemoryAllocator(vmaAllocator);
-	Engine::Managers::TextureManager::init();
+	TextureManager::setVkDevice(vkDevice);
+	TextureManager::setVkCommandPool(vkCommandPools[0]);
+	TextureManager::setVkTransferQueue(vkGraphicsQueue);
+	TextureManager::setVulkanMemoryAllocator(vmaAllocator);
+	TextureManager::init();
 
-	// auto textureHandle = Engine::Managers::TextureManager::createObject(0);
+	// auto textureHandle = TextureManager::createObject(0);
 	// auto swapchainInfo = vkSwapchainInfo;
 	// textureHandle.apply([swapchainInfo](auto& texture){
 	// 	texture.size = vk::Extent3D(swapchainInfo.extent.width, swapchainInfo.extent.height, 1);
@@ -134,50 +130,50 @@ int RenderingSystem::init() {
 	// textureHandle.update();
 
 
-	Engine::Managers::MeshManager::setVkDevice(vkDevice);
-	Engine::Managers::MeshManager::setVkCommandPool(vkCommandPools[0]);
-	Engine::Managers::MeshManager::setVkTransferQueue(vkGraphicsQueue);
-	Engine::Managers::MeshManager::setVulkanMemoryAllocator(vmaAllocator);
-	Engine::Managers::MeshManager::init();
+	MeshManager::setVkDevice(vkDevice);
+	MeshManager::setVkCommandPool(vkCommandPools[0]);
+	MeshManager::setVkTransferQueue(vkGraphicsQueue);
+	MeshManager::setVulkanMemoryAllocator(vmaAllocator);
+	MeshManager::init();
 
 
-	Engine::Managers::MaterialManager::setVkDevice(vkDevice);
-	Engine::Managers::MaterialManager::setVulkanMemoryAllocator(vmaAllocator);
-	Engine::Managers::MaterialManager::init();
+	MaterialManager::setVkDevice(vkDevice);
+	MaterialManager::setVulkanMemoryAllocator(vmaAllocator);
+	MaterialManager::init();
 
-	// auto materialHandle = Engine::Managers::MaterialManager::createObject(0);
+	// auto materialHandle = MaterialManager::createObject(0);
 	// materialHandle.apply([](auto& material) {
 	// 	material.color = glm::vec3(0.5f, 0.3f, 0.8f);
 	// });
 	// materialHandle.update();
 
 
-	auto depthNormalRenderer = std::make_shared<Engine::Renderers::Graphics::DepthNormalRenderer>();
+	auto depthNormalRenderer = std::make_shared<DepthNormalRenderer>();
 	depthNormalRenderer->setVkDevice(vkDevice);
 	depthNormalRenderer->setOutputSize({ 1920, 1080 });
 	depthNormalRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
-	auto forwardRenderer = std::make_shared<Engine::Renderers::Graphics::ForwardRenderer>();
+	auto forwardRenderer = std::make_shared<ForwardRenderer>();
 	forwardRenderer->setVkDevice(vkDevice);
 	forwardRenderer->setOutputSize({ 1920, 1080 });
 	forwardRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
-	auto shadowMapRenderer = std::make_shared<Engine::Renderers::Graphics::ShadowMapRenderer>();
+	auto shadowMapRenderer = std::make_shared<ShadowMapRenderer>();
 	shadowMapRenderer->setVkDevice(vkDevice);
 	shadowMapRenderer->setOutputSize({ 1920, 1080 });
 	shadowMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
-	auto skyboxRenderer = std::make_shared<Engine::Renderers::Graphics::SkyboxRenderer>();
+	auto skyboxRenderer = std::make_shared<SkyboxRenderer>();
 	skyboxRenderer->setVkDevice(vkDevice);
 	skyboxRenderer->setOutputSize({ 1920, 1080 });
 	skyboxRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
-	auto skymapRenderer = std::make_shared<Engine::Renderers::Graphics::SkymapRenderer>();
+	auto skymapRenderer = std::make_shared<SkymapRenderer>();
 	skymapRenderer->setVkDevice(vkDevice);
 	skymapRenderer->setOutputSize({ 1024, 1024 });
 	skymapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
-	auto imGuiRenderer = std::make_shared<Engine::Renderers::Graphics::ImGuiRenderer>();
+	auto imGuiRenderer = std::make_shared<ImGuiRenderer>();
 	imGuiRenderer->setVkDevice(vkDevice);
 	imGuiRenderer->setOutputSize({ 1920, 1080 });
 	imGuiRenderer->setVulkanMemoryAllocator(vmaAllocator);
@@ -185,7 +181,7 @@ int RenderingSystem::init() {
 	imGuiRenderer->setVkPhysicalDevice(getActivePhysicalDevice());
 	imGuiRenderer->setVkGraphicsQueue(vkGraphicsQueue);
 
-	auto postFxRenderer = std::make_shared<Engine::Renderers::Graphics::PostFxRenderer>();
+	auto postFxRenderer = std::make_shared<PostFxRenderer>();
 	postFxRenderer->setVkDevice(vkDevice);
 	postFxRenderer->setOutputSize({ 1920, 1080 });
 	postFxRenderer->setVulkanMemoryAllocator(vmaAllocator);
@@ -535,7 +531,7 @@ int RenderingSystem::init() {
 
 		for (uint outputIndex = 0; outputIndex < outputDescriptions.size(); outputIndex++) {
 			if (renderGraphNode.backwardOutputReferences[outputIndex].rendererName.empty()) {
-				auto textureHandle = Engine::Managers::TextureManager::createObject(0);
+				auto textureHandle = TextureManager::createObject(0);
 
 				bool isFinal = false;
 				if (finalOutputReference.rendererName == rendererName &&
@@ -603,7 +599,7 @@ int RenderingSystem::init() {
 	// for (auto& renderer : renderers) {
 	// 	const auto& outputDescriptions = renderer->getOutputDescriptions();
 	// 	for (uint outputIndex = 0; outputIndex < outputDescriptions.size(); outputIndex++) {
-	// 		auto textureHandle = Engine::Managers::TextureManager::createObject(0);
+	// 		auto textureHandle = TextureManager::createObject(0);
 
 	// 		textureHandle.apply([&outputDescriptions, outputIndex](auto& textureHandle) {
 	// 			textureHandle.format = outputDescriptions[outputIndex].format;
@@ -748,7 +744,7 @@ int RenderingSystem::init() {
 	vk::QueryPoolCreateInfo queryPoolCreateInfo {};
 	queryPoolCreateInfo.queryType = vk::QueryType::eTimestamp;
 
-	auto& debugState = Engine::Managers::GlobalStateManager::getWritable<Engine::States::DebugState>();
+	auto& debugState = GlobalStateManager::getWritable<DebugState>();
 
 	uint maxQueries = 0;
 	for (const auto& [rendererName, renderer] : renderers) {
@@ -817,7 +813,7 @@ int RenderingSystem::run(double dt) {
 										 timestampQueriesBuffer.data(), sizeof(uint64_t),
 										 vk::QueryResultFlagBits::e64) == vk::Result::eSuccess) {
 
-			auto& debugState = Engine::Managers::GlobalStateManager::getWritable<Engine::States::DebugState>();
+			auto& debugState = GlobalStateManager::getWritable<DebugState>();
 
 			auto& times = debugState.rendererExecutionTimes[rendererName];
 			for (uint i = 0; i < times.size(); i++) {
@@ -929,7 +925,7 @@ int RenderingSystem::present() {
 
 	vk::CommandBufferBeginInfo commandBufferBeginInfo {};
 
-	auto& srcImage = Engine::Managers::TextureManager::getTextureInfo(finalTextureHandle).image;
+	auto& srcImage = TextureManager::getTextureInfo(finalTextureHandle).image;
 	auto& dstImage = vkSwapchainInfo.images[imageIndex];
 
 
@@ -1314,4 +1310,4 @@ void RenderingSystem::addRequiredDeviceExtensionNames(const std::vector<const ch
 	requiredDeviceExtensionNames.insert(requiredDeviceExtensionNames.end(), extensionNames.begin(),
 										extensionNames.end());
 }
-} // namespace Engine::Systems
+} // namespace Engine

@@ -3,7 +3,7 @@
 #include "GraphicsRendererBase.hpp"
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 class ShadowMapRenderer : public GraphicsRendererBase {
 private:
 	PROPERTY(float, "Graphics", directionalLightCascadeBase, 2.0f);
@@ -108,4 +108,4 @@ public:
 		return pipelineDepthStencilStateCreateInfo;
 	}
 };
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

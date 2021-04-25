@@ -5,7 +5,7 @@
 #include <vector>
 
 
-namespace Engine::Utils {
+namespace Engine {
 inline int readTextFile(std::string filename, std::string& buffer) {
 	std::ifstream file(filename, std::ios::ate);
 
@@ -37,4 +37,4 @@ inline int readFile(std::string filename, std::vector<uint8_t>& buffer) {
 
 	return 0;
 }
-} // namespace Engine::Utils
+} // namespace Engine

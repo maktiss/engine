@@ -1,21 +1,15 @@
 #pragma once
 
-#include "engine/managers/EntityManager.hpp"
-#include "engine/managers/InputManager.hpp"
-#include "engine/managers/MaterialManager.hpp"
-#include "engine/managers/MeshManager.hpp"
-#include "engine/managers/ScriptManager.hpp"
-#include "engine/managers/GraphicsShaderManager.hpp"
-#include "engine/managers/TextureManager.hpp"
+#include "engine/managers/Managers.hpp"
 
 #include <string>
 
 
-namespace Engine::Scripts {
+namespace Engine {
 class ScriptBase {
 public:
 	// Called once per frame
-	virtual int onUpdate(Engine::Managers::EntityManager::Handle handle, double dt) {
+	virtual int onUpdate(EntityManager::Handle handle, double dt) {
 		return 0;
 	}
 
@@ -23,4 +17,4 @@ public:
 		return "script_unnamed";
 	}
 };
-} // namespace Engine::Scripts
+} // namespace Engine

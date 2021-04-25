@@ -8,7 +8,7 @@
 #include <vector>
 
 
-namespace Engine::Graphics::Meshes {
+namespace Engine {
 class StaticMesh : public MeshBase<StaticMesh> {
 public:
 	// TODO: test performance impact due to elements of a tuple being reversed
@@ -21,4 +21,4 @@ public:
 		return "MESH_TYPE_STATIC";
 	}
 };
-} // namespace Engine::Graphics::Meshes
+} // namespace Engine

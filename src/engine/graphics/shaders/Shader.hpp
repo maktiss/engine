@@ -5,7 +5,7 @@
 #include <vector>
 
 
-namespace Engine::Graphics::Shaders {
+namespace Engine {
 class Shader {
 public:
 	enum Type {
@@ -33,4 +33,4 @@ public:
 		return shaderSources[shaderStage];
 	}
 };
-} // namespace Engine::Graphics::Shaders
+} // namespace Engine

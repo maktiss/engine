@@ -1,34 +1,28 @@
 #include "CameraScript.hpp"
 
 
-namespace Engine::Scripts {
-int CameraScript::onUpdate(Engine::Managers::EntityManager::Handle handle, double dt) {
+namespace Engine {
+int CameraScript::onUpdate(EntityManager::Handle handle, double dt) {
 	auto movementDir = glm::vec4(0.0f);
 
-	if (Engine::Managers::InputManager::isKeyActionStatePressed(
-			Engine::Managers::InputManager::KeyAction::CAMERA_MOVE_LEFT)) {
+	if (InputManager::isKeyActionStatePressed(InputManager::KeyAction::CAMERA_MOVE_LEFT)) {
 		movementDir.x = -1.0f;
 	}
-	if (Engine::Managers::InputManager::isKeyActionStatePressed(
-			Engine::Managers::InputManager::KeyAction::CAMERA_MOVE_RIGHT)) {
+	if (InputManager::isKeyActionStatePressed(InputManager::KeyAction::CAMERA_MOVE_RIGHT)) {
 		movementDir.x = 1.0f;
 	}
 
-	if (Engine::Managers::InputManager::isKeyActionStatePressed(
-			Engine::Managers::InputManager::KeyAction::CAMERA_MOVE_DOWN)) {
+	if (InputManager::isKeyActionStatePressed(InputManager::KeyAction::CAMERA_MOVE_DOWN)) {
 		movementDir.y = -1.0f;
 	}
-	if (Engine::Managers::InputManager::isKeyActionStatePressed(
-			Engine::Managers::InputManager::KeyAction::CAMERA_MOVE_UP)) {
+	if (InputManager::isKeyActionStatePressed(InputManager::KeyAction::CAMERA_MOVE_UP)) {
 		movementDir.y = 1.0f;
 	}
 
-	if (Engine::Managers::InputManager::isKeyActionStatePressed(
-			Engine::Managers::InputManager::KeyAction::CAMERA_MOVE_BACKWARD)) {
+	if (InputManager::isKeyActionStatePressed(InputManager::KeyAction::CAMERA_MOVE_BACKWARD)) {
 		movementDir.z = -1.0f;
 	}
-	if (Engine::Managers::InputManager::isKeyActionStatePressed(
-			Engine::Managers::InputManager::KeyAction::CAMERA_MOVE_FORWARD)) {
+	if (InputManager::isKeyActionStatePressed(InputManager::KeyAction::CAMERA_MOVE_FORWARD)) {
 		movementDir.z = 1.0f;
 	}
 
@@ -37,17 +31,14 @@ int CameraScript::onUpdate(Engine::Managers::EntityManager::Handle handle, doubl
 	}
 
 
-	auto& transform = handle.getComponent<Engine::Components::Transform>();
+	auto& transform = handle.getComponent<TransformComponent>();
 
 
 	double sensitivity = 0.002;
 
-	if (Engine::Managers::InputManager::isKeyActionStatePressed(
-			Engine::Managers::InputManager::KeyAction::CAMERA_ACTIVE)) {
-		transform.rotation.y +=
-			Engine::Managers::InputManager::getActionAxis(Engine::Managers::InputManager::AxisAction::CAMERA_ROTATE_X) * sensitivity;
-		transform.rotation.x +=
-			Engine::Managers::InputManager::getActionAxis(Engine::Managers::InputManager::AxisAction::CAMERA_ROTATE_Y) * sensitivity;
+	if (InputManager::isKeyActionStatePressed(InputManager::KeyAction::CAMERA_ACTIVE)) {
+		transform.rotation.y += InputManager::getActionAxis(InputManager::AxisAction::CAMERA_ROTATE_X) * sensitivity;
+		transform.rotation.x += InputManager::getActionAxis(InputManager::AxisAction::CAMERA_ROTATE_Y) * sensitivity;
 	}
 
 	transform.rotation.x = std::max(-1.5707f, transform.rotation.x);
@@ -55,9 +46,9 @@ int CameraScript::onUpdate(Engine::Managers::EntityManager::Handle handle, doubl
 
 	movementDir = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * movementDir;
 	movementDir = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * movementDir;
-	
+
 	transform.position += glm::vec3(movementDir.x, movementDir.y, movementDir.z) * static_cast<float>(dt) * 5.0f;
 
 	return 0;
 }
-} // namespace Engine::Scripts
+} // namespace Engine

@@ -3,11 +3,10 @@
 #include "engine/renderers/RendererBase.hpp"
 
 
-namespace Engine::Renderers::Compute {
-class ComputeRendererBase : public Engine::Renderers::RendererBase {
+namespace Engine {
+class ComputeRendererBase : public RendererBase {
 public:
-	ComputeRendererBase(uint inputCount = 0, uint outputCount = 0) :
-		Engine::Renderers::RendererBase(inputCount, outputCount) {
+	ComputeRendererBase(uint inputCount = 0, uint outputCount = 0) : RendererBase(inputCount, outputCount) {
 	}
 };
-} // namespace Engine::Renderers::Compute
+} // namespace Engine

@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 int ForwardRenderer::init() {
 	spdlog::info("Initializing ForwardRenderer...");
 
@@ -44,8 +44,7 @@ int ForwardRenderer::init() {
 	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
 	descriptorSetArrays[0].setBindingLayoutInfo(1, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-	descriptorSetArrays[0].updateImage(0, 1, 0, sampler,
-									   Engine::Managers::TextureManager::getTextureInfo(inputs[0]).imageView);
+	descriptorSetArrays[0].updateImage(0, 1, 0, sampler, TextureManager::getTextureInfo(inputs[0]).imageView);
 
 	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
 	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
@@ -78,9 +77,9 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 										 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
 	}
 
-	const auto textureDescriptorSet = Engine::Managers::TextureManager::getVkDescriptorSet();
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, 4, 1,
-										&textureDescriptorSet, 0, nullptr);
+	const auto textureDescriptorSet = TextureManager::getVkDescriptorSet();
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, 4, 1, &textureDescriptorSet, 0,
+									 nullptr);
 
 
 	struct {
@@ -94,23 +93,22 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 	glm::vec3 cameraPos;
 	glm::vec3 cameraViewDir;
 
-	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Camera>(
-		[&](auto& transform, auto& camera) {
-			// TODO: Check if active camera
-			glm::vec4 viewVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-			viewVector			 = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
-			viewVector			 = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
-			viewVector			 = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
+	EntityManager::forEach<TransformComponent, CameraComponent>([&](auto& transform, auto& camera) {
+		// TODO: Check if active camera
+		glm::vec4 viewVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+		viewVector			 = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
+		viewVector			 = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
+		viewVector			 = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
 
-			cameraPos	  = transform.position;
-			cameraViewDir = glm::vec3(viewVector);
+		cameraPos	  = transform.position;
+		cameraViewDir = glm::vec3(viewVector);
 
-			cameraBlock.viewMatrix = glm::lookAtLH(
-				transform.position, transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
-				glm::vec3(0.0f, 1.0f, 0.0f));
+		cameraBlock.viewMatrix =
+			glm::lookAtLH(transform.position, transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
+						  glm::vec3(0.0f, 1.0f, 0.0f));
 
-			cameraBlock.projectionMatrix = camera.getProjectionMatrix();
-		});
+		cameraBlock.projectionMatrix = camera.getProjectionMatrix();
+	});
 
 	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
@@ -148,58 +146,57 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 	*environmentBlockMap.useDirectionalLight = false;
 
 
-	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Light>(
-		[&](const auto& transform, const auto& light) {
-			if (light.type == Engine::Components::Light::Type::DIRECTIONAL) {
-				auto lightDirection = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
-				lightDirection		= glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * lightDirection;
-				lightDirection		= glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * lightDirection;
-				lightDirection		= glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * lightDirection;
+	EntityManager::forEach<TransformComponent, LightComponent>([&](const auto& transform, const auto& light) {
+		if (light.type == LightComponent::Type::DIRECTIONAL) {
+			auto lightDirection = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+			lightDirection		= glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * lightDirection;
+			lightDirection		= glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * lightDirection;
+			lightDirection		= glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * lightDirection;
 
-				*environmentBlockMap.useDirectionalLight		= true;
-				*environmentBlockMap.directionalLight.direction = glm::vec3(cameraBlock.viewMatrix * lightDirection);
-				*environmentBlockMap.directionalLight.color		= light.color;
-				*environmentBlockMap.directionalLight.shadowMapIndex = light.shadowMapIndex;
+			*environmentBlockMap.useDirectionalLight			 = true;
+			*environmentBlockMap.directionalLight.direction		 = glm::vec3(cameraBlock.viewMatrix * lightDirection);
+			*environmentBlockMap.directionalLight.color			 = light.color;
+			*environmentBlockMap.directionalLight.shadowMapIndex = light.shadowMapIndex;
 
-				// FIXME
-				const float cascadeHalfSizes[] = { 2.0f, 4.0f, 8.0f };
-				float cascadeHalfSize		   = cascadeHalfSizes[0];
+			// FIXME
+			const float cascadeHalfSizes[] = { 2.0f, 4.0f, 8.0f };
+			float cascadeHalfSize		   = cascadeHalfSizes[0];
+
+			auto lightSpaceMatrix =
+				glm::lookAtLH(cameraPos, cameraPos + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
+
+			lightSpaceMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize, cascadeHalfSize,
+											   -1000.0f, 1000.0f) *
+							   lightSpaceMatrix;
+
+			*environmentBlockMap.directionalLight.baseLightSpaceMatrix = lightSpaceMatrix;
+
+			for (uint cascadeIndex = 0; cascadeIndex < 3; cascadeIndex++) {
+				cascadeHalfSize = cascadeHalfSizes[cascadeIndex];
+
+				glm::vec3 position = cameraPos + cascadeHalfSize * directionalLightCascadeOffset * cameraViewDir;
 
 				auto lightSpaceMatrix =
-					glm::lookAtLH(cameraPos, cameraPos + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
+					glm::lookAtLH(position, position + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
 
 				lightSpaceMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize, cascadeHalfSize,
 												   -1000.0f, 1000.0f) *
 								   lightSpaceMatrix;
 
-				*environmentBlockMap.directionalLight.baseLightSpaceMatrix = lightSpaceMatrix;
-
-				for (uint cascadeIndex = 0; cascadeIndex < 3; cascadeIndex++) {
-					cascadeHalfSize = cascadeHalfSizes[cascadeIndex];
-
-					glm::vec3 position = cameraPos + cascadeHalfSize * directionalLightCascadeOffset * cameraViewDir;
-
-					auto lightSpaceMatrix =
-						glm::lookAtLH(position, position + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
-
-					lightSpaceMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize,
-													   cascadeHalfSize, -1000.0f, 1000.0f) *
-									   lightSpaceMatrix;
-
-					environmentBlockMap.directionalLight.lightSpaceMatrices[cascadeIndex] = lightSpaceMatrix;
-				}
+				environmentBlockMap.directionalLight.lightSpaceMatrices[cascadeIndex] = lightSpaceMatrix;
 			}
-		});
+		}
+	});
 
 
 	descriptorSetArrays[2].unmapBuffer(0, 0);
 
 
-	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(
+	EntityManager::forEach<TransformComponent, ModelComponent>(
 		[&commandBuffer, pipelineLayout = vkPipelineLayout, &graphicsPipelines = vkPipelines](auto& transform,
 																							  auto& model) {
-			const auto& meshInfo	 = Engine::Managers::MeshManager::getMeshInfo(model.meshHandles[0]);
-			const auto& materialInfo = Engine::Managers::MaterialManager::getMaterialInfo(model.materialHandles[0]);
+			const auto& meshInfo	 = MeshManager::getMeshInfo(model.meshHandles[0]);
+			const auto& materialInfo = MaterialManager::getMaterialInfo(model.materialHandles[0]);
 
 			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics,
 									   graphicsPipelines[model.shaderHandles[0].getIndex()]);
@@ -221,4 +218,4 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 			commandBuffer.drawIndexed(meshInfo.indexCount, 1, 0, 0, 0);
 		});
 }
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

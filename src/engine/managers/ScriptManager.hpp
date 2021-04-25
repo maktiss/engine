@@ -3,12 +3,12 @@
 #include "ScriptManagerBase.hpp"
 
 
-namespace Engine::Scripts {
+namespace Engine {
 class ScriptBase;
-} // namespace Engine::Scripts
+} // namespace Engine
 
-namespace Engine::Managers {
-class ScriptManager : public ScriptManagerBase<ScriptManager, Engine::Scripts::ScriptBase> {
+namespace Engine {
+class ScriptManager : public ScriptManagerBase<ScriptManager, ScriptBase> {
 public:
 	static int init();
 
@@ -16,4 +16,4 @@ public:
 private:
 	ScriptManager() {};
 };
-} // namespace Engine::Managers
+} // namespace Engine

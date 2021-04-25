@@ -19,7 +19,7 @@
 #include <vector>
 
 
-namespace Engine::Managers {
+namespace Engine {
 template <typename DerivedManager, typename... ShaderTypes>
 class GraphicsShaderManagerBase {
 public:
@@ -70,15 +70,14 @@ public:
 		shaderInfoOffsets[0] = 0;
 		for (uint shaderTypeIndex = 1; shaderTypeIndex < getTypeCount(); shaderTypeIndex++) {
 			shaderInfoOffsets[shaderTypeIndex] =
-				shaderInfoOffsets[shaderTypeIndex - 1] +
-				meshTypeCount * getShaderSignatureCount(shaderTypeIndex - 1);
+				shaderInfoOffsets[shaderTypeIndex - 1] + meshTypeCount * getShaderSignatureCount(shaderTypeIndex - 1);
 		}
 
 		const auto lastShaderTypeIndex = getTypeCount() - 1;
 		shaderInfoArrays.resize(rendererTypeCount);
 		for (auto& shaderInfos : shaderInfoArrays) {
 			shaderInfos.resize(shaderInfoOffsets[lastShaderTypeIndex] +
-						   meshTypeCount * getShaderSignatureCount(lastShaderTypeIndex));
+							   meshTypeCount * getShaderSignatureCount(lastShaderTypeIndex));
 		}
 
 		return 0;
@@ -147,7 +146,7 @@ public:
 
 		for (uint i = 0; i < 6; i++) {
 			if (!glslSourceFilenames[i].empty()) {
-				if (Engine::Utils::readTextFile(glslSourceFilenames[i], glslSources[i])) {
+				if (readTextFile(glslSourceFilenames[i], glslSources[i])) {
 					spdlog::error("Failed to open shader '{}' for compilation", glslSourceFilenames[i]);
 					return 1;
 				}
@@ -175,7 +174,7 @@ public:
 					std::string filename = directoryName + glslSources[i].substr(filenamePosition + 1, filenameLength);
 
 					std::string includeSource;
-					if (Engine::Utils::readTextFile(filename, includeSource)) {
+					if (readTextFile(filename, includeSource)) {
 						spdlog::error("Failed preprocess shader '{}': cannot open '{}' to include",
 									  glslSourceFilenames[i], filename);
 						return 1;
@@ -407,4 +406,4 @@ std::array<uint, sizeof...(ShaderTypes)>
 
 template <typename DerivedManager, typename... ShaderTypes>
 vk::Device GraphicsShaderManagerBase<DerivedManager, ShaderTypes...>::vkDevice {};
-} // namespace Engine::Managers
+} // namespace Engine

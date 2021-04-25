@@ -3,15 +3,15 @@
 #include "engine/renderers/RendererBase.hpp"
 
 
-namespace Engine::Renderers::Graphics {
-class GraphicsRendererBase : public Engine::Renderers::RendererBase {
+namespace Engine {
+class GraphicsRendererBase : public RendererBase {
 protected:
 	vk::RenderPass vkRenderPass {};
 	std::vector<vk::Framebuffer> vkFramebuffers {};
 
 
 public:
-	GraphicsRendererBase(uint inputCount, uint outputCount) : Engine::Renderers::RendererBase(inputCount, outputCount) {
+	GraphicsRendererBase(uint inputCount, uint outputCount) : RendererBase(inputCount, outputCount) {
 	}
 
 
@@ -30,9 +30,9 @@ public:
 
 
 	virtual const std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() override {
-		auto layouts = Engine::Renderers::RendererBase::getVkDescriptorSetLayouts();
-		layouts.push_back(Engine::Managers::MaterialManager::getVkDescriptorSetLayout());
-		layouts.push_back(Engine::Managers::TextureManager::getVkDescriptorSetLayout());
+		auto layouts = RendererBase::getVkDescriptorSetLayouts();
+		layouts.push_back(MaterialManager::getVkDescriptorSetLayout());
+		layouts.push_back(TextureManager::getVkDescriptorSetLayout());
 		return layouts;
 	}
 
@@ -124,4 +124,4 @@ public:
 		return pipelineColorBlendAttachmentState;
 	}
 };
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

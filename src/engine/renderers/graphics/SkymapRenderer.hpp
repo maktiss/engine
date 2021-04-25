@@ -3,11 +3,11 @@
 #include "GraphicsRendererBase.hpp"
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 class SkymapRenderer : public GraphicsRendererBase {
 private:
-	Engine::Managers::MeshManager::Handle skySphereMesh {};
-	Engine::Managers::GraphicsShaderManager::Handle shaderHandle {};
+	MeshManager::Handle skySphereMesh {};
+	GraphicsShaderManager::Handle shaderHandle {};
 
 
 public:
@@ -23,8 +23,8 @@ public:
 	const char* getRenderPassName() const override {
 		return "RENDER_PASS_SKYMAP";
 	}
-	
-	
+
+
 	inline uint getMultiviewLayerCount() const override {
 		return 6;
 	}
@@ -109,4 +109,4 @@ public:
 		return pipelineRasterizationStateCreateInfo;
 	}
 };
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

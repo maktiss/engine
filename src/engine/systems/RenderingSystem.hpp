@@ -36,7 +36,7 @@
 	}
 
 
-namespace Engine::Systems {
+namespace Engine {
 class RenderingSystem : public SystemBase {
 private:
 	struct QueueFamilyIndices {
@@ -183,7 +183,7 @@ private:
 	std::vector<vk::Fence> vkImageBlitCommandBufferFences {};
 
 
-	Engine::Managers::TextureManager::Handle finalTextureHandle {};
+	TextureManager::Handle finalTextureHandle {};
 
 	std::vector<const char*> requiredInstanceExtensionNames = {};
 	std::vector<const char*> requiredDeviceExtensionNames	= { VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -196,7 +196,7 @@ private:
 
 	VmaAllocator vmaAllocator = nullptr;
 
-	std::unordered_map<std::string, std::shared_ptr<Engine::Renderers::RendererBase>> renderers {};
+	std::unordered_map<std::string, std::shared_ptr<RendererBase>> renderers {};
 
 	RenderGraph renderGraph {};
 
@@ -218,9 +218,9 @@ public:
 			renderer->dispose();
 		}
 
-		Engine::Managers::MeshManager::destroy();
-		Engine::Managers::MaterialManager::dispose();
-		Engine::Managers::TextureManager::dispose();
+		MeshManager::destroy();
+		MaterialManager::dispose();
+		TextureManager::dispose();
 		vmaDestroyAllocator(vmaAllocator);
 	}
 
@@ -297,4 +297,4 @@ private:
 		return vkSupportedPhysicalDevices[activePhysicalDeviceIndex];
 	}
 };
-} // namespace Engine::Systems
+} // namespace Engine

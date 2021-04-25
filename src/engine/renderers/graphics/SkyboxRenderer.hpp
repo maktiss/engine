@@ -3,11 +3,11 @@
 #include "GraphicsRendererBase.hpp"
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 class SkyboxRenderer : public GraphicsRendererBase {
 private:
-	Engine::Managers::MeshManager::Handle boxMesh {};
-	Engine::Managers::GraphicsShaderManager::Handle shaderHandle {};
+	MeshManager::Handle boxMesh {};
+	GraphicsShaderManager::Handle shaderHandle {};
 
 	// TODO: destroy
 	vk::Sampler vkSampler {};
@@ -45,7 +45,7 @@ public:
 
 		descriptions[0].format = vk::Format::eR16G16B16A16Sfloat;
 		descriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
-		descriptions[0].flags = vk::ImageCreateFlagBits::eCubeCompatible;
+		descriptions[0].flags  = vk::ImageCreateFlagBits::eCubeCompatible;
 
 		return descriptions;
 	}
@@ -96,4 +96,4 @@ public:
 		return attachmentReferences;
 	}
 };
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

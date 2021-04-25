@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 int ImGuiRenderer::init() {
 	spdlog::info("Initializing ImGuiRenderer...");
 
@@ -95,4 +95,4 @@ void ImGuiRenderer::imGuiErrorCallback(VkResult result) {
 		spdlog::error("[ImGuiRenderer] Error code: {} ()", result, vk::to_string(vk::Result(result)));
 	}
 }
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

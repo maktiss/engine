@@ -8,7 +8,7 @@
 #include <vector>
 
 
-namespace Engine::Graphics {
+namespace Engine {
 class DescriptorSetArray {
 private:
 	vk::Device vkDevice {};
@@ -82,4 +82,4 @@ public:
 		return vkDescriptorSets[index];
 	}
 };
-} // namespace Engine::Graphics
+} // namespace Engine

@@ -5,7 +5,7 @@
 #include "engine/managers/TextureManager.hpp"
 
 
-namespace Engine::Graphics::Materials {
+namespace Engine {
 template <typename DerivedMaterialType, typename ShaderType>
 class MaterialBase {
 public:
@@ -29,4 +29,4 @@ public:
 		return std::is_same<ShaderType, ComparableShaderType>::value;
 	}
 };
-} // namespace Engine::Graphics::Materials
+} // namespace Engine

@@ -5,7 +5,7 @@
 #include <spdlog/spdlog.h>
 
 
-namespace Engine::Systems {
+namespace Engine {
 int ScriptingSystem::init() {
 	spdlog::info("Initializing ScriptingSystem...");
 
@@ -14,10 +14,10 @@ int ScriptingSystem::init() {
 
 int ScriptingSystem::run(double dt) {
 
-	Engine::Managers::EntityManager::forEachIndexed<Engine::Components::Script>([dt](auto handle, auto& script) {
-		Engine::Managers::ScriptManager::getScript<Engine::Scripts::ScriptBase>(script.handle)->onUpdate(handle, dt);
+	EntityManager::forEachIndexed<ScriptComponent>([dt](auto handle, auto& script) {
+		ScriptManager::getScript<ScriptBase>(script.handle)->onUpdate(handle, dt);
 	});
 
 	return 0;
 }
-} // namespace Engine::Systems
+} // namespace Engine

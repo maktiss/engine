@@ -5,8 +5,8 @@
 #include <glm/glm.hpp>
 
 
-namespace Engine::Components {
-class Light : public ComponentBase {
+namespace Engine {
+class LightComponent : public ComponentBase {
 public:
 	enum class Type {
 		POINT,
@@ -24,4 +24,4 @@ public:
 	bool castsShadows {};
 	int shadowMapIndex = -1;
 };
-} // namespace Engine::Components
+} // namespace Engine

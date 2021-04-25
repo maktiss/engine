@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 
-namespace Engine::Graphics::Shaders {
+namespace Engine {
 class SimpleShader : public GraphicsShaderBase<SimpleShader> {
 public:
 	enum Flags {
@@ -32,4 +32,4 @@ public:
 		return "";
 	}
 };
-} // namespace Engine::Graphics::Shaders
+} // namespace Engine

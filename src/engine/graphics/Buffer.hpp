@@ -6,7 +6,7 @@
 #include "vk_mem_alloc.h"
 
 
-namespace Engine::Graphics {
+namespace Engine {
 class Buffer {
 private:
 	VmaAllocator vmaAllocator = nullptr;
@@ -20,14 +20,15 @@ private:
 	VmaMemoryUsage vmaMemoryUsage;
 
 public:
-	Buffer(vk::BufferUsageFlags bufferUsageFlags,
-		   VmaMemoryUsage memoryUsage) : vkBufferUsageFlags(bufferUsageFlags), vmaMemoryUsage(memoryUsage) {
+	Buffer(vk::BufferUsageFlags bufferUsageFlags, VmaMemoryUsage memoryUsage) :
+		vkBufferUsageFlags(bufferUsageFlags), vmaMemoryUsage(memoryUsage) {
 	}
 
 	[[nodiscard]] vk::Result allocate(VmaAllocator allocator, vk::DeviceSize bufferSize);
 
 	[[nodiscard]] vk::Result write(void* data);
-	[[nodiscard]] vk::Result writeStaged(vk::Device device, vk::Queue transferQueue, vk::CommandPool commandPool, void* data);
+	[[nodiscard]] vk::Result writeStaged(vk::Device device, vk::Queue transferQueue, vk::CommandPool commandPool,
+										 void* data);
 
 	void destroy();
 
@@ -35,4 +36,4 @@ public:
 		return vkBuffer;
 	}
 };
-} // namespace Engine::Graphics
+} // namespace Engine

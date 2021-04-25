@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 int PostFxRenderer::init() {
 	spdlog::info("Initializing PostFxRenderer...");
 
@@ -49,7 +49,7 @@ int PostFxRenderer::init() {
 	imageViewCreateInfo.subresourceRange.levelCount		= 1;
 	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 	imageViewCreateInfo.subresourceRange.layerCount		= 1;
-	imageViewCreateInfo.image = Engine::Managers::TextureManager::getTextureInfo(inputs[0]).image;
+	imageViewCreateInfo.image							= TextureManager::getTextureInfo(inputs[0]).image;
 
 	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkImageView);
 	if (result != vk::Result::eSuccess) {
@@ -71,7 +71,7 @@ int PostFxRenderer::init() {
 	descriptorSetArrays[0].updateImage(0, 1, 0, vkSampler, vkImageView);
 
 
-	mesh = Engine::Managers::MeshManager::createObject(0);
+	mesh = MeshManager::createObject(0);
 	mesh.apply([](auto& mesh) {
 		auto& vertexBuffer = mesh.getVertexBuffer();
 		vertexBuffer.resize(8);
@@ -94,7 +94,7 @@ int PostFxRenderer::init() {
 	});
 	mesh.update();
 
-	shaderHandle = Engine::Managers::GraphicsShaderManager::getHandle<Engine::Graphics::Shaders::PostFxShader>(mesh);
+	shaderHandle = GraphicsShaderManager::getHandle<PostFxShader>(mesh);
 
 
 	return GraphicsRendererBase::init();
@@ -112,7 +112,7 @@ void PostFxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 	}
 
 
-	const auto& meshInfo = Engine::Managers::MeshManager::getMeshInfo(mesh);
+	const auto& meshInfo = MeshManager::getMeshInfo(mesh);
 
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkPipelines[shaderHandle.getIndex()]);
 
@@ -126,4 +126,4 @@ void PostFxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 
 	commandBuffer.drawIndexed(meshInfo.indexCount, 1, 0, 0, 0);
 }
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

@@ -1,7 +1,7 @@
 #include "RendererBase.hpp"
 
 
-namespace Engine::Renderers {
+namespace Engine {
 int RendererBase::createVkPipelineLayout() {
 	auto descriptorSetLayouts = getVkDescriptorSetLayouts();
 
@@ -26,4 +26,4 @@ int RendererBase::createVkPipelineLayout() {
 
 	return 0;
 }
-} // namespace Engine::Renderers
+} // namespace Engine

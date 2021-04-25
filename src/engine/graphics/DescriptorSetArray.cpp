@@ -3,7 +3,7 @@
 #include <spdlog/spdlog.h>
 
 
-namespace Engine::Graphics {
+namespace Engine {
 int DescriptorSetArray::init(vk::Device device, VmaAllocator allocator) {
 	dispose();
 
@@ -207,4 +207,4 @@ void DescriptorSetArray::dispose() {
 		vkDevice = vk::Device();
 	}
 }
-} // namespace Engine::Graphics
+} // namespace Engine

@@ -8,7 +8,7 @@
 #include <vector>
 
 
-namespace Engine::Managers {
+namespace Engine {
 template <typename DerivedManager, typename... ManageableTypes>
 class ResourceManagerBase {
 public:
@@ -213,4 +213,4 @@ std::unordered_map<uint32_t, typename ResourceManagerBase<DerivedManager, Manage
 template <typename DerivedManager, typename... ManageableTypes>
 std::vector<int32_t> ResourceManagerBase<DerivedManager, ManageableTypes...>::referenceCounts {};
 
-} // namespace Engine::Managers
+} // namespace Engine

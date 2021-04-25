@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 int DepthNormalRenderer::init() {
 	spdlog::info("Initializing DepthNormalRenderer...");
 
@@ -17,7 +17,7 @@ int DepthNormalRenderer::init() {
 
 	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
 	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-	
+
 	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
 	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
 
@@ -46,18 +46,17 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 		glm::mat4 invProjectionMatrix;
 	} cameraBlock;
 
-	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Camera>(
-		[&cameraBlock](auto& transform, auto& camera) {
-			glm::vec4 viewVector   = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-			viewVector			   = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
-			viewVector			   = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
-			viewVector			   = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
-			cameraBlock.viewMatrix = glm::lookAtLH(
-				transform.position, transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
-				glm::vec3(0.0f, 1.0f, 0.0f));
+	EntityManager::forEach<TransformComponent, CameraComponent>([&cameraBlock](auto& transform, auto& camera) {
+		glm::vec4 viewVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+		viewVector			 = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
+		viewVector			 = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
+		viewVector			 = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
+		cameraBlock.viewMatrix =
+			glm::lookAtLH(transform.position, transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
+						  glm::vec3(0.0f, 1.0f, 0.0f));
 
-			cameraBlock.projectionMatrix = camera.getProjectionMatrix();
-		});
+		cameraBlock.projectionMatrix = camera.getProjectionMatrix();
+	});
 
 	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
@@ -65,10 +64,10 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 	descriptorSetArrays[1].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
 
 
-	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(
+	EntityManager::forEach<TransformComponent, ModelComponent>(
 		[&commandBuffer, pipelineLayout = vkPipelineLayout, &pipelines = vkPipelines](auto& transform, auto& model) {
-			const auto& meshInfo	 = Engine::Managers::MeshManager::getMeshInfo(model.meshHandles[0]);
-			const auto& materialInfo = Engine::Managers::MaterialManager::getMaterialInfo(model.materialHandles[0]);
+			const auto& meshInfo	 = MeshManager::getMeshInfo(model.meshHandles[0]);
+			const auto& materialInfo = MaterialManager::getMaterialInfo(model.materialHandles[0]);
 
 			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines[model.shaderHandles[0].getIndex()]);
 
@@ -89,4 +88,4 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 			commandBuffer.drawIndexed(meshInfo.indexCount, 1, 0, 0, 0);
 		});
 }
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

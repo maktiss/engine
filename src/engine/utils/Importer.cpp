@@ -8,17 +8,16 @@
 #include "stb_image.h"
 
 
-namespace Engine::Utils {
+namespace Engine {
 Assimp::Importer Importer::assimpImporter {};
 
 
-int Importer::importMesh(std::string filename, std::vector<Engine::Managers::MeshManager::Handle>& meshHandles) {
+int Importer::importMesh(std::string filename, std::vector<MeshManager::Handle>& meshHandles) {
 	spdlog::info("Importing mesh '{}'...", filename);
 
-	const aiScene* scene =
-		assimpImporter.ReadFile(filename,
-								aiProcess_CalcTangentSpace | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes |
-									aiProcess_PreTransformVertices | aiProcess_MakeLeftHanded);
+	const aiScene* scene = assimpImporter.ReadFile(
+		filename, aiProcess_CalcTangentSpace | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes |
+					  aiProcess_PreTransformVertices | aiProcess_MakeLeftHanded);
 
 	if (!scene) {
 		spdlog::error("Failed to import '{}'", filename);
@@ -29,7 +28,7 @@ int Importer::importMesh(std::string filename, std::vector<Engine::Managers::Mes
 
 	for (uint i = 0; i < meshHandles.size(); i++) {
 		auto& meshHandle = meshHandles[i];
-		meshHandle		 = Engine::Managers::MeshManager::createObject(0);
+		meshHandle		 = MeshManager::createObject(0);
 
 		auto assimpMesh = scene->mMeshes[i];
 
@@ -78,7 +77,7 @@ int Importer::importMesh(std::string filename, std::vector<Engine::Managers::Mes
 	return 0;
 }
 
-int Importer::importTexture(std::string filename, Engine::Managers::TextureManager::Handle& textureHandle, bool srgb) {
+int Importer::importTexture(std::string filename, TextureManager::Handle& textureHandle, bool srgb) {
 	spdlog::info("Importing texture '{}'...", filename);
 	int width;
 	int height;
@@ -96,9 +95,9 @@ int Importer::importTexture(std::string filename, Engine::Managers::TextureManag
 		texture.setPixelData(image, width * height * 4);
 
 		if (srgb) {
-			texture.format		= vk::Format::eR8G8B8A8Srgb;
+			texture.format = vk::Format::eR8G8B8A8Srgb;
 		} else {
-			texture.format		= vk::Format::eR8G8B8A8Unorm;
+			texture.format = vk::Format::eR8G8B8A8Unorm;
 		}
 		texture.usage		= vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
 		texture.imageAspect = vk::ImageAspectFlagBits::eColor;
@@ -111,4 +110,4 @@ int Importer::importTexture(std::string filename, Engine::Managers::TextureManag
 
 	return 0;
 }
-} // namespace Engine::Utils
+} // namespace Engine

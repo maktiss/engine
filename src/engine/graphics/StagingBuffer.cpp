@@ -3,7 +3,7 @@
 #include <spdlog/spdlog.h>
 
 
-namespace Engine::Graphics {
+namespace Engine {
 int StagingBuffer::init(vk::Device device, VmaAllocator allocator, vk::DeviceSize size) {
 	vkDevice	 = device;
 	vmaAllocator = allocator;
@@ -191,4 +191,4 @@ int StagingBuffer::endCommandBuffer(vk::Queue transferQueue, vk::CommandPool com
 	vkDevice.freeCommandBuffers(commandPool, 1, &commandBuffer);
 	return 0;
 }
-} // namespace Engine::Graphics
+} // namespace Engine

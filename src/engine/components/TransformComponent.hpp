@@ -6,8 +6,8 @@
 #include <glm/gtx/transform.hpp>
 
 
-namespace Engine::Components {
-class Transform : public ComponentBase {
+namespace Engine {
+class TransformComponent : public ComponentBase {
 public:
 	glm::vec3 position {};
 	glm::vec3 rotation {};
@@ -28,4 +28,4 @@ public:
 		return matrix;
 	}
 };
-} // namespace Engine::Components
+} // namespace Engine

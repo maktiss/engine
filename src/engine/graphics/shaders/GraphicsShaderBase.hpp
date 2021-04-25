@@ -5,7 +5,7 @@
 #include <vector>
 
 
-namespace Engine::Graphics::Shaders {
+namespace Engine {
 template <typename DerivedShader>
 class GraphicsShaderBase {
 private:
@@ -24,7 +24,7 @@ public:
 	inline std::vector<uint8_t>& getShaderSource(uint shaderStage) {
 		return shaderSources[shaderStage];
 	}
-	
+
 
 	static constexpr auto getFlagNames() {
 		std::array<const char*, getFlagCount()> flagNames {};
@@ -58,4 +58,4 @@ public:
 		return sizeof(typename DerivedShader::MaterialUniformBlock);
 	}
 };
-} // namespace Engine::Graphics::Shaders
+} // namespace Engine

@@ -3,7 +3,7 @@
 #include <spdlog/spdlog.h>
 
 
-namespace Engine::Graphics {
+namespace Engine {
 vk::Result Buffer::allocate(VmaAllocator allocator, vk::DeviceSize bufferSize) {
 	vmaAllocator = allocator;
 	vkBufferSize = bufferSize;
@@ -40,8 +40,7 @@ vk::Result Buffer::write(void* data) {
 }
 
 vk::Result Buffer::writeStaged(vk::Device device, vk::Queue transferQueue, vk::CommandPool commandPool, void* data) {
-	Engine::Graphics::Buffer stagingBuffer = { vk::BufferUsageFlagBits::eTransferSrc,
-													 VMA_MEMORY_USAGE_CPU_TO_GPU };
+	Buffer stagingBuffer = { vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU };
 
 	stagingBuffer.allocate(vmaAllocator, vkBufferSize);
 	// RETURN_IF_VK_ERROR(stagingBuffer.allocate(), "Failed to allocate buffer");
@@ -67,8 +66,7 @@ vk::Result Buffer::writeStaged(vk::Device device, vk::Queue transferQueue, vk::C
 
 	vk::BufferCopy bufferCopy {};
 	bufferCopy.size = vkBufferSize;
-	stagingCommandBuffer.copyBuffer(
-		stagingBuffer.getVkBuffer(), vkBuffer, 1, &bufferCopy);
+	stagingCommandBuffer.copyBuffer(stagingBuffer.getVkBuffer(), vkBuffer, 1, &bufferCopy);
 
 	stagingCommandBuffer.end();
 
@@ -87,10 +85,9 @@ vk::Result Buffer::writeStaged(vk::Device device, vk::Queue transferQueue, vk::C
 }
 
 
-
 void Buffer::destroy() {
 	if (vmaAllocator != nullptr) {
 		vmaDestroyBuffer(vmaAllocator, vkBuffer, vmaAllocation);
 	}
 }
-} // namespace Engine::Graphics
+} // namespace Engine

@@ -22,7 +22,7 @@
 	}
 
 
-namespace Engine::Graphics::Meshes {
+namespace Engine {
 template <typename MeshType>
 class MeshBase {
 public:
@@ -92,4 +92,4 @@ private:
 		return vertexInputAttributeDescriptions;
 	}
 };
-} // namespace Engine::Graphics
+} // namespace Engine

@@ -3,7 +3,7 @@
 #include <spdlog/spdlog.h>
 
 
-namespace Engine::Systems {
+namespace Engine {
 int InputSystem::init() {
 	spdlog::info("Initializing InputSystem...");
 
@@ -89,4 +89,4 @@ int InputSystem::run(double dt) {
 
 	return 0;
 }
-} // namespace Engine::Systems
+} // namespace Engine

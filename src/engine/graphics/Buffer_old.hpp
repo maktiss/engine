@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.hpp>
 
 
-namespace Engine::Graphics {
+namespace Engine {
 class Buffer {
 private:
 	vk::Device vkDevice;
@@ -91,4 +91,4 @@ public:
 		return vkBuffer;
 	}
 };
-} // namespace Engine::Graphics::Buffer
+} // namespace Buffer

@@ -5,16 +5,15 @@
 #include <glm/glm.hpp>
 
 
-namespace Engine::Graphics::Shaders {
+namespace Engine {
 class PostFxShader : public GraphicsShaderBase<PostFxShader> {
 public:
-	enum Flags {
-	};
-	
+	enum Flags {};
+
 
 public:
 	static constexpr const char* getFlagName(Flags flag) {
 		return "";
 	}
 };
-} // namespace Engine::Graphics::Shaders
+} // namespace Engine

@@ -5,7 +5,7 @@
 #include "engine/graphics/OneTimeCommandBuffer.hpp"
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 class ImGuiRenderer : public GraphicsRendererBase {
 private:
 	vk::Instance vkInstance {};
@@ -16,7 +16,7 @@ private:
 	// TODO: destroy
 	vk::DescriptorPool vkDescriptorPool {};
 
-	Engine::Graphics::OneTimeCommandBuffer oneTimeCommandBuffer {};
+	OneTimeCommandBuffer oneTimeCommandBuffer {};
 
 
 public:
@@ -101,4 +101,4 @@ public:
 
 	static void imGuiErrorCallback(VkResult result);
 };
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

@@ -9,7 +9,7 @@
 #include <vector>
 
 
-namespace Engine::Managers {
+namespace Engine {
 template <typename DerivedManager, typename... ScriptBaseTypes>
 class ScriptManagerBase {
 public:
@@ -89,8 +89,8 @@ private:
 			auto& scriptArray = std::get<std::vector<std::shared_ptr<ScriptBaseType>>>(scripts);
 			scriptArray.push_back(script);
 
-			constexpr auto typeIndex = getScriptTypeIndex<ScriptBaseType>();
-			uint32_t index			 = scriptArray.size() - 1;
+			constexpr auto typeIndex			 = getScriptTypeIndex<ScriptBaseType>();
+			uint32_t index						 = scriptArray.size() - 1;
 			scriptInfos[script->getScriptName()] = { typeIndex, index };
 		}
 	}
@@ -121,4 +121,4 @@ std::tuple<std::vector<std::shared_ptr<ScriptBaseTypes>>...>
 template <typename DerivedManager, typename... ScriptBaseTypes>
 std::map<std::string, typename ScriptManagerBase<DerivedManager, ScriptBaseTypes...>::ScriptInfo>
 	ScriptManagerBase<DerivedManager, ScriptBaseTypes...>::scriptInfos {};
-} // namespace Engine::Managers
+} // namespace Engine

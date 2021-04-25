@@ -6,7 +6,7 @@
 #include "vk_mem_alloc.h"
 
 
-namespace Engine::Graphics {
+namespace Engine {
 class StagingBuffer {
 private:
 	vk::Device vkDevice {};
@@ -36,4 +36,4 @@ private:
 	[[nodiscard]] int endCommandBuffer(vk::Queue transferQueue, vk::CommandPool commandPool,
 									   vk::CommandBuffer& commandBuffer);
 };
-} // namespace Engine::Graphics
+} // namespace Engine

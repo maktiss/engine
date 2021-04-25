@@ -6,7 +6,7 @@
 #include <vector>
 
 
-namespace Engine::Graphics {
+namespace Engine {
 template <typename DerivedTextureType, vk::ImageType ImageType>
 class TextureBase {
 public:
@@ -46,4 +46,4 @@ public:
 		return ImageType;
 	}
 };
-} // namespace Engine::Graphics
+} // namespace Engine

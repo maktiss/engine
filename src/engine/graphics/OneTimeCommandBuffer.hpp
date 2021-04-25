@@ -6,7 +6,7 @@
 #include <spdlog/spdlog.h>
 
 
-namespace Engine::Graphics {
+namespace Engine {
 class OneTimeCommandBuffer {
 private:
 	vk::Device vkDevice {};
@@ -105,4 +105,4 @@ public:
 		}
 	}
 };
-} // namespace Engine::Graphics
+} // namespace Engine

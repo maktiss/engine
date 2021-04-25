@@ -3,7 +3,7 @@
 #include "GraphicsRendererBase.hpp"
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 class DepthNormalRenderer : public GraphicsRendererBase {
 public:
 	DepthNormalRenderer() : GraphicsRendererBase(0, 1) {
@@ -85,7 +85,7 @@ public:
 
 		return attachmentReferences;
 	}
-	
+
 
 	inline vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() override {
 		vk::PipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {};
@@ -96,4 +96,4 @@ public:
 		return pipelineDepthStencilStateCreateInfo;
 	}
 };
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

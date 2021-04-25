@@ -15,8 +15,8 @@
 #include "vk_mem_alloc.h"
 
 
-namespace Engine::Managers {
-class TextureManager : public ResourceManagerBase<TextureManager, Engine::Graphics::Texture2D> {
+namespace Engine {
+class TextureManager : public ResourceManagerBase<TextureManager, Texture2D> {
 public:
 	struct TextureInfo {
 		vk::Image image {};
@@ -35,9 +35,9 @@ private:
 	static vk::Queue vkTransferQueue;
 	static vk::CommandPool vkCommandPool;
 
-	static Engine::Graphics::StagingBuffer stagingBuffer;
+	static StagingBuffer stagingBuffer;
 
-	static Engine::Graphics::DescriptorSetArray descriptorSetArray;
+	static DescriptorSetArray descriptorSetArray;
 
 	static vk::Sampler vkSampler;
 
@@ -101,4 +101,4 @@ private:
 	// Destroys resource given it's index
 	static void destroy(uint32_t index);
 };
-} // namespace Engine::Managers
+} // namespace Engine

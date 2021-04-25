@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 int ShadowMapRenderer::init() {
 	spdlog::info("Initializing ShadowMapRenderer...");
 
@@ -53,43 +53,41 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 	glm::vec3 cameraPos;
 	glm::vec3 cameraViewDir;
 
-	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Camera>(
-		[&](const auto& transform, const auto& camera) {
-			// TODO: Check if active camera
-			auto viewVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-			viewVector		= glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
-			viewVector		= glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
-			viewVector		= glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
+	EntityManager::forEach<TransformComponent, CameraComponent>([&](const auto& transform, const auto& camera) {
+		// TODO: Check if active camera
+		auto viewVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+		viewVector		= glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * viewVector;
+		viewVector		= glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * viewVector;
+		viewVector		= glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * viewVector;
 
-			cameraPos	  = transform.position;
-			cameraViewDir = glm::vec3(viewVector);
-		});
+		cameraPos	  = transform.position;
+		cameraViewDir = glm::vec3(viewVector);
+	});
 
 	// FIXME
 	const float cascadeHalfSizes[] = { 2.0f, 4.0f, 8.0f };
 	const float cascadeHalfSize	   = cascadeHalfSizes[layerIndex];
 
-	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Light>(
-		[&](const auto& transform, auto& light) {
-			if (light.castsShadows) {
-				if (light.type == Engine::Components::Light::Type::DIRECTIONAL) {
-					auto lightDirection = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
-					lightDirection = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * lightDirection;
-					lightDirection = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * lightDirection;
-					lightDirection = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * lightDirection;
+	EntityManager::forEach<TransformComponent, LightComponent>([&](const auto& transform, auto& light) {
+		if (light.castsShadows) {
+			if (light.type == LightComponent::Type::DIRECTIONAL) {
+				auto lightDirection = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+				lightDirection		= glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * lightDirection;
+				lightDirection		= glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * lightDirection;
+				lightDirection		= glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * lightDirection;
 
-					glm::vec3 position = cameraPos + cascadeHalfSize * directionalLightCascadeOffset * cameraViewDir;
+				glm::vec3 position = cameraPos + cascadeHalfSize * directionalLightCascadeOffset * cameraViewDir;
 
-					cameraBlock.viewMatrix =
-						glm::lookAtLH(position, position + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
+				cameraBlock.viewMatrix =
+					glm::lookAtLH(position, position + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
 
-					cameraBlock.projectionMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize,
-																   cascadeHalfSize, -1000.0f, 1000.0f);
+				cameraBlock.projectionMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize,
+															   cascadeHalfSize, -1000.0f, 1000.0f);
 
-					light.shadowMapIndex = 0;
-				}
+				light.shadowMapIndex = 0;
 			}
-		});
+		}
+	});
 
 	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
@@ -97,10 +95,10 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 	descriptorSetArrays[1].updateBuffer(layerIndex, 0, &cameraBlock, sizeof(cameraBlock));
 
 
-	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Model>(
+	EntityManager::forEach<TransformComponent, ModelComponent>(
 		[&commandBuffer, pipelineLayout = vkPipelineLayout, &pipelines = vkPipelines](auto& transform, auto& model) {
-			const auto& meshInfo	 = Engine::Managers::MeshManager::getMeshInfo(model.meshHandles[0]);
-			const auto& materialInfo = Engine::Managers::MaterialManager::getMaterialInfo(model.materialHandles[0]);
+			const auto& meshInfo	 = MeshManager::getMeshInfo(model.meshHandles[0]);
+			const auto& materialInfo = MaterialManager::getMaterialInfo(model.materialHandles[0]);
 
 			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines[model.shaderHandles[0].getIndex()]);
 
@@ -121,4 +119,4 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 			commandBuffer.drawIndexed(meshInfo.indexCount, 1, 0, 0, 0);
 		});
 }
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine

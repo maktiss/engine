@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 
 
-namespace Engine::Systems {
+namespace Engine {
 class ImGuiSystem : public SystemBase {
 private:
 	GLFWwindow* glfwWindow {};
@@ -23,4 +23,4 @@ public:
 	void showLogWindow();
 	void showStatisticsWindow();
 };
-} // namespace Engine::Systems
+} // namespace Engine

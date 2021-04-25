@@ -2,7 +2,7 @@
 
 #include "ResourceManagerBase.hpp"
 
-#include "engine/graphics/materials/SimpleMaterial.hpp"
+#include "engine/graphics/materials/Materials.hpp"
 
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
@@ -10,8 +10,8 @@
 #include "vk_mem_alloc.h"
 
 
-namespace Engine::Managers {
-class MaterialManager : public ResourceManagerBase<MaterialManager, Engine::Graphics::Materials::SimpleMaterial> {
+namespace Engine {
+class MaterialManager : public ResourceManagerBase<MaterialManager, SimpleMaterial> {
 public:
 	struct MaterialInfo {
 		vk::Buffer uniformBuffer; // TODO: move uniformbuffer out; not needed for rendering
@@ -79,4 +79,4 @@ private:
 
 	static void destroy(uint32_t index);
 };
-} // namespace Engine::Managers
+} // namespace Engine

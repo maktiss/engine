@@ -13,12 +13,13 @@ add_executable(
 	${PROJECT_NAME}
 	src/engine/Core.cpp
 	src/engine/Core.hpp
-	src/engine/components/Camera.hpp
+	src/engine/components/CameraComponent.hpp
 	src/engine/components/ComponentBase.hpp
-	src/engine/components/Light.hpp
-	src/engine/components/Model.hpp
-	src/engine/components/Script.hpp
-	src/engine/components/Transform.hpp
+	src/engine/components/Components.hpp
+	src/engine/components/LightComponent.hpp
+	src/engine/components/ModelComponent.hpp
+	src/engine/components/ScriptComponent.hpp
+	src/engine/components/TransformComponent.hpp
 	src/engine/graphics/Buffer.cpp
 	src/engine/graphics/Buffer.hpp
 	src/engine/graphics/DescriptorSetArray.cpp
@@ -27,14 +28,18 @@ add_executable(
 	src/engine/graphics/StagingBuffer.cpp
 	src/engine/graphics/StagingBuffer.hpp
 	src/engine/graphics/materials/MaterialBase.hpp
+	src/engine/graphics/materials/Materials.hpp
 	src/engine/graphics/materials/SimpleMaterial.hpp
 	src/engine/graphics/meshes/MeshBase.hpp
+	src/engine/graphics/meshes/Meshes.hpp
 	src/engine/graphics/meshes/StaticMesh.hpp
 	src/engine/graphics/shaders/GraphicsShaderBase.hpp
 	src/engine/graphics/shaders/PostFxShader.hpp
 	src/engine/graphics/shaders/Shader.hpp
+	src/engine/graphics/shaders/Shaders.hpp
 	src/engine/graphics/shaders/SimpleShader.hpp
 	src/engine/graphics/shaders/SkyboxShader.hpp
+	src/engine/graphics/shaders/SkymapShader.hpp
 	src/engine/graphics/textures/Texture2D.hpp
 	src/engine/graphics/textures/TextureBase.hpp
 	src/engine/managers/ConfigManager.cpp
@@ -49,6 +54,7 @@ add_executable(
 	src/engine/managers/GraphicsShaderManagerBase.hpp
 	src/engine/managers/InputManager.cpp
 	src/engine/managers/InputManager.hpp
+	src/engine/managers/Managers.hpp
 	src/engine/managers/MaterialManager.cpp
 	src/engine/managers/MaterialManager.hpp
 	src/engine/managers/MeshManager.cpp
@@ -78,6 +84,7 @@ add_executable(
 	src/engine/renderers/graphics/SkymapRenderer.hpp
 	src/engine/renderers/RendererBase.cpp
 	src/engine/renderers/RendererBase.hpp
+	src/engine/renderers/Renderers.hpp
 	src/engine/scripts/CameraScript.cpp
 	src/engine/scripts/CameraScript.hpp
 	src/engine/scripts/FloatingObjectScript.cpp
@@ -93,6 +100,7 @@ add_executable(
 	src/engine/systems/ScriptingSystem.cpp
 	src/engine/systems/ScriptingSystem.hpp
 	src/engine/systems/SystemBase.hpp
+	src/engine/systems/Systems.hpp
 	src/engine/utils/CPUTimer.hpp
 	src/engine/utils/Importer.cpp
 	src/engine/utils/Importer.hpp

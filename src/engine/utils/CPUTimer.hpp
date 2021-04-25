@@ -3,7 +3,7 @@
 #include <chrono>
 
 
-namespace Engine::Utils {
+namespace Engine {
 class CPUTimer {
 private:
 	std::chrono::_V2::system_clock::time_point timeStart {};
@@ -18,4 +18,4 @@ public:
 		return std::chrono::duration_cast<std::chrono::duration<double>>(timeNow - timeStart).count();
 	}
 };
-} // namespace Engine::Utils
+} // namespace Engine

@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 
-namespace Engine::Renderers::Graphics {
+namespace Engine {
 int SkymapRenderer::init() {
 	spdlog::info("Initializing SkymapRenderer...");
 
@@ -60,7 +60,7 @@ int SkymapRenderer::init() {
 	const float yStep		= 1.0f / (verticalVertexCount + 1);
 	const float angularStep = (2.0f * M_PI) / horisontalVertexCount;
 
-	skySphereMesh = Engine::Managers::MeshManager::createObject(0);
+	skySphereMesh = MeshManager::createObject(0);
 	skySphereMesh.apply([&](auto& mesh) {
 		auto& vertexBuffer = mesh.getVertexBuffer();
 		vertexBuffer.resize(2 + verticalVertexCount * horisontalVertexCount);
@@ -156,8 +156,7 @@ int SkymapRenderer::init() {
 	});
 	skySphereMesh.update();
 
-	shaderHandle =
-		Engine::Managers::GraphicsShaderManager::getHandle<Engine::Graphics::Shaders::SkymapShader>(skySphereMesh);
+	shaderHandle = GraphicsShaderManager::getHandle<SkymapShader>(skySphereMesh);
 
 
 	return GraphicsRendererBase::init();
@@ -177,21 +176,20 @@ void SkymapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 
 	auto sunDirection = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 
-	Engine::Managers::EntityManager::forEach<Engine::Components::Transform, Engine::Components::Light>(
-		[&](const auto& transform, auto& light) {
-			if (light.castsShadows) {
-				if (light.type == Engine::Components::Light::Type::DIRECTIONAL) {
-					sunDirection = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * sunDirection;
-					sunDirection = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * sunDirection;
-					sunDirection = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * sunDirection;
-				}
+	EntityManager::forEach<TransformComponent, LightComponent>([&](const auto& transform, auto& light) {
+		if (light.castsShadows) {
+			if (light.type == LightComponent::Type::DIRECTIONAL) {
+				sunDirection = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * sunDirection;
+				sunDirection = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * sunDirection;
+				sunDirection = glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * sunDirection;
 			}
-		});
+		}
+	});
 
 	descriptorSetArrays[1].updateBuffer(0, 0, &sunDirection, sizeof(sunDirection));
 
 
-	const auto& meshInfo = Engine::Managers::MeshManager::getMeshInfo(skySphereMesh);
+	const auto& meshInfo = MeshManager::getMeshInfo(skySphereMesh);
 
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkPipelines[shaderHandle.getIndex()]);
 
@@ -205,4 +203,4 @@ void SkymapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 
 	commandBuffer.drawIndexed(meshInfo.indexCount, 1, 0, 0, 0);
 }
-} // namespace Engine::Renderers::Graphics
+} // namespace Engine
