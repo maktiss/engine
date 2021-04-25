@@ -89,6 +89,14 @@ int InputSystem::run(double dt) {
 	lastMousePosX = mousePosX;
 	lastMousePosY = mousePosY;
 
+
+	if (InputManager::isKeyActionStatePressed(InputManager::KeyAction::CAMERA_ACTIVE)) {
+		glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	} else {
+		glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	}
+
+
 	return 0;
 }
 } // namespace Engine
