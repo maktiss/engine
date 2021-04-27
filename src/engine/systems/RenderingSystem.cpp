@@ -1,12 +1,8 @@
 #include "RenderingSystem.hpp"
 
-#include "engine/renderers/graphics/DepthNormalRenderer.hpp"
-#include "engine/renderers/graphics/ForwardRenderer.hpp"
-#include "engine/renderers/graphics/ImGuiRenderer.hpp"
-#include "engine/renderers/graphics/PostFxRenderer.hpp"
-#include "engine/renderers/graphics/ShadowMapRenderer.hpp"
-#include "engine/renderers/graphics/SkyboxRenderer.hpp"
-#include "engine/renderers/graphics/SkymapRenderer.hpp"
+#include "engine/renderers/Renderers.hpp"
+
+#include "engine/utils/CPUTimer.hpp"
 
 
 namespace Engine {
@@ -767,6 +763,40 @@ int RenderingSystem::init() {
 	timestampQueriesBuffer.resize(maxQueries);
 
 
+	// FIXME not hardcoded index
+	auto& executionTimes = debugState.executionTimeArrays[3];
+
+	for (const auto& rendererName : rendererExecutionOrder) {
+		auto& renderer = renderers[rendererName];
+
+		const auto layerCount		   = renderer->getLayerCount();
+		const auto multiviewLayerCount = renderer->getMultiviewLayerCount();
+
+		DebugState::ExecutionTime executionTime {};
+		executionTime.level = 1;
+		executionTime.name	= rendererName;
+		executionTimes.push_back(executionTime);
+
+		for (uint layerIndex = 0; layerIndex < layerCount; layerIndex++) {
+			executionTime.level = 2;
+			executionTime.name	= "Layer " + std::to_string(layerIndex);
+
+			if (layerCount > 1 || multiviewLayerCount > 1) {
+				executionTimes.push_back(executionTime);
+			}
+
+			for (uint multiviewLayerIndex = 0; multiviewLayerIndex < multiviewLayerCount; multiviewLayerIndex++) {
+				executionTime.level = 3;
+				executionTime.name	= "MV Layer " + std::to_string(multiviewLayerIndex);
+
+				if (multiviewLayerCount > 1) {
+					executionTimes.push_back(executionTime);
+				}
+			}
+		}
+	}
+	executionTimes.push_back({ 1, "SwapchainPresent" });
+
 	return 0;
 }
 
@@ -797,6 +827,13 @@ int RenderingSystem::run(double dt) {
 
 	// Query timestamps
 
+	auto& debugState		= GlobalStateManager::getWritable<DebugState>();
+
+	// FIXME not hardcoded index
+	auto& executionTimes = debugState.executionTimeArrays[3];
+
+	uint executionTimeIndex = 1;
+
 	for (const auto& rendererName : rendererExecutionOrder) {
 		auto& renderer	   = renderers[rendererName];
 		auto rendererIndex = getRendererIndex(rendererName);
@@ -808,21 +845,68 @@ int RenderingSystem::run(double dt) {
 
 		const auto queryCount = layerCount * multiviewLayerCount * 2;
 
-		// FIXME: figure out why it returns 0s using multiview
-		if (vkDevice.getQueryPoolResults(queryPool, 0, queryCount, sizeof(uint64_t) * queryCount,
-										 timestampQueriesBuffer.data(), sizeof(uint64_t),
-										 vk::QueryResultFlagBits::e64) == vk::Result::eSuccess) {
+		vkDevice.getQueryPoolResults(queryPool, 0, queryCount, sizeof(uint64_t) * queryCount,
+									 timestampQueriesBuffer.data(), sizeof(uint64_t), vk::QueryResultFlagBits::e64);
 
-			auto& debugState = GlobalStateManager::getWritable<DebugState>();
-
-			auto& times = debugState.rendererExecutionTimes[rendererName];
-			for (uint i = 0; i < times.size(); i++) {
-				// FIXME multiply by timeperiod
-				times[i] = (timestampQueriesBuffer[i * 2 + multiviewLayerCount] - timestampQueriesBuffer[i * 2]) /
-						   1'000'000.0f;
-			}
+		auto& times = debugState.rendererExecutionTimes[rendererName];
+		for (uint i = 0; i < times.size(); i++) {
+			// FIXME multiply by timeperiod
+			times[i] =
+				(timestampQueriesBuffer[i * 2 + multiviewLayerCount] - timestampQueriesBuffer[i * 2]) / 1'000'000.0f;
 		}
+
+
+		float totalRendererTime {};
+
+		for (uint layerIndex = 0; layerIndex < layerCount; layerIndex++) {
+			float totalLayerTime {};
+
+			if (layerCount > 1 || multiviewLayerCount > 1) {
+				executionTimeIndex++;
+			}
+
+			for (uint multiviewLayerIndex = 0; multiviewLayerIndex < multiviewLayerCount; multiviewLayerIndex++) {
+				// FIXME multiply by timeperiod
+				float multiviewLayerTime =
+					(timestampQueriesBuffer[layerIndex * 2 * multiviewLayerCount + multiviewLayerCount] -
+					 timestampQueriesBuffer[layerIndex * 2 * multiviewLayerCount + multiviewLayerIndex]) /
+					1'000'000.0f;
+
+				if (multiviewLayerCount > 1) {
+					executionTimeIndex++;
+					executionTimes[executionTimeIndex].gpuTime = multiviewLayerTime;
+				}
+
+				totalLayerTime += multiviewLayerTime;
+			}
+
+
+			if (layerCount > 1 || multiviewLayerCount > 1) {
+				if (multiviewLayerCount > 1) {
+					executionTimes[executionTimeIndex - multiviewLayerCount].gpuTime = totalLayerTime;
+				} else {
+					executionTimes[executionTimeIndex].gpuTime = totalLayerTime;
+				}
+			}
+
+			totalRendererTime += totalLayerTime;
+		}
+
+		// Calculate offset to get total execution time index
+		uint offset = 0;
+		if (layerCount > 1) {
+			offset = layerCount;
+		}
+		if (multiviewLayerCount > 1) {
+			offset = layerCount + layerCount * multiviewLayerCount;
+		}
+
+		executionTimes[executionTimeIndex - offset].cpuTime = cpuTimings[rendererName];
+		executionTimes[executionTimeIndex - offset].gpuTime = totalRendererTime;
+
+		executionTimeIndex++;
 	}
+	executionTimes[executionTimeIndex].cpuTime = cpuTimings["SwapchainPresent"];
 
 
 	// Reset command buffers
@@ -835,6 +919,9 @@ int RenderingSystem::run(double dt) {
 
 
 	for (const auto& rendererName : rendererExecutionOrder) {
+		CPUTimer cpuTimer {};
+		cpuTimer.start();
+
 		auto& renderer	   = renderers[rendererName];
 		auto rendererIndex = getRendererIndex(rendererName);
 
@@ -883,6 +970,8 @@ int RenderingSystem::run(double dt) {
 		auto& rendererFence = vkRendererFences[currentFrameInFlight * renderers.size() + rendererIndex];
 
 		RETURN_IF_VK_ERROR(vkGraphicsQueue.submit(1, &submitInfo, rendererFence), "Failed to submit command buffer");
+
+		cpuTimings[rendererName] = cpuTimer.stop();
 	}
 
 
@@ -895,6 +984,9 @@ int RenderingSystem::run(double dt) {
 
 
 int RenderingSystem::present() {
+	CPUTimer cpuTimer {};
+	cpuTimer.start();
+
 	auto& imageAvailableSemaphore	 = vkImageAvailableSemaphores[currentFrameInFlight];
 	auto& imageBlitFinishedSemaphore = vkImageBlitFinishedSemaphores[currentFrameInFlight];
 
@@ -999,6 +1091,8 @@ int RenderingSystem::present() {
 	presentInfo.pImageIndices	   = &imageIndex;
 
 	RETURN_IF_VK_ERROR(vkPresentQueue.presentKHR(&presentInfo), "Failed to present image");
+
+	cpuTimings["SwapchainPresent"] = cpuTimer.stop();
 
 	return 0;
 }

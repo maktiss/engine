@@ -7,6 +7,7 @@
 #include "engine/systems/RenderingSystem.hpp"
 #include "engine/systems/ScriptingSystem.hpp"
 
+#include "engine/utils/CPUTimer.hpp"
 #include "engine/utils/Importer.hpp"
 
 // #include "thirdparty/imgui/imgui_impl_glfw.h"
@@ -73,8 +74,14 @@ int Core::init(int argc, char** argv) {
 	systems.push_back(std::static_pointer_cast<SystemBase>(renderingSystem));
 
 
-	// systems initialization
-
+	// Each system has at least 1 timer
+	debugState.executionTimeArrays.resize(systems.size(), std::vector<DebugState::ExecutionTime>(1));
+	debugState.executionTimeArrays[0][0].name = "InputSystem";
+	debugState.executionTimeArrays[1][0].name = "ImGuiSystem";
+	debugState.executionTimeArrays[2][0].name = "ScriptingSystem";
+	debugState.executionTimeArrays[3][0].name = "RenderingSystem";
+	
+	
 	for (auto& system : systems) {
 		if (system->init()) {
 			return 1;
@@ -170,7 +177,14 @@ int Core::run() {
 
 	auto timeNow = std::chrono::high_resolution_clock::now();
 
+	CPUTimer timer {};
+	
+	auto& debugState = GlobalStateManager::getWritable<DebugState>();
+	DebugState::ExecutionTimeArrays cumulativeExecutionTimeArrays = debugState.executionTimeArrays;
+
 	while (!glfwWindowShouldClose(glfwWindow)) {
+		auto& debugState = GlobalStateManager::getWritable<DebugState>();
+
 		auto timeLast = timeNow;
 		timeNow		  = std::chrono::high_resolution_clock::now();
 
@@ -181,8 +195,6 @@ int Core::run() {
 		}
 
 		glfwPollEvents();
-
-		auto& debugState = GlobalStateManager::getWritable<DebugState>();
 
 		while (logBuffer) {
 			logBuffer.getline(debugState.logs[debugState.logOffset].data(), maxLogLength);
@@ -195,8 +207,26 @@ int Core::run() {
 
 		frameCount++;
 		cumulativeDT += dt;
+
+		for (uint i = 0; i < cumulativeExecutionTimeArrays.size(); i++) {
+			for (uint j = 0; j < cumulativeExecutionTimeArrays[i].size(); j++) {
+				cumulativeExecutionTimeArrays[i][j].cpuTime += debugState.executionTimeArrays[i][j].cpuTime;
+				cumulativeExecutionTimeArrays[i][j].gpuTime += debugState.executionTimeArrays[i][j].gpuTime;
+			}
+		}
+
 		if (cumulativeDT >= 0.1f) {
 			debugState.avgFrameTime = cumulativeDT / frameCount;
+
+			debugState.avgExecutionTimeArrays = cumulativeExecutionTimeArrays;
+			for (uint i = 0; i < debugState.avgExecutionTimeArrays.size(); i++) {
+				for (uint j = 0; j < debugState.avgExecutionTimeArrays[i].size(); j++) {
+					debugState.avgExecutionTimeArrays[i][j].cpuTime /= frameCount + 1;
+					debugState.avgExecutionTimeArrays[i][j].gpuTime /= frameCount + 1;
+				}
+			}
+
+			cumulativeExecutionTimeArrays = debugState.executionTimeArrays;
 
 			frameCount	 = 0;
 			cumulativeDT = 0.0;
@@ -205,12 +235,24 @@ int Core::run() {
 		GlobalStateManager::update();
 
 		// update systems
-		for (auto& system : systems) {
-			if (system->run(dt)) {
+		for (uint index = 0; index < systems.size(); index++) {
+			timer.start();
+			if (systems[index]->run(dt)) {
 				// systems can request termination
 				glfwSetWindowShouldClose(glfwWindow, true);
 			}
+
+			auto& executionTime	  = debugState.executionTimeArrays[index][0];
+			executionTime.level	  = 0;
+			executionTime.cpuTime = timer.stop();
+			executionTime.gpuTime = -1.0f;
 		}
+		// for (auto& system : systems) {
+		// 	if (system->run(dt)) {
+		// 		// systems can request termination
+		// 		glfwSetWindowShouldClose(glfwWindow, true);
+		// 	}
+		// }
 	}
 
 	spdlog::info("Main loop terminated successfully");

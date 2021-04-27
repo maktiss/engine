@@ -209,6 +209,8 @@ private:
 	// Output to blit from into swapchain image
 	RenderGraph::NodeReference finalOutputReference {};
 
+	std::map<std::string, float> cpuTimings {};
+
 
 public:
 	~RenderingSystem() {
