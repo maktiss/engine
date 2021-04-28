@@ -53,11 +53,23 @@ void main() {
 	vec3 normal = inData.tbnMatrix[2];
 #endif
 
+	float metallic = uMaterial.metallic;
+	float roughness = uMaterial.roughness;
+	float ambientOcclusion = uMaterial.ambientOcclusion;
+
+#ifdef USE_TEXTURE_MRA
+	vec3 mra = texture(sampler2D(uTextures[uMaterial.textureMRA], uSampler), inData.texCoord).rgb;
+
+	metallic *= mra.r;
+	roughness *= mra.g;
+	ambientOcclusion *= mra.b;
+#endif
+
 	normal = normalize(normal);
 
 	vec3 ambientLight = vec3(0.30, 0.33, 0.34);
 
-	vec3 color = colorAlbedo * ambientLight;
+	vec3 color = colorAlbedo * ambientOcclusion * ambientLight;
 
 	if (uEnvironment.useDirectionalLight) {
 		float shadowAmount = 1.0f;
@@ -103,7 +115,7 @@ void main() {
 		vec3 lightDir = -uEnvironment.directionalLight.direction;
 		vec3 viewDir = -normalize(inData.position);
 
-		vec3 lightColor = calcBRDF(normal, lightDir, viewDir, colorAlbedo, uMaterial.metallic, uMaterial.roughness);
+		vec3 lightColor = calcBRDF(normal, lightDir, viewDir, colorAlbedo, metallic, roughness);
 
 		color += shadowAmount * lightColor * 4 * uEnvironment.directionalLight.color * max(dot(normal, lightDir), 0.0);
 

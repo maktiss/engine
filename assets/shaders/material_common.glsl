@@ -113,8 +113,8 @@ float calcGeometrySchlickBeckman(vec3 normal, vec3 viewDir, vec3 lightDir, float
 	float r = roughness + 1.0;
 	float k = (r * r) / 8.0;
 
-	float normalDotViewDir = max(dot(normal, viewDir), 0.001);
-	float normalDotLightDir = max(dot(normal, lightDir), 0.001);
+	float normalDotViewDir = max(dot(normal, viewDir), 0.00001);
+	float normalDotLightDir = max(dot(normal, lightDir), 0.00001);
 
 	float smithL = normalDotViewDir / (normalDotViewDir * (1.0 - k) + k);
 	float smithV = normalDotLightDir / (normalDotLightDir * (1.0 - k) + k);
@@ -124,8 +124,8 @@ float calcGeometrySchlickBeckman(vec3 normal, vec3 viewDir, vec3 lightDir, float
 float calcGeometrySchlickGGX(vec3 normal, vec3 viewDir, vec3 lightDir, float roughness) {
 	float k = roughness / 2;
 
-	float normalDotViewDir = max(dot(normal, viewDir), 0.001);
-	float normalDotLightDir = max(dot(normal, lightDir), 0.001);
+	float normalDotViewDir = max(dot(normal, viewDir), 0.00001);
+	float normalDotLightDir = max(dot(normal, lightDir), 0.00001);
 
 	float smithL = normalDotViewDir / (normalDotViewDir * (1.0 - k) + k);
 	float smithV = normalDotLightDir / (normalDotLightDir * (1.0 - k) + k);
@@ -149,7 +149,7 @@ vec3 calcBRDF(vec3 normal, vec3 lightDir, vec3 viewDir, vec3 albedo, float metal
 	vec3 F0 = mix(vec3(0.04), albedo, metallic);
 	vec3 F = calcFresnelSchlick(F0, halfwayDotViewDir);
 
-	vec3 specular = (NDF * G * F) / max(4.0 * normalDotViewDir * normalDotLightDir, 0.001);
+	vec3 specular = (NDF * G * F) / max(4.0 * normalDotViewDir * normalDotLightDir, 0.00001);
 
 	vec3 kS = F;
 	vec3 kD = vec3(1.0) - kS;

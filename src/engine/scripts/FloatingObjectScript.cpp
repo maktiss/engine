@@ -9,7 +9,6 @@ int FloatingObjectScript::onUpdate(EntityManager::Handle handle, double dt) {
 
 	transform.rotation.y += 0.2f * static_cast<float>(dt);
 	transform.position.y = halfHeight + halfHeight * std::sin(transform.rotation.y * 3.2f);
-	transform.scale		 = { 0.1f, 0.1f, 0.1f };
 
 	return 0;
 }

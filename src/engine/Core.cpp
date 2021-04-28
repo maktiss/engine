@@ -108,30 +108,34 @@ int Core::init(int argc, char** argv) {
 	auto modelEntity = EntityManager::createEntity<TransformComponent, ModelComponent, ScriptComponent>();
 
 	std::vector<MeshManager::Handle> meshHandles {};
-	if (Importer::importMesh("assets/models/dragon.obj", meshHandles)) {
+	if (Importer::importMesh("assets/models/dragon.fbx", meshHandles)) {
 		return 1;
 	}
 	modelEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
 
 	auto albedoTextureHandle = TextureManager::createObject(0);
-	if (Importer::importTexture("assets/textures/Concrete_Panels_01_Base_Color.jpg", albedoTextureHandle, true)) {
+	if (Importer::importTexture("assets/textures/Rock Moss_diffuse.png", albedoTextureHandle, true)) {
 		return 1;
 	}
 	auto normalTextureHandle = TextureManager::createObject(0);
-	if (Importer::importTexture("assets/textures/Concrete_Panels_01_Normal.jpg", normalTextureHandle, false)) {
+	if (Importer::importTexture("assets/textures/Rock Moss_normal.png", normalTextureHandle, false)) {
+		return 1;
+	}
+	auto mraTextureHandle = TextureManager::createObject(0);
+	if (Importer::importTexture("assets/textures/Rock Moss_mra.jpg", mraTextureHandle, true)) {
 		return 1;
 	}
 
 	auto materialHandle = MaterialManager::createObject(0);
-	materialHandle.apply([&albedoTextureHandle, &normalTextureHandle](auto& material) {
+	materialHandle.apply([&](auto& material) {
 		// material.color			   = glm::vec3(0.5f, 0.3f, 0.8f);
 		material.textureAlbedo = albedoTextureHandle;
 		material.textureNormal = normalTextureHandle;
+		material.textureMRA = mraTextureHandle;
 	});
 	materialHandle.update();
 
 	modelEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
-
 	modelEntity.getComponent<ModelComponent>().shaderHandles[0] =
 		GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
 
@@ -154,11 +158,31 @@ int Core::init(int argc, char** argv) {
 		return 1;
 	}
 	tileEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
-	// materialHandle = MaterialManager::createObject(0);
-	// materialHandle.apply([](auto& material){
-	// 	material.color = glm::vec3(1.0);
-	// });
-	// materialHandle.update();
+	
+	
+	albedoTextureHandle = TextureManager::createObject(0);
+	if (Importer::importTexture("assets/textures/mud_with_vegetation_albedo.png", albedoTextureHandle, true)) {
+		return 1;
+	}
+	normalTextureHandle = TextureManager::createObject(0);
+	if (Importer::importTexture("assets/textures/mud_with_vegetation_normal.png", normalTextureHandle, false)) {
+		return 1;
+	}
+	mraTextureHandle = TextureManager::createObject(0);
+	if (Importer::importTexture("assets/textures/mud_with_vegetation_mra.png", mraTextureHandle, true)) {
+		return 1;
+	}
+
+	materialHandle = MaterialManager::createObject(0);
+	materialHandle.apply([&](auto& material) {
+		// material.color			   = glm::vec3(0.5f, 0.3f, 0.8f);
+		material.textureAlbedo = albedoTextureHandle;
+		material.textureNormal = normalTextureHandle;
+		material.textureMRA = mraTextureHandle;
+	});
+	materialHandle.update();
+
+
 	tileEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
 	tileEntity.getComponent<ModelComponent>().shaderHandles[0] =
 		GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
