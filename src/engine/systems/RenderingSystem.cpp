@@ -90,22 +90,22 @@ int RenderingSystem::init() {
 	GraphicsShaderManager::init();
 
 	if (GraphicsShaderManager::importShaderSources<SimpleShader>(std::array<std::string, 6> {
-			"assets/shaders/solid_color_shader.vsh", "", "", "", "assets/shaders/solid_color_shader.fsh", "" })) {
+			"assets/shaders/material_generic.vsh", "", "", "", "assets/shaders/material_generic.fsh", "" })) {
 		return 1;
 	}
 
 	if (GraphicsShaderManager::importShaderSources<SkyboxShader>(std::array<std::string, 6> {
-			"assets/shaders/skybox_shader.vsh", "", "", "", "assets/shaders/skybox_shader.fsh", "" })) {
+			"assets/shaders/skybox.vsh", "", "", "", "assets/shaders/skybox.fsh", "" })) {
 		return 1;
 	}
 
 	if (GraphicsShaderManager::importShaderSources<SkymapShader>(std::array<std::string, 6> {
-			"assets/shaders/skymap_shader.vsh", "", "", "", "assets/shaders/skymap_shader.fsh", "" })) {
+			"assets/shaders/skymap.vsh", "", "", "", "assets/shaders/skymap.fsh", "" })) {
 		return 1;
 	}
 
 	if (GraphicsShaderManager::importShaderSources<PostFxShader>(std::array<std::string, 6> {
-			"assets/shaders/postfx_shader.vsh", "", "", "", "assets/shaders/postfx_shader.fsh", "" })) {
+			"assets/shaders/postfx.vsh", "", "", "", "assets/shaders/postfx.fsh", "" })) {
 		return 1;
 	}
 

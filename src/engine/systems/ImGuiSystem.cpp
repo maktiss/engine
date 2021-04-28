@@ -91,7 +91,7 @@ void ImGuiSystem::showStatisticsWindow() {
 					1.0f / debugState.avgFrameTime);
 
 		if (ImGui::BeginTable("Table", 3, ImGuiTableFlags_PadOuterX | ImGuiTableFlags_SizingFixedFit)) {
-			ImGui::TableSetupColumn("Renderer");
+			ImGui::TableSetupColumn("System");
 			ImGui::TableSetupColumn("CPU Time");
 			ImGui::TableSetupColumn("GPU Time");
 			// ImGui::TableHeadersRow();
@@ -168,44 +168,6 @@ void ImGuiSystem::showStatisticsWindow() {
 				}
 			}
 			assert(currentTreeLevel == 0);
-
-			// for (const auto& [rendererName, times] : debugState.rendererExecutionTimes) {
-			// 	ImGui::TableNextRow();
-			// 	ImGui::TableNextColumn();
-
-			// 	double totalTime = 0.0;
-			// 	for (const auto& time : times) {
-			// 		totalTime += time;
-			// 	}
-
-			// 	if (times.size() > 1) {
-			// 		if (ImGui::TreeNode(rendererName.c_str())) {
-			// 			ImGui::TableNextColumn();
-			// 			ImGui::Text("%.3f ms", totalTime);
-
-			// 			for (uint i = 0; i < times.size(); i++) {
-			// 				ImGui::TableNextRow();
-			// 				ImGui::TableNextColumn();
-			// 				ImGui::Text(" Layer %d", i);
-
-			// 				ImGui::TableNextColumn();
-			// 				ImGui::Text(" %.3f ms", times[i]);
-			// 			}
-
-			// 			ImGui::TreePop();
-			// 		} else {
-			// 			ImGui::TableNextColumn();
-			// 			ImGui::Text("%.3f ms", totalTime);
-			// 		}
-			// 	} else {
-			// 		ImGui::Indent();
-			// 		ImGui::Text(rendererName.c_str());
-			// 		ImGui::Unindent();
-
-			// 		ImGui::TableNextColumn();
-			// 		ImGui::Text("%.3f ms", totalTime);
-			// 	}
-			// }
 
 			ImGui::EndTable();
 		}

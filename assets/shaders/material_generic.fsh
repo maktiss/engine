@@ -2,7 +2,7 @@
 
 // #define DEBUG
 
-#include "material_shader_common.glsl"
+#include "material_common.glsl"
 
 
 #ifdef RENDER_PASS_FORWARD
@@ -25,8 +25,13 @@ layout(location = 0) out vec4 outColor;
 layout(set = MATERIAL_BLOCK_SET, binding = 0) uniform MaterialBlock {
 	vec4 color;
 
+	float metallic;
+	float roughness;
+	float ambientOcclusion;
+
 	uint textureAlbedo;
 	uint textureNormal;
+	uint textureMRA;
 }
 uMaterial;
 
@@ -95,8 +100,15 @@ void main() {
 		shadowAmount *=
 			texture(uDirectionalShadowMapBuffer, vec4(lightSpaceCoord.xy, cascade, lightSpaceCoord.z - bias)).r;
 
-		color += shadowAmount * colorAlbedo * uEnvironment.directionalLight.color *
-				 max(dot(-uEnvironment.directionalLight.direction, normal), 0.0);
+		vec3 lightDir = -uEnvironment.directionalLight.direction;
+		vec3 viewDir = -normalize(inData.position);
+
+		vec3 lightColor = calcBRDF(normal, lightDir, viewDir, colorAlbedo, uMaterial.metallic, uMaterial.roughness);
+
+		color += shadowAmount * lightColor * 4 * uEnvironment.directionalLight.color * max(dot(normal, lightDir), 0.0);
+
+		// color += shadowAmount * colorAlbedo * uEnvironment.directionalLight.color *
+		// 		 max(dot(-uEnvironment.directionalLight.direction, normal), 0.0);
 	}
 
 	outColor = vec4(color, 1.0);

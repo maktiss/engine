@@ -1,6 +1,6 @@
 #version 460
 
-#include "material_shader_common.glsl"
+#include "material_common.glsl"
 
 
 layout(location = 0) in vec3 aPosition;

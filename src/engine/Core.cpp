@@ -247,15 +247,9 @@ int Core::run() {
 			executionTime.cpuTime = timer.stop();
 			executionTime.gpuTime = -1.0f;
 		}
-		// for (auto& system : systems) {
-		// 	if (system->run(dt)) {
-		// 		// systems can request termination
-		// 		glfwSetWindowShouldClose(glfwWindow, true);
-		// 	}
-		// }
 	}
 
-	spdlog::info("Main loop terminated successfully");
+	spdlog::info("Main loop terminated");
 	return 0;
 }
 } // namespace Engine
