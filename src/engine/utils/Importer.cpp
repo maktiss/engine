@@ -15,9 +15,9 @@ Assimp::Importer Importer::assimpImporter {};
 int Importer::importMesh(std::string filename, std::vector<MeshManager::Handle>& meshHandles) {
 	spdlog::info("Importing mesh '{}'...", filename);
 
-	const aiScene* scene = assimpImporter.ReadFile(
-		filename, aiProcess_CalcTangentSpace | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes |
-					  aiProcess_PreTransformVertices | aiProcess_MakeLeftHanded);
+	const aiScene* scene = assimpImporter.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_GenBoundingBoxes |
+																 aiProcess_MakeLeftHanded | aiProcess_GenUVCoords |
+																 aiProcess_TransformUVCoords | aiProcess_FlipUVs);
 
 	if (!scene) {
 		spdlog::error("Failed to import '{}'", filename);
@@ -57,9 +57,9 @@ int Importer::importMesh(std::string filename, std::vector<MeshManager::Handle>&
 				std::get<3>(vertexBuffer[vIndex]).y = assimpMesh->mTangents[vIndex].y;
 				std::get<3>(vertexBuffer[vIndex]).z = assimpMesh->mTangents[vIndex].z;
 
-				std::get<4>(vertexBuffer[vIndex]).x = assimpMesh->mBitangents[vIndex].x;
-				std::get<4>(vertexBuffer[vIndex]).y = assimpMesh->mBitangents[vIndex].y;
-				std::get<4>(vertexBuffer[vIndex]).z = assimpMesh->mBitangents[vIndex].z;
+				std::get<4>(vertexBuffer[vIndex]).x = -assimpMesh->mBitangents[vIndex].x;
+				std::get<4>(vertexBuffer[vIndex]).y = -assimpMesh->mBitangents[vIndex].y;
+				std::get<4>(vertexBuffer[vIndex]).z = -assimpMesh->mBitangents[vIndex].z;
 			}
 
 			auto& indexBuffer = mesh.getIndexBuffer();
