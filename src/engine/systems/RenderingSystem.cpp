@@ -1195,6 +1195,7 @@ int RenderingSystem::createLogicalDevice() {
 	}
 
 	vk::PhysicalDeviceFeatures physicalDeviceFeatures {};
+	physicalDeviceFeatures.samplerAnisotropy = true;
 
 	vk::DeviceCreateInfo deviceCreateInfo {};
 	deviceCreateInfo.queueCreateInfoCount = deviceQueueCreateInfos.size();
