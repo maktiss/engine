@@ -62,7 +62,7 @@ public:
 	}
 
 
-	inline std::vector<vk::ClearValue> getVkClearValues() override {
+	inline std::vector<vk::ClearValue> getVkClearValues() const override {
 		std::vector<vk::ClearValue> clearValues {};
 		clearValues.resize(1);
 
@@ -72,7 +72,7 @@ public:
 	}
 
 
-	inline std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() override {
+	inline std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() const override {
 		std::vector<vk::AttachmentDescription> attachmentDescriptions {};
 		attachmentDescriptions.resize(1);
 
@@ -88,18 +88,8 @@ public:
 		return attachmentDescriptions;
 	}
 
-	inline std::vector<vk::AttachmentReference> getVkAttachmentReferences() override {
-		std::vector<vk::AttachmentReference> attachmentReferences {};
-		attachmentReferences.resize(1);
 
-		attachmentReferences[0].attachment = 0;
-		attachmentReferences[0].layout	   = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-
-		return attachmentReferences;
-	}
-
-
-	inline vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() override {
+	inline vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() const override {
 		vk::PipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {};
 		pipelineDepthStencilStateCreateInfo.depthTestEnable	 = true;
 		pipelineDepthStencilStateCreateInfo.depthWriteEnable = true;

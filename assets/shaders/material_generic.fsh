@@ -5,7 +5,7 @@
 #include "material_common.glsl"
 
 
-#ifdef RENDER_PASS_FORWARD
+#if defined(RENDER_PASS_FORWARD) || defined(RENDER_PASS_DEPTH_NORMAL)
 
 
 layout(location = 0) in InData {
@@ -13,13 +13,11 @@ layout(location = 0) in InData {
 	vec2 texCoord;
 
 	vec3 worldPosition;
+	vec4 screenPosition;
 
 	mat3 tbnMatrix;
 }
 inData;
-
-
-layout(location = 0) out vec4 outColor;
 
 
 layout(set = MATERIAL_BLOCK_SET, binding = 0) uniform MaterialBlock {
@@ -39,19 +37,26 @@ layout(set = TEXTURE_BLOCK_SET, binding = 0) uniform sampler uSampler;
 layout(set = TEXTURE_BLOCK_SET, binding = 1) uniform texture2D uTextures[1024];
 
 
+#endif
+
+
+#ifdef RENDER_PASS_FORWARD
+
+
+layout(location = 0) out vec4 outColor;
+
+
 void main() {
+	vec2 screenCoord = inData.screenPosition.xy / inData.screenPosition.w;
+	screenCoord = screenCoord * vec2(0.5, -0.5) + vec2(0.5);
+
 	vec3 colorAlbedo = uMaterial.color.rgb;
 
 #ifdef USE_TEXTURE_ALBEDO
 	colorAlbedo *= texture(sampler2D(uTextures[uMaterial.textureAlbedo], uSampler), inData.texCoord).rgb;
 #endif
 
-#ifdef USE_TEXTURE_NORMAL
-	vec3 normal = inData.tbnMatrix *
-				  (texture(sampler2D(uTextures[uMaterial.textureNormal], uSampler), inData.texCoord).rgb * 2.0 - 1.0);
-#else
-	vec3 normal = inData.tbnMatrix[2];
-#endif
+	vec3 normal = texture(uNormalBuffer, screenCoord).xyz;
 
 	float metallic = uMaterial.metallic;
 	float roughness = uMaterial.roughness;
@@ -124,6 +129,24 @@ void main() {
 	}
 
 	outColor = vec4(color, 1.0);
+}
+
+
+#elif defined(RENDER_PASS_DEPTH_NORMAL)
+
+
+layout(location = 0) out vec4 outNormal;
+
+
+void main() {
+#ifdef USE_TEXTURE_NORMAL
+	vec3 normal = inData.tbnMatrix *
+				  (texture(sampler2D(uTextures[uMaterial.textureNormal], uSampler), inData.texCoord).rgb * 2.0 - 1.0);
+#else
+	vec3 normal = inData.tbnMatrix[2];
+#endif
+
+	outNormal = vec4(normal, 1.0);
 }
 
 

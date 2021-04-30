@@ -70,7 +70,7 @@ public:
 	}
 
 
-	inline std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() override {
+	inline std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() const override {
 		std::vector<vk::AttachmentDescription> attachmentDescriptions {};
 		attachmentDescriptions.resize(1);
 
@@ -86,17 +86,8 @@ public:
 		return attachmentDescriptions;
 	}
 
-	inline std::vector<vk::AttachmentReference> getVkAttachmentReferences() override {
-		std::vector<vk::AttachmentReference> attachmentReferences {};
-		attachmentReferences.resize(1);
 
-		attachmentReferences[0].attachment = 0;
-		attachmentReferences[0].layout	   = vk::ImageLayout::eColorAttachmentOptimal;
-
-		return attachmentReferences;
-	}
-
-	vk::PipelineRasterizationStateCreateInfo getVkPipelineRasterizationStateCreateInfo() override {
+	vk::PipelineRasterizationStateCreateInfo getVkPipelineRasterizationStateCreateInfo() const override {
 		vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {};
 		pipelineRasterizationStateCreateInfo.depthClampEnable		 = false;
 		pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;

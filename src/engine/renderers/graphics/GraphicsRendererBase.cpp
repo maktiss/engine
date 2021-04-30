@@ -119,15 +119,15 @@ int GraphicsRendererBase::createRenderPass() {
 	subpassDescription.colorAttachmentCount = attachmentReferences.size();
 	subpassDescription.pColorAttachments	= attachmentReferences.data();
 
+
 	// Set depth attachment
-	if (attachmentReferences.size() > 0) {
+	if (getColorAttachmentCount() < getOutputCount()) {
 		auto& lastAttachmentReference = attachmentReferences[attachmentReferences.size() - 1];
-		// TODO check for all depth layout variations
-		if (lastAttachmentReference.layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-			subpassDescription.colorAttachmentCount--;
-			subpassDescription.pDepthStencilAttachment = &lastAttachmentReference;
-		}
+
+		subpassDescription.colorAttachmentCount--;
+		subpassDescription.pDepthStencilAttachment = &lastAttachmentReference;
 	}
+
 
 	auto attachmentDescriptions = getVkAttachmentDescriptions();
 	for (uint i = 0; i < attachmentDescriptions.size(); i++) {
@@ -237,7 +237,7 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 	const auto& pipelineRasterizationStateCreateInfo = getVkPipelineRasterizationStateCreateInfo();
 	const auto& pipelineMultisampleStateCreateInfo	 = getVkPipelineMultisampleStateCreateInfo();
 	const auto& pipelineDepthStencilStateCreateInfo	 = getVkPipelineDepthStencilStateCreateInfo();
-	const auto& pipelineColorBlendAttachmentState	 = getVkPipelineColorBlendAttachmentState();
+	const auto& pipelineColorBlendAttachmentStates	 = getVkPipelineColorBlendAttachmentStates();
 
 	vk::PipelineViewportStateCreateInfo pipelineViewportStateCreateInfo {};
 	pipelineViewportStateCreateInfo.viewportCount = 1;
@@ -247,8 +247,8 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 
 	vk::PipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo {};
 	pipelineColorBlendStateCreateInfo.logicOpEnable	  = false;
-	pipelineColorBlendStateCreateInfo.attachmentCount = 1;
-	pipelineColorBlendStateCreateInfo.pAttachments	  = &pipelineColorBlendAttachmentState;
+	pipelineColorBlendStateCreateInfo.attachmentCount = pipelineColorBlendAttachmentStates.size();
+	pipelineColorBlendStateCreateInfo.pAttachments	  = pipelineColorBlendAttachmentStates.data();
 
 
 	std::vector<vk::Pipeline> graphicsPipelines {};

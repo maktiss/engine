@@ -66,8 +66,14 @@ private:
 	};
 
 
+private:
+	// TODO: destroy
+	vk::Sampler vkSampler {};
+	vk::Sampler vkShadowSampler {};
+
+
 public:
-	ForwardRenderer() : GraphicsRendererBase(1, 2) {
+	ForwardRenderer() : GraphicsRendererBase(2, 2) {
 	}
 
 
@@ -96,10 +102,13 @@ public:
 
 	std::vector<AttachmentDescription> getInputDescriptions() const {
 		std::vector<AttachmentDescription> descriptions {};
-		descriptions.resize(1);
+		descriptions.resize(2);
 
 		descriptions[0].format = vk::Format::eD24UnormS8Uint;
 		descriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
+
+		descriptions[1].format = vk::Format::eR16G16B16A16Sfloat;
+		descriptions[1].usage  = vk::ImageUsageFlagBits::eSampled;
 
 		return descriptions;
 	}
@@ -107,9 +116,10 @@ public:
 
 	std::vector<vk::ImageLayout> getInputInitialLayouts() const {
 		std::vector<vk::ImageLayout> initialLayouts {};
-		initialLayouts.resize(1);
+		initialLayouts.resize(2);
 
 		initialLayouts[0] = vk::ImageLayout::eShaderReadOnlyOptimal;
+		initialLayouts[1] = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 		return initialLayouts;
 	}
@@ -125,7 +135,7 @@ public:
 	}
 
 
-	inline std::vector<vk::ClearValue> getVkClearValues() override {
+	inline std::vector<vk::ClearValue> getVkClearValues() const override {
 		std::vector<vk::ClearValue> clearValues {};
 		clearValues.resize(2);
 
@@ -136,7 +146,7 @@ public:
 	}
 
 
-	inline std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() override {
+	inline std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() const override {
 		std::vector<vk::AttachmentDescription> attachmentDescriptions {};
 		attachmentDescriptions.resize(2);
 
@@ -159,20 +169,8 @@ public:
 		return attachmentDescriptions;
 	}
 
-	inline std::vector<vk::AttachmentReference> getVkAttachmentReferences() override {
-		std::vector<vk::AttachmentReference> attachmentReferences {};
-		attachmentReferences.resize(2);
 
-		attachmentReferences[0].attachment = 0;
-		attachmentReferences[0].layout	   = vk::ImageLayout::eColorAttachmentOptimal;
-		attachmentReferences[1].attachment = 1;
-		attachmentReferences[1].layout	   = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-
-		return attachmentReferences;
-	}
-
-
-	inline vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() override {
+	inline vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() const override {
 		vk::PipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {};
 		pipelineDepthStencilStateCreateInfo.depthTestEnable	 = true;
 		pipelineDepthStencilStateCreateInfo.depthWriteEnable = false;

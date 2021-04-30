@@ -38,6 +38,10 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 										 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
 	}
 
+	const auto textureDescriptorSet = TextureManager::getVkDescriptorSet();
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, 4, 1, &textureDescriptorSet, 0,
+									 nullptr);
+
 	struct {
 		glm::mat4 viewMatrix;
 		glm::mat4 projectionMatrix;

@@ -18,6 +18,7 @@ layout(location = 0) out OutData {
 	vec2 texCoord;
 
 	vec3 worldPosition;
+	vec4 screenPosition;
 
 	mat3 tbnMatrix;
 } outData;
@@ -40,7 +41,9 @@ void main() {
 
 	outData.tbnMatrix = mat3(uCamera.viewMatrix * uModel.transformMatrix) * mat3(aTangent, aBitangent, aNormal);
 
-	gl_Position = uCamera.projectionMatrix * position;
+	outData.screenPosition = uCamera.projectionMatrix * position;
+
+	gl_Position = outData.screenPosition;
 }
 
 

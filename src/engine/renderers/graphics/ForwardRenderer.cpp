@@ -29,8 +29,18 @@ int ForwardRenderer::init() {
 	samplerCreateInfo.minLod				  = 0.0f;
 	samplerCreateInfo.maxLod				  = 0.0f;
 
-	vk::Sampler sampler;
-	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &sampler);
+	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkShadowSampler);
+	if (result != vk::Result::eSuccess) {
+		spdlog::error("[ForwardRenderer] Failed to create image sampler. Error code: {} ({})", result,
+					  vk::to_string(vk::Result(result)));
+		return 1;
+	}
+
+
+	samplerCreateInfo.compareEnable			  = false;
+	samplerCreateInfo.compareOp				  = vk::CompareOp::eAlways;
+
+	result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkSampler);
 	if (result != vk::Result::eSuccess) {
 		spdlog::error("[ForwardRenderer] Failed to create image sampler. Error code: {} ({})", result,
 					  vk::to_string(vk::Result(result)));
@@ -40,11 +50,13 @@ int ForwardRenderer::init() {
 
 	descriptorSetArrays.resize(3);
 
-	descriptorSetArrays[0].setBindingCount(2);
+	descriptorSetArrays[0].setBindingCount(3);
 	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
 	descriptorSetArrays[0].setBindingLayoutInfo(1, vk::DescriptorType::eCombinedImageSampler, 0);
+	descriptorSetArrays[0].setBindingLayoutInfo(2, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-	descriptorSetArrays[0].updateImage(0, 1, 0, sampler, TextureManager::getTextureInfo(inputs[0]).imageView);
+	descriptorSetArrays[0].updateImage(0, 1, 0, vkShadowSampler, TextureManager::getTextureInfo(inputs[0]).imageView);
+	descriptorSetArrays[0].updateImage(0, 2, 0, vkSampler, TextureManager::getTextureInfo(inputs[1]).imageView);
 
 	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
 	descriptorSetArrays[1].init(vkDevice, vmaAllocator);

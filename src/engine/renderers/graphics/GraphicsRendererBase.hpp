@@ -37,26 +37,59 @@ public:
 	}
 
 
+	const uint getColorAttachmentCount() const {
+		const auto attachmentReferences = getVkAttachmentReferences();
+		
+		// Depth attachment should always be last
+		for (uint i = 0; i < attachmentReferences.size(); i++) {
+			if (i != (attachmentReferences.size() - 1)) {
+				// FIXME: check for all depth layout variations
+				assert(attachmentReferences[i].layout != vk::ImageLayout::eDepthStencilAttachmentOptimal);
+			}
+		}
+
+		auto colorAttachmentCount = getOutputCount();
+
+		const auto& lastAttachmentReference = attachmentReferences[attachmentReferences.size() - 1];
+		// FIXME: check for all depth layout variations
+		if (lastAttachmentReference.layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+			colorAttachmentCount--;
+		}
+
+		return colorAttachmentCount;
+	}
+
+
 	int createRenderPass();
 	int createFramebuffer();
 	int createGraphicsPipelines();
 
 
-	virtual std::vector<vk::ClearValue> getVkClearValues() {
+	virtual std::vector<vk::ClearValue> getVkClearValues() const {
 		return std::vector<vk::ClearValue>();
 	}
 
 
-	virtual std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() {
+	virtual std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() const {
 		return std::vector<vk::AttachmentDescription>();
 	}
 
-	virtual std::vector<vk::AttachmentReference> getVkAttachmentReferences() {
-		return std::vector<vk::AttachmentReference>();
+	virtual std::vector<vk::AttachmentReference> getVkAttachmentReferences() const {
+		const auto& outputInitialLayouts = getOutputInitialLayouts();
+
+		std::vector<vk::AttachmentReference> attachmentReferences {};
+		attachmentReferences.resize(outputInitialLayouts.size());
+
+		for (uint i = 0; i < attachmentReferences.size(); i++) {
+			attachmentReferences[i].attachment = i;
+			attachmentReferences[i].layout	   = outputInitialLayouts[i];
+		}
+
+		return attachmentReferences;
 	}
 
 
-	virtual vk::PipelineInputAssemblyStateCreateInfo getVkPipelineInputAssemblyStateCreateInfo() {
+	virtual vk::PipelineInputAssemblyStateCreateInfo getVkPipelineInputAssemblyStateCreateInfo() const {
 		vk::PipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo {};
 		pipelineInputAssemblyStateCreateInfo.topology				= vk::PrimitiveTopology::eTriangleList;
 		pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = false;
@@ -64,7 +97,7 @@ public:
 		return pipelineInputAssemblyStateCreateInfo;
 	}
 
-	virtual vk::Viewport getVkViewport() {
+	virtual vk::Viewport getVkViewport() const {
 		vk::Viewport viewport {};
 		viewport.x		  = 0.0f;
 		viewport.y		  = outputSize.height;
@@ -76,7 +109,7 @@ public:
 		return viewport;
 	}
 
-	virtual vk::Rect2D getVkScissor() {
+	virtual vk::Rect2D getVkScissor() const {
 		vk::Rect2D scissor {};
 		scissor.offset = vk::Offset2D(0, 0);
 		scissor.extent = outputSize;
@@ -84,7 +117,7 @@ public:
 		return scissor;
 	}
 
-	virtual vk::PipelineRasterizationStateCreateInfo getVkPipelineRasterizationStateCreateInfo() {
+	virtual vk::PipelineRasterizationStateCreateInfo getVkPipelineRasterizationStateCreateInfo() const {
 		vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {};
 		pipelineRasterizationStateCreateInfo.depthClampEnable		 = false;
 		pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;
@@ -97,7 +130,7 @@ public:
 		return pipelineRasterizationStateCreateInfo;
 	}
 
-	virtual vk::PipelineMultisampleStateCreateInfo getVkPipelineMultisampleStateCreateInfo() {
+	virtual vk::PipelineMultisampleStateCreateInfo getVkPipelineMultisampleStateCreateInfo() const {
 		vk::PipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {};
 		pipelineMultisampleStateCreateInfo.sampleShadingEnable	= false;
 		pipelineMultisampleStateCreateInfo.rasterizationSamples = vk::SampleCountFlagBits::e1;
@@ -105,7 +138,7 @@ public:
 		return pipelineMultisampleStateCreateInfo;
 	}
 
-	virtual vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() {
+	virtual vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() const {
 		vk::PipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {};
 		pipelineDepthStencilStateCreateInfo.depthTestEnable	 = false;
 		pipelineDepthStencilStateCreateInfo.depthWriteEnable = false;
@@ -114,14 +147,17 @@ public:
 		return pipelineDepthStencilStateCreateInfo;
 	}
 
-	virtual vk::PipelineColorBlendAttachmentState getVkPipelineColorBlendAttachmentState() {
+	virtual std::vector<vk::PipelineColorBlendAttachmentState> getVkPipelineColorBlendAttachmentStates() const {
 		vk::PipelineColorBlendAttachmentState pipelineColorBlendAttachmentState {};
 		pipelineColorBlendAttachmentState.colorWriteMask =
 			vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
 			vk::ColorComponentFlagBits::eA;
 		pipelineColorBlendAttachmentState.blendEnable = false;
 
-		return pipelineColorBlendAttachmentState;
+		std::vector<vk::PipelineColorBlendAttachmentState> pipelineColorBlendAttachmentStates {};
+		pipelineColorBlendAttachmentStates.resize(getColorAttachmentCount(), pipelineColorBlendAttachmentState);
+
+		return pipelineColorBlendAttachmentStates;
 	}
 };
 } // namespace Engine

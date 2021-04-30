@@ -201,9 +201,10 @@ int RenderingSystem::init() {
 	renderGraph.addInputConnection("SkymapRenderer", 0, "SkyboxRenderer", 0);
 
 	renderGraph.addInputConnection("ShadowMapRenderer", 0, "ForwardRenderer", 0);
+	renderGraph.addInputConnection("DepthNormalRenderer", 0, "ForwardRenderer", 1);
 
 	renderGraph.addOutputConnection("SkyboxRenderer", 0, "ForwardRenderer", 0);
-	renderGraph.addOutputConnection("DepthNormalRenderer", 0, "ForwardRenderer", 1);
+	renderGraph.addOutputConnection("DepthNormalRenderer", 1, "ForwardRenderer", 1);
 
 	renderGraph.addInputConnection("ForwardRenderer", 0, "PostFxRenderer", 0);
 
