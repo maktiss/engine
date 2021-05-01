@@ -80,8 +80,8 @@ int Core::init(int argc, char** argv) {
 	debugState.executionTimeArrays[1][0].name = "ImGuiSystem";
 	debugState.executionTimeArrays[2][0].name = "ScriptingSystem";
 	debugState.executionTimeArrays[3][0].name = "RenderingSystem";
-	
-	
+
+
 	for (auto& system : systems) {
 		if (system->init()) {
 			return 1;
@@ -131,7 +131,7 @@ int Core::init(int argc, char** argv) {
 		// material.color			   = glm::vec3(0.5f, 0.3f, 0.8f);
 		material.textureAlbedo = albedoTextureHandle;
 		material.textureNormal = normalTextureHandle;
-		material.textureMRA = mraTextureHandle;
+		material.textureMRA	   = mraTextureHandle;
 	});
 	materialHandle.update();
 
@@ -143,13 +143,15 @@ int Core::init(int argc, char** argv) {
 	modelEntity.getComponent<ScriptComponent>().handle = ScriptManager::getScriptHandle("script_floating_object");
 
 
-	auto directionalLightEntity = EntityManager::createEntity<TransformComponent, LightComponent>();
+	auto directionalLightEntity = EntityManager::createEntity<TransformComponent, LightComponent, ScriptComponent>();
 	directionalLightEntity.getComponent<LightComponent>().type			 = LightComponent::Type::DIRECTIONAL;
 	directionalLightEntity.getComponent<LightComponent>().color			 = { 2.00f, 1.98f, 1.95f };
 	directionalLightEntity.getComponent<LightComponent>().castsShadows	 = true;
 	directionalLightEntity.getComponent<TransformComponent>().rotation.x = -0.8f;
 	directionalLightEntity.getComponent<TransformComponent>().rotation.y = 0.3f;
 	directionalLightEntity.getComponent<TransformComponent>().rotation.z = 0.2f;
+	directionalLightEntity.getComponent<ScriptComponent>().handle =
+		ScriptManager::getScriptHandle("script_sun_movement");
 
 
 	auto tileEntity = EntityManager::createEntity<TransformComponent, ModelComponent>();
@@ -158,8 +160,8 @@ int Core::init(int argc, char** argv) {
 		return 1;
 	}
 	tileEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
-	
-	
+
+
 	albedoTextureHandle = TextureManager::createObject(0);
 	if (Importer::importTexture("assets/textures/mud_with_vegetation_albedo.png", albedoTextureHandle, true)) {
 		return 1;
@@ -178,7 +180,7 @@ int Core::init(int argc, char** argv) {
 		// material.color			   = glm::vec3(0.5f, 0.3f, 0.8f);
 		material.textureAlbedo = albedoTextureHandle;
 		material.textureNormal = normalTextureHandle;
-		material.textureMRA = mraTextureHandle;
+		material.textureMRA	   = mraTextureHandle;
 	});
 	materialHandle.update();
 
@@ -202,8 +204,9 @@ int Core::run() {
 	auto timeNow = std::chrono::high_resolution_clock::now();
 
 	CPUTimer timer {};
-	
+
 	auto& debugState = GlobalStateManager::getWritable<DebugState>();
+
 	DebugState::ExecutionTimeArrays cumulativeExecutionTimeArrays = debugState.executionTimeArrays;
 
 	while (!glfwWindowShouldClose(glfwWindow)) {
