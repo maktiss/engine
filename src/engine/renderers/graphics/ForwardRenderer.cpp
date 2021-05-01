@@ -50,13 +50,15 @@ int ForwardRenderer::init() {
 
 	descriptorSetArrays.resize(3);
 
-	descriptorSetArrays[0].setBindingCount(3);
+	descriptorSetArrays[0].setBindingCount(4);
 	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
 	descriptorSetArrays[0].setBindingLayoutInfo(1, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].setBindingLayoutInfo(2, vk::DescriptorType::eCombinedImageSampler, 0);
+	descriptorSetArrays[0].setBindingLayoutInfo(3, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
 	descriptorSetArrays[0].updateImage(0, 1, 0, vkShadowSampler, TextureManager::getTextureInfo(inputs[0]).imageView);
 	descriptorSetArrays[0].updateImage(0, 2, 0, vkSampler, TextureManager::getTextureInfo(inputs[1]).imageView);
+	descriptorSetArrays[0].updateImage(0, 3, 0, vkSampler, TextureManager::getTextureInfo(inputs[2]).imageView);
 
 	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
 	descriptorSetArrays[1].init(vkDevice, vmaAllocator);

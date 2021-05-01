@@ -94,18 +94,23 @@ int RenderingSystem::init() {
 		return 1;
 	}
 
-	if (GraphicsShaderManager::importShaderSources<SkyboxShader>(std::array<std::string, 6> {
-			"assets/shaders/skybox.vsh", "", "", "", "assets/shaders/skybox.fsh", "" })) {
+	if (GraphicsShaderManager::importShaderSources<SkyboxShader>(
+			std::array<std::string, 6> { "assets/shaders/skybox.vsh", "", "", "", "assets/shaders/skybox.fsh", "" })) {
 		return 1;
 	}
 
-	if (GraphicsShaderManager::importShaderSources<SkymapShader>(std::array<std::string, 6> {
-			"assets/shaders/skymap.vsh", "", "", "", "assets/shaders/skymap.fsh", "" })) {
+	if (GraphicsShaderManager::importShaderSources<SkymapShader>(
+			std::array<std::string, 6> { "assets/shaders/skymap.vsh", "", "", "", "assets/shaders/skymap.fsh", "" })) {
 		return 1;
 	}
 
-	if (GraphicsShaderManager::importShaderSources<PostFxShader>(std::array<std::string, 6> {
-			"assets/shaders/postfx.vsh", "", "", "", "assets/shaders/postfx.fsh", "" })) {
+	if (GraphicsShaderManager::importShaderSources<PostFxShader>(
+			std::array<std::string, 6> { "assets/shaders/postfx.vsh", "", "", "", "assets/shaders/postfx.fsh", "" })) {
+		return 1;
+	}
+
+	if (GraphicsShaderManager::importShaderSources<ReflectionShader>(std::array<std::string, 6> {
+			"assets/shaders/reflection.vsh", "", "", "", "assets/shaders/reflection.fsh", "" })) {
 		return 1;
 	}
 
@@ -182,6 +187,11 @@ int RenderingSystem::init() {
 	postFxRenderer->setOutputSize({ 1920, 1080 });
 	postFxRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
+	auto reflectionRenderer = std::make_shared<ReflectionRenderer>();
+	reflectionRenderer->setVkDevice(vkDevice);
+	reflectionRenderer->setOutputSize({ 1920, 1080 });
+	reflectionRenderer->setVulkanMemoryAllocator(vmaAllocator);
+
 
 	renderers["DepthNormalRenderer"] = depthNormalRenderer;
 	renderers["ForwardRenderer"]	 = forwardRenderer;
@@ -190,6 +200,7 @@ int RenderingSystem::init() {
 	renderers["SkymapRenderer"]		 = skymapRenderer;
 	renderers["ImGuiRenderer"]		 = imGuiRenderer;
 	renderers["PostFxRenderer"]		 = postFxRenderer;
+	renderers["ReflectionRenderer"]	 = reflectionRenderer;
 
 
 	for (const auto& [name, renderer] : renderers) {
@@ -200,8 +211,13 @@ int RenderingSystem::init() {
 
 	renderGraph.addInputConnection("SkymapRenderer", 0, "SkyboxRenderer", 0);
 
+	renderGraph.addInputConnection("DepthNormalRenderer", 1, "ReflectionRenderer", 0);
+	renderGraph.addInputConnection("DepthNormalRenderer", 0, "ReflectionRenderer", 1);
+	renderGraph.addInputConnection("SkymapRenderer", 0, "ReflectionRenderer", 2);
+
 	renderGraph.addInputConnection("ShadowMapRenderer", 0, "ForwardRenderer", 0);
 	renderGraph.addInputConnection("DepthNormalRenderer", 0, "ForwardRenderer", 1);
+	renderGraph.addInputConnection("ReflectionRenderer", 0, "ForwardRenderer", 2);
 
 	renderGraph.addOutputConnection("SkyboxRenderer", 0, "ForwardRenderer", 0);
 	renderGraph.addOutputConnection("DepthNormalRenderer", 1, "ForwardRenderer", 1);
@@ -828,7 +844,7 @@ int RenderingSystem::run(double dt) {
 
 	// Query timestamps
 
-	auto& debugState		= GlobalStateManager::getWritable<DebugState>();
+	auto& debugState = GlobalStateManager::getWritable<DebugState>();
 
 	// FIXME not hardcoded index
 	auto& executionTimes = debugState.executionTimeArrays[3];

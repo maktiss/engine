@@ -4,18 +4,27 @@
 
 
 namespace Engine {
-class SkyboxRenderer : public GraphicsRendererBase {
+class ReflectionRenderer : public GraphicsRendererBase {
 private:
-	MeshManager::Handle boxMesh {};
+	struct ParamBlock {
+		glm::mat4 invViewMatrix {};
+		glm::mat4 invProjectionMatrix {};
+	};
+
+private:
+	MeshManager::Handle mesh {};
 	GraphicsShaderManager::Handle shaderHandle {};
 
 	// TODO: destroy
 	vk::Sampler vkSampler {};
-	vk::ImageView vkImageView {};
+
+	vk::ImageView vkDepthImageView {};
+	vk::ImageView vkNormalImageView {};
+	vk::ImageView vkEnvironmentImageView {};
 
 
 public:
-	SkyboxRenderer() : GraphicsRendererBase(1, 1) {
+	ReflectionRenderer() : GraphicsRendererBase(3, 1) {
 	}
 
 
@@ -25,17 +34,23 @@ public:
 									   double dt) override;
 
 	const char* getRenderPassName() const override {
-		return "RENDER_PASS_SKYBOX";
+		return "RENDER_PASS_REFLECTION";
 	}
 
 
 	std::vector<AttachmentDescription> getInputDescriptions() const {
 		std::vector<AttachmentDescription> inputDescriptions {};
-		inputDescriptions.resize(1);
+		inputDescriptions.resize(3);
 
-		inputDescriptions[0].format = vk::Format::eR16G16B16A16Sfloat;
-		inputDescriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
-		inputDescriptions[0].flags  = vk::ImageCreateFlagBits::eCubeCompatible;
+		inputDescriptions[0].format = vk::Format::eD24UnormS8Uint;
+		inputDescriptions[0].usage	= vk::ImageUsageFlagBits::eSampled;
+
+		inputDescriptions[1].format = vk::Format::eR16G16B16A16Sfloat;
+		inputDescriptions[1].usage	= vk::ImageUsageFlagBits::eSampled;
+
+		inputDescriptions[2].format = vk::Format::eR16G16B16A16Sfloat;
+		inputDescriptions[2].usage	= vk::ImageUsageFlagBits::eSampled;
+		inputDescriptions[2].flags	= vk::ImageCreateFlagBits::eCubeCompatible;
 
 		return inputDescriptions;
 	}
@@ -44,7 +59,7 @@ public:
 		std::vector<AttachmentDescription> outputDescriptions {};
 		outputDescriptions.resize(1);
 
-		outputDescriptions[0].format = vk::Format::eR16G16B16A16Sfloat;
+		outputDescriptions[0].format = vk::Format::eR8G8B8A8Srgb;
 		outputDescriptions[0].usage	 = vk::ImageUsageFlagBits::eColorAttachment;
 
 		return outputDescriptions;
@@ -53,9 +68,11 @@ public:
 
 	std::vector<vk::ImageLayout> getInputInitialLayouts() const {
 		std::vector<vk::ImageLayout> initialLayouts {};
-		initialLayouts.resize(1);
+		initialLayouts.resize(3);
 
 		initialLayouts[0] = vk::ImageLayout::eShaderReadOnlyOptimal;
+		initialLayouts[1] = vk::ImageLayout::eShaderReadOnlyOptimal;
+		initialLayouts[2] = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 		return initialLayouts;
 	}

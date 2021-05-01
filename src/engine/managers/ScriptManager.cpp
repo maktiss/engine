@@ -1,7 +1,6 @@
 #include "ScriptManager.hpp"
 
-#include "engine/scripts/CameraScript.hpp"
-#include "engine/scripts/FloatingObjectScript.hpp"
+#include "engine/scripts/Scripts.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -16,6 +15,7 @@ int ScriptManager::init() {
 
 	registerScript<CameraScript>();
 	registerScript<FloatingObjectScript>();
+	registerScript<SunMovementScript>();
 
 	return 0;
 }

@@ -64,6 +64,7 @@ layout(set = FRAME_BLOCK_SET, binding = 0) uniform FrameBlock {
 
 layout(set = FRAME_BLOCK_SET, binding = 1) uniform sampler2DArrayShadow uDirectionalShadowMapBuffer;
 layout(set = FRAME_BLOCK_SET, binding = 2) uniform sampler2D uNormalBuffer;
+layout(set = FRAME_BLOCK_SET, binding = 3) uniform sampler2D uReflectionBuffer;
 // layout(set = FRAME_BLOCK_SET, binding = 2) uniform samplerCubeArrayShadow uPointShadowMapBuffer;
 
 

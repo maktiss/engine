@@ -73,7 +73,7 @@ private:
 
 
 public:
-	ForwardRenderer() : GraphicsRendererBase(2, 2) {
+	ForwardRenderer() : GraphicsRendererBase(3, 2) {
 	}
 
 
@@ -86,6 +86,22 @@ public:
 		return "RENDER_PASS_FORWARD";
 	}
 
+
+	std::vector<AttachmentDescription> getInputDescriptions() const {
+		std::vector<AttachmentDescription> inputDescriptions {};
+		inputDescriptions.resize(3);
+
+		inputDescriptions[0].format = vk::Format::eD24UnormS8Uint;
+		inputDescriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
+
+		inputDescriptions[1].format = vk::Format::eR16G16B16A16Sfloat;
+		inputDescriptions[1].usage  = vk::ImageUsageFlagBits::eSampled;
+
+		inputDescriptions[1].format = vk::Format::eR16G16B16A16Sfloat;
+		inputDescriptions[1].usage  = vk::ImageUsageFlagBits::eSampled;
+
+		return inputDescriptions;
+	}
 
 	std::vector<AttachmentDescription> getOutputDescriptions() const {
 		std::vector<AttachmentDescription> outputDescriptions {};
@@ -100,26 +116,14 @@ public:
 		return outputDescriptions;
 	}
 
-	std::vector<AttachmentDescription> getInputDescriptions() const {
-		std::vector<AttachmentDescription> descriptions {};
-		descriptions.resize(2);
-
-		descriptions[0].format = vk::Format::eD24UnormS8Uint;
-		descriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
-
-		descriptions[1].format = vk::Format::eR16G16B16A16Sfloat;
-		descriptions[1].usage  = vk::ImageUsageFlagBits::eSampled;
-
-		return descriptions;
-	}
-
 
 	std::vector<vk::ImageLayout> getInputInitialLayouts() const {
 		std::vector<vk::ImageLayout> initialLayouts {};
-		initialLayouts.resize(2);
+		initialLayouts.resize(3);
 
 		initialLayouts[0] = vk::ImageLayout::eShaderReadOnlyOptimal;
 		initialLayouts[1] = vk::ImageLayout::eShaderReadOnlyOptimal;
+		initialLayouts[2] = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 		return initialLayouts;
 	}

@@ -50,6 +50,8 @@ void main() {
 	vec2 screenCoord = inData.screenPosition.xy / inData.screenPosition.w;
 	screenCoord = screenCoord * vec2(0.5, -0.5) + vec2(0.5);
 
+	vec3 viewDir = -normalize(inData.position);
+
 	vec3 colorAlbedo = uMaterial.color.rgb;
 
 #ifdef USE_TEXTURE_ALBEDO
@@ -75,6 +77,12 @@ void main() {
 	vec3 ambientLight = vec3(0.30, 0.33, 0.34);
 
 	vec3 color = colorAlbedo * ambientOcclusion * ambientLight;
+
+	vec3 reflectedColor = texture(uReflectionBuffer, screenCoord).rgb;
+	vec3 reflectedDir = normalize(reflect(-viewDir, normal));
+
+	reflectedColor *= calcBRDF(normal, reflectedDir, viewDir, colorAlbedo, metallic, roughness);
+	color += reflectedColor * max(dot(normal, reflectedDir), 0.0);
 
 	if (uEnvironment.useDirectionalLight) {
 		float shadowAmount = 1.0f;
@@ -118,7 +126,6 @@ void main() {
 			texture(uDirectionalShadowMapBuffer, vec4(lightSpaceCoord.xy, cascade, lightSpaceCoord.z - bias)).r;
 
 		vec3 lightDir = -uEnvironment.directionalLight.direction;
-		vec3 viewDir = -normalize(inData.position);
 
 		vec3 lightColor = calcBRDF(normal, lightDir, viewDir, colorAlbedo, metallic, roughness);
 
@@ -146,7 +153,7 @@ void main() {
 	vec3 normal = inData.tbnMatrix[2];
 #endif
 
-	outNormal = vec4(normal, 1.0);
+	outNormal = vec4(normalize(normal), 1.0);
 }
 
 

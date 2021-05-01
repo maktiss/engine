@@ -35,6 +35,7 @@ add_executable(
 	src/engine/graphics/meshes/StaticMesh.hpp
 	src/engine/graphics/shaders/GraphicsShaderBase.hpp
 	src/engine/graphics/shaders/PostFxShader.hpp
+	src/engine/graphics/shaders/ReflectionShader.hpp
 	src/engine/graphics/shaders/Shader.hpp
 	src/engine/graphics/shaders/Shaders.hpp
 	src/engine/graphics/shaders/SimpleShader.hpp
@@ -76,6 +77,8 @@ add_executable(
 	src/engine/renderers/graphics/ImGuiRenderer.hpp
 	src/engine/renderers/graphics/PostFxRenderer.cpp
 	src/engine/renderers/graphics/PostFxRenderer.hpp
+	src/engine/renderers/graphics/ReflectionRenderer.cpp
+	src/engine/renderers/graphics/ReflectionRenderer.hpp
 	src/engine/renderers/graphics/ShadowMapRenderer.cpp
 	src/engine/renderers/graphics/ShadowMapRenderer.hpp
 	src/engine/renderers/graphics/SkyboxRenderer.cpp
@@ -90,6 +93,9 @@ add_executable(
 	src/engine/scripts/FloatingObjectScript.cpp
 	src/engine/scripts/FloatingObjectScript.hpp
 	src/engine/scripts/ScriptBase.hpp
+	src/engine/scripts/Scripts.hpp
+	src/engine/scripts/SunMovementScript.cpp
+	src/engine/scripts/SunMovementScript.hpp
 	src/engine/states/DebugState.hpp
 	src/engine/states/ImGuiState.hpp
 	src/engine/states/States.hpp
