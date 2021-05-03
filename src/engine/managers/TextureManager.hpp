@@ -21,6 +21,11 @@ public:
 	struct TextureInfo {
 		vk::Image image {};
 		vk::ImageView imageView {};
+		
+		vk::ImageAspectFlags imageAspect {};
+
+		uint arrayLayers {};
+		uint mipLevels {};
 	};
 
 

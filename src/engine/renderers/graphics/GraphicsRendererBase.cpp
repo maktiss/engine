@@ -95,6 +95,31 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 		commandBuffer.endRenderPass();
 
 
+		// Transition input image layouts
+
+		if (layerIndex == (getLayerCount() - 1)) {
+			for (uint inputIndex = 0; inputIndex < inputs.size(); inputIndex++) {
+				const auto textureInfo = TextureManager::getTextureInfo(inputs[inputIndex]);
+
+				vk::ImageMemoryBarrier imageMemoryBarrier {};
+				imageMemoryBarrier.image						   = textureInfo.image;
+				imageMemoryBarrier.subresourceRange.aspectMask	   = textureInfo.imageAspect;
+				imageMemoryBarrier.subresourceRange.baseArrayLayer = 0;
+				imageMemoryBarrier.subresourceRange.layerCount	   = textureInfo.arrayLayers;
+				imageMemoryBarrier.subresourceRange.baseMipLevel   = 0;
+				imageMemoryBarrier.subresourceRange.levelCount	   = textureInfo.mipLevels;
+				imageMemoryBarrier.oldLayout					   = vkInputInitialLayouts[inputIndex];
+				imageMemoryBarrier.newLayout					   = vkInputFinalLayouts[inputIndex];
+				imageMemoryBarrier.srcAccessMask				   = {};
+				imageMemoryBarrier.dstAccessMask				   = {};
+
+				commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe,
+											  vk::PipelineStageFlagBits::eBottomOfPipe, {}, 0, nullptr, 0, nullptr, 1,
+											  &imageMemoryBarrier);
+			}
+		}
+
+
 		commandBuffer.writeTimestamp(vk::PipelineStageFlagBits::eFragmentShader, timestampQueryPool,
 									 queryIndex + getMultiviewLayerCount());
 

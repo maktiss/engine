@@ -71,6 +71,8 @@ private:
 	vk::Sampler vkSampler {};
 	vk::Sampler vkShadowSampler {};
 
+	vk::ImageView vkShadowImageView {};
+
 
 public:
 	ForwardRenderer() : GraphicsRendererBase(3, 2) {

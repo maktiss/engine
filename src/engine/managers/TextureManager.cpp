@@ -123,6 +123,11 @@ void TextureManager::update(Handle handle) {
 				static_cast<uint32_t>(std::floor(std::log2(std::max(texture.size.width, texture.size.height)))) + 1;
 		}
 
+		textureInfo.imageAspect = texture.imageAspect;
+
+		textureInfo.arrayLayers = texture.layerCount;
+		textureInfo.mipLevels = mipLevels;
+
 		imageCreateInfo.imageType	  = texture.getImageType();
 		imageCreateInfo.extent		  = texture.size;
 		imageCreateInfo.mipLevels	  = mipLevels;
@@ -162,6 +167,7 @@ void TextureManager::update(Handle handle) {
 	});
 
 
+	// TODO: separate image creation from updating
 	// Create image
 
 	VkImageCreateInfo cImageCreateInfo(imageCreateInfo);

@@ -29,7 +29,7 @@ int SkyboxRenderer::init() {
 	samplerCreateInfo.mipmapMode			  = vk::SamplerMipmapMode::eLinear;
 	samplerCreateInfo.mipLodBias			  = 0.0f;
 	samplerCreateInfo.minLod				  = 0.0f;
-	samplerCreateInfo.maxLod				  = 0.0f;
+	samplerCreateInfo.maxLod				  = VK_LOD_CLAMP_NONE;
 
 	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkSampler);
 	if (result != vk::Result::eSuccess) {
@@ -41,15 +41,16 @@ int SkyboxRenderer::init() {
 
 	// Create input imageview
 
+	auto textureInfo = TextureManager::getTextureInfo(inputs[0]);
 	vk::ImageViewCreateInfo imageViewCreateInfo {};
 	imageViewCreateInfo.viewType						= vk::ImageViewType::eCube;
 	imageViewCreateInfo.format							= getInputDescriptions()[0].format;
 	imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eColor;
 	imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
-	imageViewCreateInfo.subresourceRange.levelCount		= 1;
+	imageViewCreateInfo.subresourceRange.levelCount		= textureInfo.mipLevels;
 	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 	imageViewCreateInfo.subresourceRange.layerCount		= 6;
-	imageViewCreateInfo.image							= TextureManager::getTextureInfo(inputs[0]).image;
+	imageViewCreateInfo.image							= textureInfo.image;
 
 	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkImageView);
 	if (result != vk::Result::eSuccess) {

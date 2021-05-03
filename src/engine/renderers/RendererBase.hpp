@@ -18,8 +18,14 @@ public:
 	// TODO: better name?
 	struct AttachmentDescription {
 		vk::Format format {};
+		
 		vk::ImageUsageFlags usage {};
 		vk::ImageCreateFlags flags {};
+
+		bool needMipMaps {};
+
+		// TODO: required attachment flag
+		// bool required {};
 	};
 
 

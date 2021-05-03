@@ -192,6 +192,11 @@ int RenderingSystem::init() {
 	reflectionRenderer->setOutputSize({ 1920, 1080 });
 	reflectionRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
+	auto skyMipMapRenderer = std::make_shared<MipMapRenderer>();
+	skyMipMapRenderer->setVkDevice(vkDevice);
+	skyMipMapRenderer->setOutputSize({ 1024, 1024 });
+	skyMipMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
+
 
 	renderers["DepthNormalRenderer"] = depthNormalRenderer;
 	renderers["ForwardRenderer"]	 = forwardRenderer;
@@ -201,6 +206,7 @@ int RenderingSystem::init() {
 	renderers["ImGuiRenderer"]		 = imGuiRenderer;
 	renderers["PostFxRenderer"]		 = postFxRenderer;
 	renderers["ReflectionRenderer"]	 = reflectionRenderer;
+	renderers["SkyMipMapRenderer"]	 = skyMipMapRenderer;
 
 
 	for (const auto& [name, renderer] : renderers) {
@@ -209,11 +215,15 @@ int RenderingSystem::init() {
 	}
 
 
-	renderGraph.addInputConnection("SkymapRenderer", 0, "SkyboxRenderer", 0);
+	renderGraph.addOutputConnection("SkymapRenderer", 0, "SkyMipMapRenderer", 0);
+
+	// renderGraph.addInputConnection("SkymapRenderer", 0, "SkyboxRenderer", 0);
+	renderGraph.addInputConnection("SkyMipMapRenderer", 0, "SkyboxRenderer", 0);
 
 	renderGraph.addInputConnection("DepthNormalRenderer", 1, "ReflectionRenderer", 0);
 	renderGraph.addInputConnection("DepthNormalRenderer", 0, "ReflectionRenderer", 1);
-	renderGraph.addInputConnection("SkymapRenderer", 0, "ReflectionRenderer", 2);
+	// renderGraph.addInputConnection("SkymapRenderer", 0, "ReflectionRenderer", 2);
+	renderGraph.addInputConnection("SkyMipMapRenderer", 0, "ReflectionRenderer", 2);
 
 	renderGraph.addInputConnection("ShadowMapRenderer", 0, "ForwardRenderer", 0);
 	renderGraph.addInputConnection("DepthNormalRenderer", 0, "ForwardRenderer", 1);
@@ -535,14 +545,16 @@ int RenderingSystem::init() {
 	// Iterate over render graph again to create and link inputs/outputs
 
 	for (const auto& [rendererName, renderer] : renderers) {
-		const auto& renderGraphNode	   = renderGraph.nodes[rendererName];
-		const auto& outputDescriptions = renderer->getOutputDescriptions();
+		const auto renderGraphNode	  = renderGraph.nodes[rendererName];
+		const auto outputDescriptions = renderer->getOutputDescriptions();
 
 		const auto outputSize = renderer->getOutputSize();
 
 		const auto layerCount = renderer->getLayerCount() * renderer->getMultiviewLayerCount();
 
 		for (uint outputIndex = 0; outputIndex < outputDescriptions.size(); outputIndex++) {
+			const auto outputDescription = outputDescriptions[outputIndex];
+
 			if (renderGraphNode.backwardOutputReferences[outputIndex].rendererName.empty()) {
 				auto textureHandle = TextureManager::createObject(0);
 
@@ -552,23 +564,62 @@ int RenderingSystem::init() {
 					isFinal = true;
 				}
 
-				vk::ImageCreateFlags imageFlags {};
-				for (auto& inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
-					for (const auto& inputDescription :
-						 renderers[inputReference.rendererName]->getInputDescriptions()) {
-						imageFlags |= inputDescription.flags;
-					}
+				auto imageUsage	 = outputDescription.usage;
+				auto imageFlags	 = outputDescription.flags;
+				bool needMipMaps = outputDescription.needMipMaps;
+
+
+				// Iterate over input references to merge usage and flags
+
+				for (const auto inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
+					const auto inputDescription =
+						renderers[inputReference.rendererName]->getInputDescriptions()[inputReference.attachmentIndex];
+
+					imageUsage |= inputDescription.usage;
+					imageFlags |= inputDescription.flags;
 				}
 
+
+				// Iterate over chain of outputs to merge usage and flags
+
+				auto outputReference = renderGraphNode.outputReferences[outputIndex];
+				while (!outputReference.rendererName.empty()) {
+					const auto referencedNode = renderGraph.nodes[outputReference.rendererName];
+
+					const auto inputReferenceSet = referencedNode.inputReferenceSets[outputReference.attachmentIndex];
+					for (const auto inputReference : inputReferenceSet) {
+						const auto inputDescription = renderers[inputReference.rendererName]
+														  ->getInputDescriptions()[inputReference.attachmentIndex];
+
+						imageUsage |= inputDescription.usage;
+						imageFlags |= inputDescription.flags;
+					}
+
+					const auto outputDescription = renderers[outputReference.rendererName]
+													   ->getOutputDescriptions()[outputReference.attachmentIndex];
+
+					imageUsage |= outputDescription.usage;
+					imageFlags |= outputDescription.flags;
+					needMipMaps |= outputDescription.needMipMaps;
+
+					// To the next output reference in a chain
+					outputReference = referencedNode.outputReferences[outputReference.attachmentIndex];
+				}
+
+
+				// Create output texture
+
 				textureHandle.apply([&](auto& texture) {
-					texture.format = outputDescriptions[outputIndex].format;
-					texture.usage  = outputDescriptions[outputIndex].usage;
-					texture.flags  = outputDescriptions[outputIndex].flags | imageFlags;
+					texture.format = outputDescription.format;
+					texture.usage  = imageUsage;
+					texture.flags  = imageFlags;
+
+					texture.useMipMapping = needMipMaps;
 
 					texture.layerCount = layerCount;
 
 					if (texture.usage & vk::ImageUsageFlagBits::eDepthStencilAttachment) {
-						texture.imageAspect = vk::ImageAspectFlagBits::eDepth;
+						texture.imageAspect = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
 					}
 
 					texture.size = vk::Extent3D(outputSize.width, outputSize.height, 1);
@@ -579,25 +630,31 @@ int RenderingSystem::init() {
 				});
 				textureHandle.update();
 
-				renderer->setOutput(outputIndex, textureHandle);
+
+				// Set current renderer's input and output texture handles
 
 				for (auto& inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
 					renderers[inputReference.rendererName]->setInput(inputReference.attachmentIndex, textureHandle);
 				}
 
-				// Iterate over chain of outputs
-				auto outputReference = renderGraphNode.outputReferences[outputIndex];
+				renderer->setOutput(outputIndex, textureHandle);
+
+
+				// Iterate over chain of outputs to set texture handles
+
+				outputReference = renderGraphNode.outputReferences[outputIndex];
 				while (!outputReference.rendererName.empty()) {
-					const auto& inputReferenceSet = renderGraph.nodes[outputReference.rendererName]
-														.inputReferenceSets[outputReference.attachmentIndex];
-					for (auto& inputReference : inputReferenceSet) {
+					const auto referencedNode = renderGraph.nodes[outputReference.rendererName];
+
+					const auto inputReferenceSet = referencedNode.inputReferenceSets[outputReference.attachmentIndex];
+					for (const auto inputReference : inputReferenceSet) {
 						renderers[inputReference.rendererName]->setInput(inputReference.attachmentIndex, textureHandle);
 					}
 
 					renderers[outputReference.rendererName]->setOutput(outputReference.attachmentIndex, textureHandle);
 
-					outputReference = renderGraph.nodes[outputReference.rendererName]
-										  .outputReferences[outputReference.attachmentIndex];
+					// To the next output reference in a chain
+					outputReference = referencedNode.outputReferences[outputReference.attachmentIndex];
 				}
 			}
 		}

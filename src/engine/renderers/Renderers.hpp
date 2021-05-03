@@ -8,3 +8,5 @@
 #include "graphics/ShadowMapRenderer.hpp"
 #include "graphics/SkyboxRenderer.hpp"
 #include "graphics/SkymapRenderer.hpp"
+
+#include "transfer/MipMapRenderer.hpp"

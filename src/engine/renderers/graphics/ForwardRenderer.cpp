@@ -48,6 +48,25 @@ int ForwardRenderer::init() {
 	}
 
 
+	auto textureInfo = TextureManager::getTextureInfo(inputs[0]);
+	vk::ImageViewCreateInfo imageViewCreateInfo {};
+	imageViewCreateInfo.viewType						= vk::ImageViewType::e2DArray;
+	imageViewCreateInfo.format							= getInputDescriptions()[0].format;
+	imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eDepth;
+	imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
+	imageViewCreateInfo.subresourceRange.levelCount		= textureInfo.mipLevels;
+	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+	imageViewCreateInfo.subresourceRange.layerCount		= textureInfo.arrayLayers;
+	imageViewCreateInfo.image							= textureInfo.image;
+
+	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkShadowImageView);
+	if (result != vk::Result::eSuccess) {
+		spdlog::error("[ReflectionRenderer] Failed to create image view. Error code: {} ({})", result,
+					  vk::to_string(vk::Result(result)));
+		return 1;
+	}
+
+
 	descriptorSetArrays.resize(3);
 
 	descriptorSetArrays[0].setBindingCount(4);
@@ -56,7 +75,7 @@ int ForwardRenderer::init() {
 	descriptorSetArrays[0].setBindingLayoutInfo(2, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].setBindingLayoutInfo(3, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-	descriptorSetArrays[0].updateImage(0, 1, 0, vkShadowSampler, TextureManager::getTextureInfo(inputs[0]).imageView);
+	descriptorSetArrays[0].updateImage(0, 1, 0, vkShadowSampler, vkShadowImageView);
 	descriptorSetArrays[0].updateImage(0, 2, 0, vkSampler, TextureManager::getTextureInfo(inputs[1]).imageView);
 	descriptorSetArrays[0].updateImage(0, 3, 0, vkSampler, TextureManager::getTextureInfo(inputs[2]).imageView);
 
