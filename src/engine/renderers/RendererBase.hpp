@@ -9,6 +9,7 @@
 
 #include "vk_mem_alloc.h"
 
+#include <string>
 #include <vector>
 
 
@@ -56,7 +57,6 @@ protected:
 
 
 public:
-	// FIXME: function for layers
 	RendererBase(uint inputCount, uint outputCount) {
 		inputs.resize(inputCount);
 		outputs.resize(outputCount);
@@ -76,12 +76,49 @@ public:
 					   double dt) = 0;
 
 
+	inline uint getInputCount() const {
+		return inputs.size();
+	}
+
+	inline uint getOutputCount() const {
+		return outputs.size();
+	}
+
+
+	virtual std::vector<AttachmentDescription> getInputDescriptions() const {
+		return std::vector<AttachmentDescription>();
+	}
+
 	virtual std::vector<AttachmentDescription> getOutputDescriptions() const {
 		return std::vector<AttachmentDescription>();
 	}
 
-	virtual std::vector<AttachmentDescription> getInputDescriptions() const {
-		return std::vector<AttachmentDescription>();
+
+	virtual std::vector<std::string> getInputNames() const {
+		return std::vector<std::string>();
+	}
+
+	virtual std::vector<std::string> getOutputNames() const {
+		return std::vector<std::string>();
+	}
+
+
+	inline uint getInputIndex(std::string name) {
+		const auto inputNames = getInputNames();
+		auto iter = std::find(inputNames.begin(), inputNames.end(), name);
+
+		assert(iter != inputNames.end());
+
+		return std::distance(inputNames.begin(), iter);
+	}
+
+	inline uint getOutputIndex(std::string name) {
+		const auto outputNames = getOutputNames();
+		auto iter = std::find(outputNames.begin(), outputNames.end(), name);
+
+		assert(iter != outputNames.end());
+
+		return std::distance(outputNames.begin(), iter);
 	}
 
 
@@ -101,18 +138,9 @@ public:
 		return 1;
 	}
 
-	// Number of multiview layers renderer can to render to
+	// Number of multiview layers per layer
 	virtual inline uint getMultiviewLayerCount() const {
 		return 1;
-	}
-
-
-	inline uint getInputCount() const {
-		return inputs.size();
-	}
-
-	inline uint getOutputCount() const {
-		return outputs.size();
 	}
 
 
@@ -152,11 +180,11 @@ public:
 	}
 
 
-	inline TextureManager::Handle getOutput(uint index) {
+	inline TextureManager::Handle getOutput(uint index) const {
 		return outputs[index];
 	}
 
-	inline TextureManager::Handle getInput(uint index) {
+	inline TextureManager::Handle getInput(uint index) const {
 		return inputs[index];
 	}
 
@@ -178,7 +206,7 @@ public:
 	}
 
 
-	virtual const std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() {
+	virtual std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() {
 		std::vector<vk::DescriptorSetLayout> layouts(descriptorSetArrays.size());
 		for (uint i = 0; i < layouts.size(); i++) {
 			layouts[i] = descriptorSetArrays[i].getVkDescriptorSetLayout();

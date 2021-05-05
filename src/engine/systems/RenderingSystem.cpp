@@ -6,33 +6,33 @@
 
 
 namespace Engine {
-void RenderingSystem::RenderGraph::addInputConnection(std::string srcName, uint srcOutputIndex, std::string dstName,
-													  uint dstInputIndex, bool nextFrame) {
-	nodes[srcName].inputReferenceSets[srcOutputIndex].insert({ dstName, dstInputIndex, nextFrame });
+void RenderingSystem::RenderGraph::addInputConnection(std::string srcName, std::string srcOutputName,
+													  std::string dstName, std::string dstInputName, bool nextFrame) {
+	nodes[srcName].inputReferenceSets[srcOutputName].insert({ dstName, dstInputName, nextFrame });
 
-	if (!nodes[dstName].backwardInputReferences[dstInputIndex].rendererName.empty()) {
+	if (!nodes[dstName].backwardInputReferences[dstInputName].rendererName.empty()) {
 		spdlog::warn("Attempt to connect additional output ({}, {}) to an input slot ({}, {}), using last "
 					 "specified connection",
-					 srcName, srcOutputIndex, dstName, dstInputIndex);
+					 srcName, srcOutputName, dstName, dstInputName);
 	}
-	nodes[dstName].backwardInputReferences[dstInputIndex] = { srcName, srcOutputIndex, nextFrame };
+	nodes[dstName].backwardInputReferences[dstInputName] = { srcName, srcOutputName, nextFrame };
 }
 
-void RenderingSystem::RenderGraph::addOutputConnection(std::string srcName, uint srcOutputIndex, std::string dstName,
-													   uint dstOutputIndex, bool nextFrame) {
-	if (!nodes[srcName].outputReferences[srcOutputIndex].rendererName.empty()) {
+void RenderingSystem::RenderGraph::addOutputConnection(std::string srcName, std::string srcOutputName,
+													   std::string dstName, std::string dstOutputName, bool nextFrame) {
+	if (!nodes[srcName].outputReferences[srcOutputName].rendererName.empty()) {
 		spdlog::warn("Attempt to connect an output ({}, {}) to additional output slot ({}, {}), using last "
 					 "specified connection",
-					 srcName, srcOutputIndex, dstName, dstOutputIndex);
+					 srcName, srcOutputName, dstName, dstOutputName);
 	}
-	nodes[srcName].outputReferences[srcOutputIndex] = { dstName, dstOutputIndex, nextFrame };
+	nodes[srcName].outputReferences[srcOutputName] = { dstName, dstOutputName, nextFrame };
 
-	if (!nodes[dstName].backwardOutputReferences[dstOutputIndex].rendererName.empty()) {
+	if (!nodes[dstName].backwardOutputReferences[dstOutputName].rendererName.empty()) {
 		spdlog::warn("Attempt to connect additional output ({}, {}) to an output slot ({}, {}), using last "
 					 "specified connection",
-					 srcName, srcOutputIndex, dstName, dstOutputIndex);
+					 srcName, srcOutputName, dstName, dstOutputName);
 	}
-	nodes[dstName].backwardOutputReferences[dstOutputIndex] = { srcName, srcOutputIndex, nextFrame };
+	nodes[dstName].backwardOutputReferences[dstOutputName] = { srcName, srcOutputName, nextFrame };
 }
 
 
@@ -209,48 +209,108 @@ int RenderingSystem::init() {
 	renderers["SkyMipMapRenderer"]	 = skyMipMapRenderer;
 
 
-	for (const auto& [name, renderer] : renderers) {
-		renderGraph.setInputCount(name, renderer->getInputCount());
-		renderGraph.setOutputCount(name, renderer->getOutputCount());
-	}
+	renderGraph.addOutputConnection("SkymapRenderer", "SkyMap", "SkyMipMapRenderer", "Buffer");
+
+	renderGraph.addInputConnection("SkyMipMapRenderer", "Buffer", "SkyboxRenderer", "SkyMap");
+
+	renderGraph.addInputConnection("DepthNormalRenderer", "DepthBuffer", "ReflectionRenderer", "DepthBuffer");
+	renderGraph.addInputConnection("DepthNormalRenderer", "NormalBuffer", "ReflectionRenderer", "NormalBuffer");
+	renderGraph.addInputConnection("SkyMipMapRenderer", "Buffer", "ReflectionRenderer", "EnvironmentMap");
+
+	renderGraph.addInputConnection("ShadowMapRenderer", "ShadowMap", "ForwardRenderer", "ShadowMap");
+	renderGraph.addInputConnection("DepthNormalRenderer", "NormalBuffer", "ForwardRenderer", "NormalBuffer");
+	renderGraph.addInputConnection("ReflectionRenderer", "ReflectionBuffer", "ForwardRenderer", "ReflectionBuffer");
+
+	renderGraph.addOutputConnection("SkyboxRenderer", "ColorBuffer", "ForwardRenderer", "ColorBuffer");
+	renderGraph.addOutputConnection("DepthNormalRenderer", "DepthBuffer", "ForwardRenderer", "DepthBuffer");
+
+	renderGraph.addInputConnection("ForwardRenderer", "ColorBuffer", "PostFxRenderer", "ColorBuffer");
+
+	renderGraph.addOutputConnection("PostFxRenderer", "ColorBuffer", "ImGuiRenderer", "ColorBuffer");
 
 
-	renderGraph.addOutputConnection("SkymapRenderer", 0, "SkyMipMapRenderer", 0);
-
-	// renderGraph.addInputConnection("SkymapRenderer", 0, "SkyboxRenderer", 0);
-	renderGraph.addInputConnection("SkyMipMapRenderer", 0, "SkyboxRenderer", 0);
-
-	renderGraph.addInputConnection("DepthNormalRenderer", 1, "ReflectionRenderer", 0);
-	renderGraph.addInputConnection("DepthNormalRenderer", 0, "ReflectionRenderer", 1);
-	// renderGraph.addInputConnection("SkymapRenderer", 0, "ReflectionRenderer", 2);
-	renderGraph.addInputConnection("SkyMipMapRenderer", 0, "ReflectionRenderer", 2);
-
-	renderGraph.addInputConnection("ShadowMapRenderer", 0, "ForwardRenderer", 0);
-	renderGraph.addInputConnection("DepthNormalRenderer", 0, "ForwardRenderer", 1);
-	renderGraph.addInputConnection("ReflectionRenderer", 0, "ForwardRenderer", 2);
-
-	renderGraph.addOutputConnection("SkyboxRenderer", 0, "ForwardRenderer", 0);
-	renderGraph.addOutputConnection("DepthNormalRenderer", 1, "ForwardRenderer", 1);
-
-	renderGraph.addInputConnection("ForwardRenderer", 0, "PostFxRenderer", 0);
-
-	renderGraph.addOutputConnection("PostFxRenderer", 0, "ImGuiRenderer", 0);
+	finalOutputReference = { "ImGuiRenderer", "ColorBuffer" };
 
 
-	finalOutputReference = { "ImGuiRenderer", 0 };
-
+	// TODO: move render graph conpilation into function
 
 	spdlog::info("Compiling render graph...");
+
+
+	// Test render graph for reference errors
+
+	bool renderGraphErrors = false;
+
+	for (auto& [rendererName, node] : renderGraph.nodes) {
+		auto iter = renderers.find(rendererName);
+		if (iter == renderers.end()) {
+			spdlog::error("[RenderingSystem] [RenderGraph] Node '{}' specifies non-existent renderer", rendererName);
+			renderGraphErrors = true;
+
+		} else {
+			const auto& renderer = renderers[rendererName];
+
+			const auto inputNames  = renderer->getInputNames();
+			const auto outputNames = renderer->getOutputNames();
+
+			for (auto& [outputName, inputReferenceSet] : node.inputReferenceSets) {
+				auto iter = std::find(outputNames.begin(), outputNames.end(), outputName);
+				if (iter == outputNames.end()) {
+					spdlog::error(
+						"[RenderingSystem] [RenderGraph] Node '{}' specifies non-existent output source '{}' for "
+						"input reference",
+						rendererName, outputName);
+					renderGraphErrors = true;
+				}
+			}
+
+			for (auto& [outputName, outputReference] : node.outputReferences) {
+				auto iter = std::find(outputNames.begin(), outputNames.end(), outputName);
+				if (iter == outputNames.end()) {
+					spdlog::error(
+						"[RenderingSystem] [RenderGraph] Node '{}' specifies non-existent output source '{}' for "
+						"output reference",
+						rendererName, outputName);
+					renderGraphErrors = true;
+				}
+			}
+
+			for (auto& [inputName, backwardInputReference] : node.backwardInputReferences) {
+				auto iter = std::find(inputNames.begin(), inputNames.end(), inputName);
+				if (iter == inputNames.end()) {
+					spdlog::error("[RenderingSystem] [RenderGraph] Node '{}' specifies non-existent input '{}' for "
+								  "backward input reference",
+								  rendererName, inputName);
+					renderGraphErrors = true;
+				}
+			}
+
+			for (auto& [outputName, backwardoutputReference] : node.backwardOutputReferences) {
+				auto iter = std::find(outputNames.begin(), outputNames.end(), outputName);
+				if (iter == outputNames.end()) {
+					spdlog::error("[RenderingSystem] [RenderGraph] Node '{}' specifies non-existent output '{}' for "
+								  "backward output reference",
+								  rendererName, outputName);
+					renderGraphErrors = true;
+				}
+			}
+		}
+	}
+
+	if (renderGraphErrors) {
+		return 1;
+	}
+
 
 	// Lower value == higher priority
 	std::unordered_map<std::string, uint> executionPrioriries {};
 
 	for (const auto& [rendererName, renderer] : renderers) {
-		const auto& renderGraphNode = renderGraph.nodes[rendererName];
+		auto& renderGraphNode = renderGraph.nodes[rendererName];
 
 		auto& rendererPriority = executionPrioriries[rendererName];
 
-		for (const auto backwardInputReference : renderGraphNode.backwardInputReferences) {
+		for (const auto [slotName, backwardInputReference] : renderGraphNode.backwardInputReferences) {
 			if (!backwardInputReference.rendererName.empty()) {
 				auto& referencedPriority = executionPrioriries[backwardInputReference.rendererName];
 
@@ -269,7 +329,7 @@ int RenderingSystem::init() {
 			}
 		}
 
-		for (const auto backwardOutputReference : renderGraphNode.backwardOutputReferences) {
+		for (const auto [slotName, backwardOutputReference] : renderGraphNode.backwardOutputReferences) {
 			if (!backwardOutputReference.rendererName.empty()) {
 				auto& referencedPriority = executionPrioriries[backwardOutputReference.rendererName];
 
@@ -288,13 +348,13 @@ int RenderingSystem::init() {
 			}
 		}
 
-		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
-			const auto& inputReferenceSet = renderGraphNode.inputReferenceSets[outputIndex];
-			const auto& outputReference	  = renderGraphNode.outputReferences[outputIndex];
+		for (auto outputName : renderer->getOutputNames()) {
+			const auto& inputReferenceSet = renderGraphNode.inputReferenceSets[outputName];
+			const auto& outputReference	  = renderGraphNode.outputReferences[outputName];
 
 			// Deal with output first, so it will have lower priority over inputs
 			if (!outputReference.rendererName.empty()) {
-				if (outputReference.attachmentIndex == -1) {
+				if (outputReference.slotName.empty()) {
 					spdlog::error("Failed to compile render graph: output attachment index is not specified");
 					return 1;
 				}
@@ -321,7 +381,7 @@ int RenderingSystem::init() {
 			}
 
 			for (const auto& inputReference : inputReferenceSet) {
-				if (!inputReference.rendererName.empty() && inputReference.attachmentIndex == -1) {
+				if (!inputReference.rendererName.empty() && inputReference.slotName.empty()) {
 					spdlog::error("Failed to compile render graph: input attachment index is not specified");
 					return 1;
 				}
@@ -402,27 +462,31 @@ int RenderingSystem::init() {
 	for (const auto& [rendererName, renderer] : renderers) {
 		const auto rendererIndex = getRendererIndex(rendererName);
 
-		const auto& renderGraphNode = renderGraph.nodes[rendererName];
+		auto& renderGraphNode = renderGraph.nodes[rendererName];
 
 		auto inputInitialLayouts  = renderer->getInputInitialLayouts();
 		auto outputInitialLayouts = renderer->getOutputInitialLayouts();
 
 
-		for (uint inputIndex = 0; inputIndex < renderer->getInputCount(); inputIndex++) {
-			if (!renderGraphNode.backwardInputReferences[inputIndex].rendererName.empty()) {
+		for (auto inputName : renderer->getInputNames()) {
+			auto inputIndex = renderer->getInputIndex(inputName);
+
+			if (!renderGraphNode.backwardInputReferences[inputName].rendererName.empty()) {
 				renderer->setInputInitialLayout(inputIndex, inputInitialLayouts[inputIndex]);
 			}
 		}
 
-		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
-			if (!renderGraphNode.backwardOutputReferences[outputIndex].rendererName.empty()) {
+		for (auto outputName : renderer->getOutputNames()) {
+			auto outputIndex = renderer->getOutputIndex(outputName);
+
+			if (!renderGraphNode.backwardOutputReferences[outputName].rendererName.empty()) {
 				renderer->setOutputInitialLayout(outputIndex, outputInitialLayouts[outputIndex]);
 			}
 
 			vk::SemaphoreCreateInfo semaphoreCreateInfo {};
 			vk::Semaphore semaphore {};
 
-			for (const auto& inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
+			for (const auto& inputReference : renderGraphNode.inputReferenceSets[outputName]) {
 				for (uint frameInFlight = 0; frameInFlight < framesInFlightCount; frameInFlight++) {
 					RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
 									   "Failed to create rendering semaphore");
@@ -435,7 +499,7 @@ int RenderingSystem::init() {
 				// TODO: nextFrame dependency
 			}
 
-			const auto& outputReference = renderGraphNode.outputReferences[outputIndex];
+			const auto& outputReference = renderGraphNode.outputReferences[outputName];
 			if (!outputReference.rendererName.empty()) {
 				for (uint frameInFlight = 0; frameInFlight < framesInFlightCount; frameInFlight++) {
 					RETURN_IF_VK_ERROR(vkDevice.createSemaphore(&semaphoreCreateInfo, nullptr, &semaphore),
@@ -487,80 +551,106 @@ int RenderingSystem::init() {
 	// Iterate over render graph again to link initial and final render pass layouts
 
 	for (const auto& [rendererName, renderer] : renderers) {
-		const auto& renderGraphNode = renderGraph.nodes[rendererName];
+		auto& renderGraphNode = renderGraph.nodes[rendererName];
 
 		auto& rendererPriority = executionPrioriries[rendererName];
 
-		for (uint outputIndex = 0; outputIndex < renderer->getOutputCount(); outputIndex++) {
-			const auto& inputReferenceSet = renderGraphNode.inputReferenceSets[outputIndex];
-			const auto& outputReference	  = renderGraphNode.outputReferences[outputIndex];
+		for (auto outputName : renderer->getOutputNames()) {
+			const auto& inputReferenceSet = renderGraphNode.inputReferenceSets[outputName];
+			const auto& outputReference	  = renderGraphNode.outputReferences[outputName];
+
+			auto outputIndex = renderer->getOutputIndex(outputName);
 
 			std::vector<RenderGraph::NodeReference> sortedInputReferences {};
+
 			if (!inputReferenceSet.empty()) {
 				// Sort input references by execution priority
 				for (uint executionIndex = 0; executionIndex < rendererExecutionOrder.size(); executionIndex++) {
-					const auto& iter = inputReferenceSet.find({ rendererExecutionOrder[executionIndex], {}, {} });
+					// const auto& iter = inputReferenceSet.find({ rendererExecutionOrder[executionIndex], {}, {} });
+					const auto iter =
+						std::find_if(inputReferenceSet.begin(), inputReferenceSet.end(), [&](const auto& reference) {
+							return reference.rendererName == rendererExecutionOrder[executionIndex];
+						});
+
 					if (iter != inputReferenceSet.end()) {
 						sortedInputReferences.push_back(*iter);
 					}
 				}
 
-				renderer->setOutputFinalLayout(
-					outputIndex, renderers[sortedInputReferences[0].rendererName]
-									 ->getInputInitialLayouts()[sortedInputReferences[0].attachmentIndex]);
+				auto nextRendererName = sortedInputReferences[0].rendererName;
+				auto nextSlotIndex	  = renderers[nextRendererName]->getInputIndex(sortedInputReferences[0].slotName);
 
-				for (uint inputReferenceIndex = 0; inputReferenceIndex < sortedInputReferences.size() - 1;
+				renderer->setOutputFinalLayout(outputIndex,
+											   renderers[nextRendererName]->getInputInitialLayouts()[nextSlotIndex]);
+
+				for (uint inputReferenceIndex = 0; inputReferenceIndex < (sortedInputReferences.size() - 1);
 					 inputReferenceIndex++) {
 					const auto& inputReference	   = sortedInputReferences[inputReferenceIndex];
 					const auto& nextInputReference = sortedInputReferences[inputReferenceIndex + 1];
 
-					renderers[inputReference.rendererName]->setInputFinalLayout(
-						inputReference.attachmentIndex,
-						renderers[nextInputReference.rendererName]
-							->getInputInitialLayouts()[nextInputReference.attachmentIndex]);
+					auto currentRendererName = inputReference.rendererName;
+					auto currentSlotIndex	 = renderers[currentRendererName]->getInputIndex(inputReference.slotName);
+
+					nextRendererName = nextInputReference.rendererName;
+					nextSlotIndex	 = renderers[nextRendererName]->getInputIndex(nextInputReference.slotName);
+
+					renderers[currentRendererName]->setInputFinalLayout(
+						currentSlotIndex, renderers[nextRendererName]->getInputInitialLayouts()[nextSlotIndex]);
 				}
 			}
 
 			if (!outputReference.rendererName.empty()) {
+				auto nextRendererName = outputReference.rendererName;
+				auto nextSlotIndex	  = renderers[nextRendererName]->getOutputIndex(outputReference.slotName);
+
 				if (sortedInputReferences.empty()) {
-					renderer->setOutputFinalLayout(outputIndex,
-												   renderers[outputReference.rendererName]
-													   ->getOutputInitialLayouts()[outputReference.attachmentIndex]);
+					renderer->setOutputFinalLayout(
+						outputIndex, renderers[nextRendererName]->getOutputInitialLayouts()[nextSlotIndex]);
+
 				} else {
-					const auto& lastOutputReference = sortedInputReferences[sortedInputReferences.size() - 1];
-					renderers[lastOutputReference.rendererName]->setInputFinalLayout(
-						lastOutputReference.attachmentIndex,
-						renderers[outputReference.rendererName]
-							->getOutputInitialLayouts()[outputReference.attachmentIndex]);
+					const auto& lastInputReference = sortedInputReferences[sortedInputReferences.size() - 1];
+
+					auto lastRendererName = lastInputReference.rendererName;
+					auto lastSlotIndex	  = renderers[lastRendererName]->getInputIndex(lastInputReference.slotName);
+
+					renderers[lastRendererName]->setInputFinalLayout(
+						lastSlotIndex, renderers[nextRendererName]->getOutputInitialLayouts()[nextSlotIndex]);
 				}
 			}
 		}
 	}
 
+
 	// Set final layout for output to blit result from
-	renderers[finalOutputReference.rendererName]->setOutputFinalLayout(finalOutputReference.attachmentIndex,
-																	   vk::ImageLayout::eTransferSrcOptimal);
+
+	auto finalRendererName = finalOutputReference.rendererName;
+	auto finalSlotIndex	   = renderers[finalRendererName]->getOutputIndex(finalOutputReference.slotName);
+
+	renderers[finalRendererName]->setOutputFinalLayout(finalSlotIndex, vk::ImageLayout::eTransferSrcOptimal);
 
 
 	// Iterate over render graph again to create and link inputs/outputs
 
 	for (const auto& [rendererName, renderer] : renderers) {
-		const auto renderGraphNode	  = renderGraph.nodes[rendererName];
+		auto& renderGraphNode		  = renderGraph.nodes[rendererName];
 		const auto outputDescriptions = renderer->getOutputDescriptions();
 
 		const auto outputSize = renderer->getOutputSize();
 
 		const auto layerCount = renderer->getLayerCount() * renderer->getMultiviewLayerCount();
 
-		for (uint outputIndex = 0; outputIndex < outputDescriptions.size(); outputIndex++) {
+		for (auto outputName : renderer->getOutputNames()) {
+			// for (uint outputIndex = 0; outputIndex < outputDescriptions.size(); outputIndex++) {
+			const auto outputIndex = renderer->getOutputIndex(outputName);
+
 			const auto outputDescription = outputDescriptions[outputIndex];
 
-			if (renderGraphNode.backwardOutputReferences[outputIndex].rendererName.empty()) {
+			if (renderGraphNode.backwardOutputReferences[outputName].rendererName.empty()) {
 				auto textureHandle = TextureManager::createObject(0);
 
 				bool isFinal = false;
-				if (finalOutputReference.rendererName == rendererName &&
-					finalOutputReference.attachmentIndex == outputIndex) {
+				if ((finalOutputReference.rendererName == rendererName) &&
+					(finalOutputReference.slotName == outputName)) {
 					isFinal = true;
 				}
 
@@ -571,9 +661,11 @@ int RenderingSystem::init() {
 
 				// Iterate over input references to merge usage and flags
 
-				for (const auto inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
-					const auto inputDescription =
-						renderers[inputReference.rendererName]->getInputDescriptions()[inputReference.attachmentIndex];
+				for (const auto& inputReference : renderGraphNode.inputReferenceSets[outputName]) {
+					auto nextRendererName = inputReference.rendererName;
+					auto nextSlotIndex	  = renderers[nextRendererName]->getInputIndex(inputReference.slotName);
+
+					const auto inputDescription = renderers[nextRendererName]->getInputDescriptions()[nextSlotIndex];
 
 					imageUsage |= inputDescription.usage;
 					imageFlags |= inputDescription.flags;
@@ -582,28 +674,34 @@ int RenderingSystem::init() {
 
 				// Iterate over chain of outputs to merge usage and flags
 
-				auto outputReference = renderGraphNode.outputReferences[outputIndex];
+				auto outputReference = renderGraphNode.outputReferences[outputName];
 				while (!outputReference.rendererName.empty()) {
-					const auto referencedNode = renderGraph.nodes[outputReference.rendererName];
+					auto& referencedNode = renderGraph.nodes[outputReference.rendererName];
 
-					const auto inputReferenceSet = referencedNode.inputReferenceSets[outputReference.attachmentIndex];
-					for (const auto inputReference : inputReferenceSet) {
-						const auto inputDescription = renderers[inputReference.rendererName]
-														  ->getInputDescriptions()[inputReference.attachmentIndex];
+					auto inputReferenceSet = referencedNode.inputReferenceSets[outputReference.slotName];
+
+					for (const auto& inputReference : inputReferenceSet) {
+						auto nextRendererName = inputReference.rendererName;
+						auto nextSlotIndex	  = renderers[nextRendererName]->getInputIndex(inputReference.slotName);
+
+						const auto inputDescription =
+							renderers[nextRendererName]->getInputDescriptions()[nextSlotIndex];
 
 						imageUsage |= inputDescription.usage;
 						imageFlags |= inputDescription.flags;
 					}
 
-					const auto outputDescription = renderers[outputReference.rendererName]
-													   ->getOutputDescriptions()[outputReference.attachmentIndex];
+					auto nextRendererName = outputReference.rendererName;
+					auto nextSlotIndex	  = renderers[nextRendererName]->getOutputIndex(outputReference.slotName);
+
+					const auto outputDescription = renderers[nextRendererName]->getOutputDescriptions()[nextSlotIndex];
 
 					imageUsage |= outputDescription.usage;
 					imageFlags |= outputDescription.flags;
 					needMipMaps |= outputDescription.needMipMaps;
 
 					// To the next output reference in a chain
-					outputReference = referencedNode.outputReferences[outputReference.attachmentIndex];
+					outputReference = referencedNode.outputReferences[outputReference.slotName];
 				}
 
 
@@ -631,30 +729,44 @@ int RenderingSystem::init() {
 				textureHandle.update();
 
 
-				// Set current renderer's input and output texture handles
-
-				for (auto& inputReference : renderGraphNode.inputReferenceSets[outputIndex]) {
-					renderers[inputReference.rendererName]->setInput(inputReference.attachmentIndex, textureHandle);
-				}
+				// Set current renderer's output texture handle
 
 				renderer->setOutput(outputIndex, textureHandle);
 
 
+				// Set handles for inputs connected to current output
+
+				for (auto& inputReference : renderGraphNode.inputReferenceSets[outputName]) {
+					auto nextRendererName = inputReference.rendererName;
+					auto nextSlotIndex	  = renderers[nextRendererName]->getInputIndex(inputReference.slotName);
+
+					renderers[nextRendererName]->setInput(nextSlotIndex, textureHandle);
+				}
+
+
 				// Iterate over chain of outputs to set texture handles
 
-				outputReference = renderGraphNode.outputReferences[outputIndex];
-				while (!outputReference.rendererName.empty()) {
-					const auto referencedNode = renderGraph.nodes[outputReference.rendererName];
+				outputReference = renderGraphNode.outputReferences[outputName];
 
-					const auto inputReferenceSet = referencedNode.inputReferenceSets[outputReference.attachmentIndex];
+				while (!outputReference.rendererName.empty()) {
+					auto& referencedNode = renderGraph.nodes[outputReference.rendererName];
+
+					auto inputReferenceSet = referencedNode.inputReferenceSets[outputReference.slotName];
+
 					for (const auto inputReference : inputReferenceSet) {
-						renderers[inputReference.rendererName]->setInput(inputReference.attachmentIndex, textureHandle);
+						auto nextRendererName = inputReference.rendererName;
+						auto nextSlotIndex	  = renderers[nextRendererName]->getInputIndex(inputReference.slotName);
+
+						renderers[nextRendererName]->setInput(nextSlotIndex, textureHandle);
 					}
 
-					renderers[outputReference.rendererName]->setOutput(outputReference.attachmentIndex, textureHandle);
+					auto nextRendererName = outputReference.rendererName;
+					auto nextSlotIndex	  = renderers[nextRendererName]->getOutputIndex(outputReference.slotName);
+
+					renderers[nextRendererName]->setOutput(nextSlotIndex, textureHandle);
 
 					// To the next output reference in a chain
-					outputReference = referencedNode.outputReferences[outputReference.attachmentIndex];
+					outputReference = referencedNode.outputReferences[outputReference.slotName];
 				}
 			}
 		}
@@ -664,7 +776,7 @@ int RenderingSystem::init() {
 		renderer->init();
 	}
 
-	finalTextureHandle = renderers[finalOutputReference.rendererName]->getOutput(finalOutputReference.attachmentIndex);
+	finalTextureHandle = renderers[finalRendererName]->getOutput(finalSlotIndex);
 
 	// for (auto& renderer : renderers) {
 	// 	const auto& outputDescriptions = renderer->getOutputDescriptions();

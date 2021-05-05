@@ -29,13 +29,22 @@ public:
 	}
 
 
+	virtual std::vector<std::string> getInputNames() const {
+		return { "SkyMap" };
+	}
+
+	virtual std::vector<std::string> getOutputNames() const {
+		return { "ColorBuffer" };
+	}
+
+
 	std::vector<AttachmentDescription> getInputDescriptions() const {
 		std::vector<AttachmentDescription> inputDescriptions {};
 		inputDescriptions.resize(1);
 
 		inputDescriptions[0].format = vk::Format::eR16G16B16A16Sfloat;
-		inputDescriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
-		inputDescriptions[0].flags  = vk::ImageCreateFlagBits::eCubeCompatible;
+		inputDescriptions[0].usage	= vk::ImageUsageFlagBits::eSampled;
+		inputDescriptions[0].flags	= vk::ImageCreateFlagBits::eCubeCompatible;
 
 		return inputDescriptions;
 	}

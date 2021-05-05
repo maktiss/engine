@@ -25,6 +25,15 @@ public:
 	}
 
 
+	virtual std::vector<std::string> getInputNames() const {
+		return {};
+	}
+
+	virtual std::vector<std::string> getOutputNames() const {
+		return { "SkyMap" };
+	}
+
+
 	inline uint getMultiviewLayerCount() const override {
 		return 6;
 	}

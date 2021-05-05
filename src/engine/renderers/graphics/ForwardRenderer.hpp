@@ -89,18 +89,27 @@ public:
 	}
 
 
+	virtual std::vector<std::string> getInputNames() const {
+		return { "ShadowMap", "NormalBuffer", "ReflectionBuffer" };
+	}
+
+	virtual std::vector<std::string> getOutputNames() const {
+		return { "ColorBuffer", "DepthBuffer" };
+	}
+
+
 	std::vector<AttachmentDescription> getInputDescriptions() const {
 		std::vector<AttachmentDescription> inputDescriptions {};
 		inputDescriptions.resize(3);
 
 		inputDescriptions[0].format = vk::Format::eD24UnormS8Uint;
-		inputDescriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
+		inputDescriptions[0].usage	= vk::ImageUsageFlagBits::eSampled;
 
 		inputDescriptions[1].format = vk::Format::eR16G16B16A16Sfloat;
-		inputDescriptions[1].usage  = vk::ImageUsageFlagBits::eSampled;
+		inputDescriptions[1].usage	= vk::ImageUsageFlagBits::eSampled;
 
 		inputDescriptions[1].format = vk::Format::eR16G16B16A16Sfloat;
-		inputDescriptions[1].usage  = vk::ImageUsageFlagBits::eSampled;
+		inputDescriptions[1].usage	= vk::ImageUsageFlagBits::eSampled;
 
 		return inputDescriptions;
 	}

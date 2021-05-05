@@ -134,6 +134,44 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 }
 
 
+uint GraphicsRendererBase::getColorAttachmentCount() const {
+	const auto attachmentReferences = getVkAttachmentReferences();
+
+	// Depth attachment should always be last
+	for (uint i = 0; i < attachmentReferences.size(); i++) {
+		if (i != (attachmentReferences.size() - 1)) {
+			// FIXME: check for all depth layout variations
+			assert(attachmentReferences[i].layout != vk::ImageLayout::eDepthStencilAttachmentOptimal);
+		}
+	}
+
+	auto colorAttachmentCount = getOutputCount();
+
+	const auto& lastAttachmentReference = attachmentReferences[attachmentReferences.size() - 1];
+	// FIXME: check for all depth layout variations
+	if (lastAttachmentReference.layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+		colorAttachmentCount--;
+	}
+
+	return colorAttachmentCount;
+}
+
+
+std::vector<vk::AttachmentReference> GraphicsRendererBase::getVkAttachmentReferences() const {
+	const auto& outputInitialLayouts = getOutputInitialLayouts();
+
+	std::vector<vk::AttachmentReference> attachmentReferences {};
+	attachmentReferences.resize(outputInitialLayouts.size());
+
+	for (uint i = 0; i < attachmentReferences.size(); i++) {
+		attachmentReferences[i].attachment = i;
+		attachmentReferences[i].layout	   = outputInitialLayouts[i];
+	}
+
+	return attachmentReferences;
+}
+
+
 int GraphicsRendererBase::createRenderPass() {
 	auto attachmentReferences = getVkAttachmentReferences();
 

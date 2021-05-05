@@ -29,7 +29,7 @@ public:
 					   double dt) override;
 
 
-	virtual const std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() override {
+	virtual std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() override {
 		auto layouts = RendererBase::getVkDescriptorSetLayouts();
 		layouts.push_back(MaterialManager::getVkDescriptorSetLayout());
 		layouts.push_back(TextureManager::getVkDescriptorSetLayout());
@@ -37,27 +37,9 @@ public:
 	}
 
 
-	const uint getColorAttachmentCount() const {
-		const auto attachmentReferences = getVkAttachmentReferences();
-		
-		// Depth attachment should always be last
-		for (uint i = 0; i < attachmentReferences.size(); i++) {
-			if (i != (attachmentReferences.size() - 1)) {
-				// FIXME: check for all depth layout variations
-				assert(attachmentReferences[i].layout != vk::ImageLayout::eDepthStencilAttachmentOptimal);
-			}
-		}
+	uint getColorAttachmentCount() const;
 
-		auto colorAttachmentCount = getOutputCount();
-
-		const auto& lastAttachmentReference = attachmentReferences[attachmentReferences.size() - 1];
-		// FIXME: check for all depth layout variations
-		if (lastAttachmentReference.layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-			colorAttachmentCount--;
-		}
-
-		return colorAttachmentCount;
-	}
+	std::vector<vk::AttachmentReference> getVkAttachmentReferences() const;
 
 
 	int createRenderPass();
@@ -72,20 +54,6 @@ public:
 
 	virtual std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() const {
 		return std::vector<vk::AttachmentDescription>();
-	}
-
-	virtual std::vector<vk::AttachmentReference> getVkAttachmentReferences() const {
-		const auto& outputInitialLayouts = getOutputInitialLayouts();
-
-		std::vector<vk::AttachmentReference> attachmentReferences {};
-		attachmentReferences.resize(outputInitialLayouts.size());
-
-		for (uint i = 0; i < attachmentReferences.size(); i++) {
-			attachmentReferences[i].attachment = i;
-			attachmentReferences[i].layout	   = outputInitialLayouts[i];
-		}
-
-		return attachmentReferences;
 	}
 
 

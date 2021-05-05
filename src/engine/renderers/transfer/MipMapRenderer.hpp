@@ -16,17 +16,26 @@ public:
 											   double dt) override;
 
 
-	std::vector<AttachmentDescription> getOutputDescriptions() const {
+	virtual std::vector<std::string> getInputNames() const {
+		return {};
+	}
+
+	virtual std::vector<std::string> getOutputNames() const {
+		return { "Buffer" };
+	}
+
+
+	std::vector<AttachmentDescription> getOutputDescriptions() const override {
 		std::vector<AttachmentDescription> outputDescriptions {};
 		outputDescriptions.resize(1);
 
-		outputDescriptions[0].usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst;
+		outputDescriptions[0].usage		  = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst;
 		outputDescriptions[0].needMipMaps = true;
 
 		return outputDescriptions;
 	}
 
-	std::vector<vk::ImageLayout> getOutputInitialLayouts() const {
+	std::vector<vk::ImageLayout> getOutputInitialLayouts() const override {
 		std::vector<vk::ImageLayout> outputInitialLayouts {};
 		outputInitialLayouts.resize(1);
 

@@ -6,7 +6,7 @@
 namespace Engine {
 class TransferRendererBase : public RendererBase {
 public:
-	TransferRendererBase(uint inputCount = 0, uint outputCount = 0) : RendererBase(inputCount, outputCount) {
+	TransferRendererBase(uint inputCount, uint outputCount) : RendererBase(inputCount, outputCount) {
 	}
 
 

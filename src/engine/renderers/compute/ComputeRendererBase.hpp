@@ -6,7 +6,7 @@
 namespace Engine {
 class ComputeRendererBase : public RendererBase {
 public:
-	ComputeRendererBase(uint inputCount = 0, uint outputCount = 0) : RendererBase(inputCount, outputCount) {
+	ComputeRendererBase(uint inputCount, uint outputCount) : RendererBase(inputCount, outputCount) {
 	}
 };
 } // namespace Engine

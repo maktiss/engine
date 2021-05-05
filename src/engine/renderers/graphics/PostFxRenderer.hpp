@@ -29,6 +29,15 @@ public:
 	}
 
 
+	virtual std::vector<std::string> getInputNames() const {
+		return { "ColorBuffer" };
+	}
+
+	virtual std::vector<std::string> getOutputNames() const {
+		return { "ColorBuffer" };
+	}
+
+
 	std::vector<AttachmentDescription> getInputDescriptions() const {
 		std::vector<AttachmentDescription> descriptions {};
 		descriptions.resize(1);

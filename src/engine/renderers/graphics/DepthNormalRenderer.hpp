@@ -20,6 +20,15 @@ public:
 	}
 
 
+	virtual std::vector<std::string> getInputNames() const {
+		return {};
+	}
+
+	virtual std::vector<std::string> getOutputNames() const {
+		return { "NormalBuffer", "DepthBuffer" };
+	}
+
+
 	std::vector<AttachmentDescription> getOutputDescriptions() const {
 		std::vector<AttachmentDescription> outputDescriptions {};
 		outputDescriptions.resize(2);

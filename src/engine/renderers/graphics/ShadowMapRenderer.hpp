@@ -27,6 +27,15 @@ public:
 	}
 
 
+	virtual std::vector<std::string> getInputNames() const {
+		return {};
+	}
+
+	virtual std::vector<std::string> getOutputNames() const {
+		return { "ShadowMap" };
+	}
+
+
 	inline uint getLayerCount() const override {
 		return directionalLightCascadeCount;
 	}

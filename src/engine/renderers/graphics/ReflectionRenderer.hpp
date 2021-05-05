@@ -38,6 +38,15 @@ public:
 	}
 
 
+	virtual std::vector<std::string> getInputNames() const {
+		return { "DepthBuffer", "NormalBuffer", "EnvironmentMap" };
+	}
+
+	virtual std::vector<std::string> getOutputNames() const {
+		return { "ReflectionBuffer" };
+	}
+
+
 	std::vector<AttachmentDescription> getInputDescriptions() const {
 		std::vector<AttachmentDescription> inputDescriptions {};
 		inputDescriptions.resize(3);

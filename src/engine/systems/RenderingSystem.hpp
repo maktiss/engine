@@ -55,75 +55,50 @@ private:
 	};
 
 
-	struct RenderGraphNodeReference {
-		uint rendererIndex	 = -1;
-		uint attachmentIndex = -1;
-
-		// Specifies whenever a resource would be used by renderer next frame and sould be preserved
-		bool nextFrame = false;
-	};
-
-	struct RenderGraphNode {
-		// One output can be connected to multiple inputs but to only one output
-		std::vector<std::set<RenderGraphNodeReference>> inputReferenceSets {};
-		std::vector<RenderGraphNodeReference> outputReferences {};
-	};
-
 	// Helper class to simplfy render graph description
 	class RenderGraph {
 	public:
 		struct NodeReference {
 			std::string rendererName {};
-			uint attachmentIndex = -1;
+			std::string slotName {};
 
-			// Specifies whenever a resource would be used by renderer next frame and sould be preserved
+			// TODO Specifies whenever a resource will be used by renderer next frame and sould be preserved
 			bool nextFrame = false;
 
 
 			bool operator<(const NodeReference& other) const {
-				return rendererName < other.rendererName;
+				return (rendererName < other.rendererName) ||
+					   (rendererName == other.rendererName) && (slotName < other.slotName);
 			}
 
 			bool operator==(const NodeReference& other) const {
-				return rendererName == other.rendererName;
+				return (rendererName == other.rendererName) && (slotName == other.slotName);
 			}
 		};
 
 		struct Node {
 			// One output can be connected to multiple inputs but to only one output
-			std::vector<std::set<NodeReference>> inputReferenceSets {};
-			std::vector<NodeReference> outputReferences {};
+			std::unordered_map<std::string, std::set<NodeReference>> inputReferenceSets {};
+			std::unordered_map<std::string, NodeReference> outputReferences {};
 
 			// References to what is connected to input/output slot
-			std::vector<NodeReference> backwardInputReferences {};
-			std::vector<NodeReference> backwardOutputReferences {};
+			std::unordered_map<std::string, NodeReference> backwardInputReferences {};
+			std::unordered_map<std::string, NodeReference> backwardOutputReferences {};
 		};
 
-		std::unordered_map<std::string, Node> nodes {};
 
 	public:
-		inline void setInputCount(std::string nodeName, uint count) {
-			nodes[nodeName].backwardInputReferences.resize(count);
-		}
+		std::unordered_map<std::string, Node> nodes {};
 
-		inline void setOutputCount(std::string nodeName, uint count) {
-			nodes[nodeName].inputReferenceSets.resize(count);
-			nodes[nodeName].outputReferences.resize(count);
 
-			nodes[nodeName].backwardOutputReferences.resize(count);
-		}
-
-		inline const auto& getNodes() const {
-			return nodes;
-		}
-
+	public:
 		// Connects source output to destination input slot
-		void addInputConnection(std::string srcName, uint srcOutputIndex, std::string dstName, uint dstInputIndex,
-								bool nextFrame = false);
+		void addInputConnection(std::string srcName, std::string srcOutputName, std::string dstName,
+								std::string dstInputName, bool nextFrame = false);
 
 		// Connects source output to destination output slot
-		void addOutputConnection(std::string srcName, uint srcOutputIndex, std::string dstName, uint dstOutputIndex,
-								 bool nextFrame = false);
+		void addOutputConnection(std::string srcName, std::string srcOutputName, std::string dstName,
+								 std::string dstOutputName, bool nextFrame = false);
 	};
 
 
