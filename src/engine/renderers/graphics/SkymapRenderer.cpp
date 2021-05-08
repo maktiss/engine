@@ -60,7 +60,7 @@ int SkymapRenderer::init() {
 	const float yStep		= 1.0f / (verticalVertexCount + 1);
 	const float angularStep = (2.0f * M_PI) / horisontalVertexCount;
 
-	skySphereMesh = MeshManager::createObject(0);
+	skySphereMesh = MeshManager::createObject(0, "generated_sky_sphere");
 	skySphereMesh.apply([&](auto& mesh) {
 		auto& vertexBuffer = mesh.getVertexBuffer();
 		vertexBuffer.resize(2 + verticalVertexCount * horisontalVertexCount);

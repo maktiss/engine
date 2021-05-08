@@ -664,7 +664,7 @@ int RenderingSystem::init() {
 			const auto outputDescription = outputDescriptions[outputIndex];
 
 			if (renderGraphNode.backwardOutputReferences[outputName].rendererName.empty()) {
-				auto textureHandle = TextureManager::createObject(0);
+				auto textureHandle = TextureManager::createObject(0, rendererName + "_" + outputName + "_out");
 
 				bool isFinal = false;
 				if ((finalOutputReference.rendererName == rendererName) &&

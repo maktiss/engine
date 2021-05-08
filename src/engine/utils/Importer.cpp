@@ -28,10 +28,10 @@ int Importer::importMesh(std::string filename, std::vector<MeshManager::Handle>&
 	meshHandles.resize(scene->mNumMeshes);
 
 	for (uint i = 0; i < meshHandles.size(); i++) {
-		auto& meshHandle = meshHandles[i];
-		meshHandle		 = MeshManager::createObject(0);
-
 		auto assimpMesh = scene->mMeshes[i];
+
+		auto& meshHandle = meshHandles[i];
+		meshHandle		 = MeshManager::createObject(0, assimpMesh->mName.C_Str());
 
 		meshHandle.apply([&assimpMesh](auto& mesh) {
 			auto& vertexBuffer = mesh.getVertexBuffer();

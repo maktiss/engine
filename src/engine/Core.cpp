@@ -113,20 +113,20 @@ int Core::init(int argc, char** argv) {
 	}
 	modelEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
 
-	auto albedoTextureHandle = TextureManager::createObject(0);
+	auto albedoTextureHandle = TextureManager::createObject<Texture2D>("rock_moss_diffuse");
 	if (Importer::importTexture("assets/textures/Rock Moss_diffuse.png", albedoTextureHandle, true)) {
 		return 1;
 	}
-	auto normalTextureHandle = TextureManager::createObject(0);
+	auto normalTextureHandle = TextureManager::createObject<Texture2D>("rock_moss_normal");
 	if (Importer::importTexture("assets/textures/Rock Moss_normal.png", normalTextureHandle, false)) {
 		return 1;
 	}
-	auto mraTextureHandle = TextureManager::createObject(0);
+	auto mraTextureHandle = TextureManager::createObject<Texture2D>("rock_moss_mra");
 	if (Importer::importTexture("assets/textures/Rock Moss_mra.jpg", mraTextureHandle, true)) {
 		return 1;
 	}
 
-	auto materialHandle = MaterialManager::createObject(0);
+	auto materialHandle = MaterialManager::createObject<SimpleMaterial>("rock_moss");
 	materialHandle.apply([&](auto& material) {
 		// material.color			   = glm::vec3(0.5f, 0.3f, 0.8f);
 		material.textureAlbedo = albedoTextureHandle;
@@ -179,20 +179,20 @@ int Core::init(int argc, char** argv) {
 	tileEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
 
 
-	albedoTextureHandle = TextureManager::createObject(0);
+	albedoTextureHandle = TextureManager::createObject<Texture2D>("mud_with_vegetation_albedo");
 	if (Importer::importTexture("assets/textures/mud_with_vegetation_albedo.png", albedoTextureHandle, true)) {
 		return 1;
 	}
-	normalTextureHandle = TextureManager::createObject(0);
+	normalTextureHandle = TextureManager::createObject<Texture2D>("mud_with_vegetation_normal");
 	if (Importer::importTexture("assets/textures/mud_with_vegetation_normal.png", normalTextureHandle, false)) {
 		return 1;
 	}
-	mraTextureHandle = TextureManager::createObject(0);
+	mraTextureHandle = TextureManager::createObject<Texture2D>("mud_with_vegetation_mra");
 	if (Importer::importTexture("assets/textures/mud_with_vegetation_mra.png", mraTextureHandle, true)) {
 		return 1;
 	}
 
-	materialHandle = MaterialManager::createObject(0);
+	materialHandle = MaterialManager::createObject<SimpleMaterial>("mud_with_vegetation");
 	materialHandle.apply([&](auto& material) {
 		// material.color			   = glm::vec3(0.5f, 0.3f, 0.8f);
 		material.textureAlbedo = albedoTextureHandle;

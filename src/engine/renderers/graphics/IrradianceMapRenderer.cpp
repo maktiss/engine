@@ -118,7 +118,7 @@ int IrradianceMapRenderer::init() {
 
 	// Generate box mesh
 
-	boxMesh = MeshManager::createObject(0);
+	boxMesh = MeshManager::createObject(0, "generated_box");
 	boxMesh.apply([](auto& mesh) {
 		auto& vertexBuffer = mesh.getVertexBuffer();
 		vertexBuffer.resize(8);

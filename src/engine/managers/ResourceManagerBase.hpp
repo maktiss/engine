@@ -64,12 +64,15 @@ private:
 
 	static std::unordered_map<uint32_t, ObjectInfo> objectInfos;
 
+	// Object name to id mapping
+	static std::unordered_map<std::string, uint32_t> objectNames;
+
 	static std::vector<int32_t> referenceCounts;
 
 public:
 	static int init() {
 		// fallback object
-		createObject(0);
+		createObject(0, "<fallback_object>");
 
 		// TODO: load object table
 
@@ -92,7 +95,7 @@ public:
 	static void load(uint32_t id) {
 	}
 
-	static Handle createObject(uint32_t typeIndex) {
+	static Handle createObject(uint32_t typeIndex, std::string name) {
 		auto id = getNextFreeId();
 
 		auto newSize = createObjectImpl(typeIndex, std::make_index_sequence<getTypeCount()>());
@@ -103,12 +106,43 @@ public:
 
 		objectInfos[id] = { referenceCounts.size(), true, typeIndex, newSize - 1 };
 
+
+		std::string originalName = name;
+
+		while (objectNames.find(name) != objectNames.end()) {
+			auto suffix = 1;
+
+			auto foundPos = name.find_last_of("_");
+
+			if (foundPos != std::string::npos) {
+				auto indexStr = name.substr(foundPos + 1);
+
+				if (indexStr.find_first_not_of("1234567890") == std::string::npos) {
+					suffix = std::stoi(indexStr) + 1;
+				}
+			}
+
+			name += "_" + std::to_string(suffix);
+		}
+
+		if (originalName != name) {
+			spdlog::warn("Attempt to create resource with an existing name '{}', using '{}' instead", originalName, name);
+		}
+
+		objectNames[name] = id;
+
+
 		referenceCounts.push_back(0);
 
 		auto handle = getHandle(id);
 		DerivedManager::postCreate(handle);
 
 		return handle;
+	}
+
+	template <typename Type>
+	static inline Handle createObject(std::string name) {
+		return createObject(getTypeIndex<Type>(), name);
 	}
 
 
@@ -209,6 +243,9 @@ std::tuple<std::vector<ManageableTypes>...> ResourceManagerBase<DerivedManager, 
 template <typename DerivedManager, typename... ManageableTypes>
 std::unordered_map<uint32_t, typename ResourceManagerBase<DerivedManager, ManageableTypes...>::ObjectInfo>
 	ResourceManagerBase<DerivedManager, ManageableTypes...>::objectInfos {};
+
+template <typename DerivedManager, typename... ManageableTypes>
+std::unordered_map<std::string, uint32_t> ResourceManagerBase<DerivedManager, ManageableTypes...>::objectNames {};
 
 template <typename DerivedManager, typename... ManageableTypes>
 std::vector<int32_t> ResourceManagerBase<DerivedManager, ManageableTypes...>::referenceCounts {};

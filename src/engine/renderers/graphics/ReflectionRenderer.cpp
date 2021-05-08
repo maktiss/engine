@@ -109,7 +109,7 @@ int ReflectionRenderer::init() {
 	descriptorSetArrays[0].updateImage(0, 3, 0, vkSampler, vkEnvironmentImageView);
 
 
-	mesh = MeshManager::createObject(0);
+	mesh = MeshManager::createObject(0, "generated_screen_triangle");
 	mesh.apply([](auto& mesh) {
 		auto& vertexBuffer = mesh.getVertexBuffer();
 		vertexBuffer.resize(8);

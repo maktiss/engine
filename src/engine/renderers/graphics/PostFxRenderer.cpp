@@ -71,7 +71,7 @@ int PostFxRenderer::init() {
 	descriptorSetArrays[0].updateImage(0, 1, 0, vkSampler, vkImageView);
 
 
-	mesh = MeshManager::createObject(0);
+	mesh = MeshManager::createObject(0, "generated_screen_triangle");
 	mesh.apply([](auto& mesh) {
 		auto& vertexBuffer = mesh.getVertexBuffer();
 		vertexBuffer.resize(8);
