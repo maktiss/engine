@@ -15,9 +15,10 @@ Assimp::Importer Importer::assimpImporter {};
 int Importer::importMesh(std::string filename, std::vector<MeshManager::Handle>& meshHandles) {
 	spdlog::info("Importing mesh '{}'...", filename);
 
-	const aiScene* scene = assimpImporter.ReadFile(filename, aiProcess_CalcTangentSpace | aiProcess_GenBoundingBoxes |
-																 aiProcess_MakeLeftHanded | aiProcess_GenUVCoords |
-																 aiProcess_TransformUVCoords | aiProcess_FlipUVs);
+	const aiScene* scene =
+		assimpImporter.ReadFile(filename, aiProcess_Triangulate | aiProcess_CalcTangentSpace |
+											  aiProcess_GenBoundingBoxes | aiProcess_MakeLeftHanded |
+											  aiProcess_GenUVCoords | aiProcess_TransformUVCoords | aiProcess_FlipUVs);
 
 	if (!scene) {
 		spdlog::error("Failed to import '{}'", filename);
