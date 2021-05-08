@@ -66,18 +66,37 @@ int ForwardRenderer::init() {
 		return 1;
 	}
 
+	textureInfo = TextureManager::getTextureInfo(inputs[3]);
+	imageViewCreateInfo.viewType						= vk::ImageViewType::eCube;
+	imageViewCreateInfo.format							= getInputDescriptions()[3].format;
+	imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eColor;
+	imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
+	imageViewCreateInfo.subresourceRange.levelCount		= textureInfo.mipLevels;
+	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+	imageViewCreateInfo.subresourceRange.layerCount		= 6;
+	imageViewCreateInfo.image							= textureInfo.image;
+
+	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkIrradianceImageView);
+	if (result != vk::Result::eSuccess) {
+		spdlog::error("[ReflectionRenderer] Failed to create image view. Error code: {} ({})", result,
+					  vk::to_string(vk::Result(result)));
+		return 1;
+	}
+
 
 	descriptorSetArrays.resize(3);
 
-	descriptorSetArrays[0].setBindingCount(4);
+	descriptorSetArrays[0].setBindingCount(5);
 	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
 	descriptorSetArrays[0].setBindingLayoutInfo(1, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].setBindingLayoutInfo(2, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].setBindingLayoutInfo(3, vk::DescriptorType::eCombinedImageSampler, 0);
+	descriptorSetArrays[0].setBindingLayoutInfo(4, vk::DescriptorType::eCombinedImageSampler, 0);
 	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
 	descriptorSetArrays[0].updateImage(0, 1, 0, vkShadowSampler, vkShadowImageView);
 	descriptorSetArrays[0].updateImage(0, 2, 0, vkSampler, TextureManager::getTextureInfo(inputs[1]).imageView);
 	descriptorSetArrays[0].updateImage(0, 3, 0, vkSampler, TextureManager::getTextureInfo(inputs[2]).imageView);
+	descriptorSetArrays[0].updateImage(0, 4, 0, vkSampler, vkIrradianceImageView);
 
 	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
 	descriptorSetArrays[1].init(vkDevice, vmaAllocator);

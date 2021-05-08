@@ -73,10 +73,11 @@ void main() {
 #endif
 
 	normal = normalize(normal);
+	vec3 worldNormal = vec3(uCamera.invViewMatrix * vec4(normal, 0.0));
 
-	vec3 ambientLight = vec3(0.30, 0.33, 0.34);
+	vec3 irradiance = texture(uIrradianceMap, worldNormal).rgb;
 
-	vec3 color = colorAlbedo * ambientOcclusion * ambientLight;
+	vec3 color = colorAlbedo * ambientOcclusion * irradiance;
 
 	vec3 reflectedColor = texture(uReflectionBuffer, screenCoord).rgb;
 	vec3 reflectedDir = normalize(reflect(-viewDir, normal));

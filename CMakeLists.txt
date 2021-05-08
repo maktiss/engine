@@ -34,6 +34,7 @@ add_executable(
 	src/engine/graphics/meshes/Meshes.hpp
 	src/engine/graphics/meshes/StaticMesh.hpp
 	src/engine/graphics/shaders/GraphicsShaderBase.hpp
+	src/engine/graphics/shaders/IrradianceShader.hpp
 	src/engine/graphics/shaders/PostFxShader.hpp
 	src/engine/graphics/shaders/ReflectionShader.hpp
 	src/engine/graphics/shaders/Shader.hpp
@@ -75,6 +76,8 @@ add_executable(
 	src/engine/renderers/graphics/ForwardRenderer.hpp
 	src/engine/renderers/graphics/ImGuiRenderer.cpp
 	src/engine/renderers/graphics/ImGuiRenderer.hpp
+	src/engine/renderers/graphics/IrradianceMapRenderer.cpp
+	src/engine/renderers/graphics/IrradianceMapRenderer.hpp
 	src/engine/renderers/graphics/PostFxRenderer.cpp
 	src/engine/renderers/graphics/PostFxRenderer.hpp
 	src/engine/renderers/graphics/ReflectionRenderer.cpp
@@ -114,6 +117,7 @@ add_executable(
 	src/engine/systems/SystemBase.hpp
 	src/engine/systems/Systems.hpp
 	src/engine/utils/CPUTimer.hpp
+	src/engine/utils/Generator.hpp
 	src/engine/utils/Importer.cpp
 	src/engine/utils/Importer.hpp
 	src/engine/utils/IO.hpp

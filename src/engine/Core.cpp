@@ -139,8 +139,25 @@ int Core::init(int argc, char** argv) {
 	modelEntity.getComponent<ModelComponent>().shaderHandles[0] =
 		GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
 
-
 	modelEntity.getComponent<ScriptComponent>().handle = ScriptManager::getScriptHandle("script_floating_object");
+
+
+
+
+	modelEntity = EntityManager::createEntity<TransformComponent, ModelComponent>();
+	
+	modelEntity.getComponent<TransformComponent>().position.x = 3.0f;
+
+	// std::vector<MeshManager::Handle> meshHandles {};
+	if (Importer::importMesh("assets/models/sphere.fbx", meshHandles)) {
+		return 1;
+	}
+	modelEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
+
+	modelEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
+	modelEntity.getComponent<ModelComponent>().shaderHandles[0] =
+		GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
+
 
 
 	auto directionalLightEntity = EntityManager::createEntity<TransformComponent, LightComponent, ScriptComponent>();

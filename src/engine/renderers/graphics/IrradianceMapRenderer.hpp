@@ -4,14 +4,26 @@
 
 
 namespace Engine {
-class SkymapRenderer : public GraphicsRendererBase {
+class IrradianceMapRenderer : public GraphicsRendererBase {
 private:
-	MeshManager::Handle skySphereMesh {};
+	struct CameraBlock {
+		glm::mat4 viewProjectionMatrices[6] {};
+	};
+
+
+private:
+	MeshManager::Handle boxMesh {};
 	GraphicsShaderManager::Handle shaderHandle {};
+
+	// TODO: destroy
+	vk::Sampler vkSampler {};
+	vk::ImageView vkImageView {};
+
+	PROPERTY(uint, "Graphics", irradianceMapSampleCount, 64);
 
 
 public:
-	SkymapRenderer() : GraphicsRendererBase(0, 1) {
+	IrradianceMapRenderer() : GraphicsRendererBase(1, 1) {
 	}
 
 
@@ -21,16 +33,16 @@ public:
 									   double dt) override;
 
 	const char* getRenderPassName() const override {
-		return "RENDER_PASS_SKYMAP";
+		return "RENDER_PASS_IRRADIANCE_MAP";
 	}
 
 
 	virtual std::vector<std::string> getInputNames() const {
-		return {};
+		return { "EnvironmentMap" };
 	}
 
 	virtual std::vector<std::string> getOutputNames() const {
-		return { "SkyMap" };
+		return { "IrradianceMap" };
 	}
 
 
@@ -38,6 +50,17 @@ public:
 		return 6;
 	}
 
+
+	std::vector<AttachmentDescription> getInputDescriptions() const {
+		std::vector<AttachmentDescription> inputDescriptions {};
+		inputDescriptions.resize(1);
+
+		inputDescriptions[0].format = vk::Format::eR16G16B16A16Sfloat;
+		inputDescriptions[0].usage = vk::ImageUsageFlagBits::eSampled;
+		inputDescriptions[0].flags = vk::ImageCreateFlagBits::eCubeCompatible;
+
+		return inputDescriptions;
+	}
 
 	std::vector<AttachmentDescription> getOutputDescriptions() const {
 		std::vector<AttachmentDescription> outputDescriptions {};
@@ -49,25 +72,15 @@ public:
 		return outputDescriptions;
 	}
 
-	// std::vector<AttachmentDescription> getInputDescriptions() const {
-	// 	std::vector<AttachmentDescription> descriptions {};
-	// 	descriptions.resize(1);
 
-	// 	descriptions[0].format = vk::Format::eD24UnormS8Uint;
-	// 	descriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
+	std::vector<vk::ImageLayout> getInputInitialLayouts() const {
+		std::vector<vk::ImageLayout> inputInitialLayouts {};
+		inputInitialLayouts.resize(1);
 
-	// 	return descriptions;
-	// }
+		inputInitialLayouts[0] = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-
-	// std::vector<vk::ImageLayout> getInputInitialLayouts() const {
-	// 	std::vector<vk::ImageLayout> initialLayouts {};
-	// 	initialLayouts.resize(1);
-
-	// 	initialLayouts[0] = vk::ImageLayout::eShaderReadOnlyOptimal;
-
-	// 	return initialLayouts;
-	// }
+		return inputInitialLayouts;
+	}
 
 	std::vector<vk::ImageLayout> getOutputInitialLayouts() const {
 		std::vector<vk::ImageLayout> outputInitialLayouts {};

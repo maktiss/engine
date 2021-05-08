@@ -114,6 +114,11 @@ int RenderingSystem::init() {
 		return 1;
 	}
 
+	if (GraphicsShaderManager::importShaderSources<IrradianceShader>(std::array<std::string, 6> {
+			"assets/shaders/irradiance.vsh", "", "", "", "assets/shaders/irradiance.fsh", "" })) {
+		return 1;
+	}
+
 
 	TextureManager::setVkDevice(vkDevice);
 	TextureManager::setVkCommandPool(vkCommandPools[0]);
@@ -197,21 +202,33 @@ int RenderingSystem::init() {
 	skyMipMapRenderer->setOutputSize({ 1024, 1024 });
 	skyMipMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
+	auto irradianceMapRenderer = std::make_shared<IrradianceMapRenderer>();
+	irradianceMapRenderer->setVkDevice(vkDevice);
+	irradianceMapRenderer->setOutputSize({ 64, 64 });
+	irradianceMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
-	renderers["DepthNormalRenderer"] = depthNormalRenderer;
-	renderers["ForwardRenderer"]	 = forwardRenderer;
-	renderers["ShadowMapRenderer"]	 = shadowMapRenderer;
-	renderers["SkyboxRenderer"]		 = skyboxRenderer;
-	renderers["SkymapRenderer"]		 = skymapRenderer;
-	renderers["ImGuiRenderer"]		 = imGuiRenderer;
-	renderers["PostFxRenderer"]		 = postFxRenderer;
-	renderers["ReflectionRenderer"]	 = reflectionRenderer;
-	renderers["SkyMipMapRenderer"]	 = skyMipMapRenderer;
+
+	renderers["DepthNormalRenderer"]   = depthNormalRenderer;
+	renderers["ForwardRenderer"]	   = forwardRenderer;
+	renderers["ShadowMapRenderer"]	   = shadowMapRenderer;
+	renderers["SkyboxRenderer"]		   = skyboxRenderer;
+	renderers["SkymapRenderer"]		   = skymapRenderer;
+	renderers["ImGuiRenderer"]		   = imGuiRenderer;
+	renderers["PostFxRenderer"]		   = postFxRenderer;
+	renderers["ReflectionRenderer"]	   = reflectionRenderer;
+	renderers["SkyMipMapRenderer"]	   = skyMipMapRenderer;
+	renderers["IrradianceMapRenderer"] = irradianceMapRenderer;
 
 
 	renderGraph.addOutputConnection("SkymapRenderer", "SkyMap", "SkyMipMapRenderer", "Buffer");
 
 	renderGraph.addInputConnection("SkyMipMapRenderer", "Buffer", "SkyboxRenderer", "SkyMap");
+
+	renderGraph.addInputConnection("SkyMipMapRenderer", "Buffer", "IrradianceMapRenderer", "EnvironmentMap");
+
+	// // FIXME remove
+	// renderGraph.addInputConnection("IrradianceMapRenderer", "IrradianceMap", "SkyboxRenderer", "SkyMap");
+
 
 	renderGraph.addInputConnection("DepthNormalRenderer", "DepthBuffer", "ReflectionRenderer", "DepthBuffer");
 	renderGraph.addInputConnection("DepthNormalRenderer", "NormalBuffer", "ReflectionRenderer", "NormalBuffer");
@@ -220,6 +237,7 @@ int RenderingSystem::init() {
 	renderGraph.addInputConnection("ShadowMapRenderer", "ShadowMap", "ForwardRenderer", "ShadowMap");
 	renderGraph.addInputConnection("DepthNormalRenderer", "NormalBuffer", "ForwardRenderer", "NormalBuffer");
 	renderGraph.addInputConnection("ReflectionRenderer", "ReflectionBuffer", "ForwardRenderer", "ReflectionBuffer");
+	renderGraph.addInputConnection("IrradianceMapRenderer", "IrradianceMap", "ForwardRenderer", "IrradianceMap");
 
 	renderGraph.addOutputConnection("SkyboxRenderer", "ColorBuffer", "ForwardRenderer", "ColorBuffer");
 	renderGraph.addOutputConnection("DepthNormalRenderer", "DepthBuffer", "ForwardRenderer", "DepthBuffer");

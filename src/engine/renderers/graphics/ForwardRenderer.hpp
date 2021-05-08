@@ -72,10 +72,11 @@ private:
 	vk::Sampler vkShadowSampler {};
 
 	vk::ImageView vkShadowImageView {};
+	vk::ImageView vkIrradianceImageView {};
 
 
 public:
-	ForwardRenderer() : GraphicsRendererBase(3, 2) {
+	ForwardRenderer() : GraphicsRendererBase(4, 2) {
 	}
 
 
@@ -90,7 +91,7 @@ public:
 
 
 	virtual std::vector<std::string> getInputNames() const {
-		return { "ShadowMap", "NormalBuffer", "ReflectionBuffer" };
+		return { "ShadowMap", "NormalBuffer", "ReflectionBuffer", "IrradianceMap" };
 	}
 
 	virtual std::vector<std::string> getOutputNames() const {
@@ -100,7 +101,7 @@ public:
 
 	std::vector<AttachmentDescription> getInputDescriptions() const {
 		std::vector<AttachmentDescription> inputDescriptions {};
-		inputDescriptions.resize(3);
+		inputDescriptions.resize(4);
 
 		inputDescriptions[0].format = vk::Format::eD24UnormS8Uint;
 		inputDescriptions[0].usage	= vk::ImageUsageFlagBits::eSampled;
@@ -108,8 +109,12 @@ public:
 		inputDescriptions[1].format = vk::Format::eR16G16B16A16Sfloat;
 		inputDescriptions[1].usage	= vk::ImageUsageFlagBits::eSampled;
 
-		inputDescriptions[1].format = vk::Format::eR16G16B16A16Sfloat;
-		inputDescriptions[1].usage	= vk::ImageUsageFlagBits::eSampled;
+		inputDescriptions[2].format = vk::Format::eR16G16B16A16Sfloat;
+		inputDescriptions[2].usage	= vk::ImageUsageFlagBits::eSampled;
+
+		inputDescriptions[3].format = vk::Format::eR16G16B16A16Sfloat;
+		inputDescriptions[3].usage	= vk::ImageUsageFlagBits::eSampled;
+		inputDescriptions[3].flags	= vk::ImageCreateFlagBits::eCubeCompatible;
 
 		return inputDescriptions;
 	}
@@ -130,11 +135,12 @@ public:
 
 	std::vector<vk::ImageLayout> getInputInitialLayouts() const {
 		std::vector<vk::ImageLayout> initialLayouts {};
-		initialLayouts.resize(3);
+		initialLayouts.resize(4);
 
 		initialLayouts[0] = vk::ImageLayout::eShaderReadOnlyOptimal;
 		initialLayouts[1] = vk::ImageLayout::eShaderReadOnlyOptimal;
 		initialLayouts[2] = vk::ImageLayout::eShaderReadOnlyOptimal;
+		initialLayouts[3] = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 		return initialLayouts;
 	}
