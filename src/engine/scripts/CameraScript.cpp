@@ -47,7 +47,13 @@ int CameraScript::onUpdate(EntityManager::Handle handle, double dt) {
 	movementDir = glm::rotate(transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) * movementDir;
 	movementDir = glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * movementDir;
 
-	transform.position += glm::vec3(movementDir.x, movementDir.y, movementDir.z) * static_cast<float>(dt) * 5.0f;
+
+	float speed = 5.0f;
+	if (InputManager::isKeyActionStatePressed(InputManager::KeyAction::CAMERA_BOOST)) {
+		speed *= 5.0f;
+	}
+
+	transform.position += glm::vec3(movementDir.x, movementDir.y, movementDir.z) * speed * static_cast<float>(dt);
 
 	return 0;
 }
