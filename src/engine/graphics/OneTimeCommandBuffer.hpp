@@ -66,6 +66,8 @@ public:
 						  vk::to_string(result));
 			return 1;
 		}
+
+		return 0;
 	}
 
 	[[nodiscard]] inline int end() {
