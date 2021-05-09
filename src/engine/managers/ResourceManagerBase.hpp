@@ -65,7 +65,7 @@ private:
 	static std::unordered_map<uint32_t, ObjectInfo> objectInfos;
 
 	// Object name to id mapping
-	static std::unordered_map<std::string, uint32_t> objectNames;
+	static std::unordered_map<std::string, uint32_t> objectIdMap;
 
 	static std::vector<int32_t> referenceCounts;
 
@@ -109,9 +109,9 @@ public:
 
 		std::string originalName = name;
 
-		while (objectNames.find(name) != objectNames.end()) {
-			auto suffix = 1;
+		auto suffix = 1;
 
+		while (objectIdMap.find(name) != objectIdMap.end()) {
 			auto foundPos = name.find_last_of("_");
 
 			if (foundPos != std::string::npos) {
@@ -122,14 +122,14 @@ public:
 				}
 			}
 
-			name += "_" + std::to_string(suffix);
+			name = name.substr(0, foundPos + 1) + "_" + std::to_string(suffix);
 		}
 
 		if (originalName != name) {
-			spdlog::warn("Attempt to create resource with an existing name '{}', using '{}' instead", originalName, name);
+			spdlog::warn("Attempt to create a resource with existing name '{}', using '{}' instead", originalName, name);
 		}
 
-		objectNames[name] = id;
+		objectIdMap[name] = id;
 
 
 		referenceCounts.push_back(0);
@@ -245,7 +245,7 @@ std::unordered_map<uint32_t, typename ResourceManagerBase<DerivedManager, Manage
 	ResourceManagerBase<DerivedManager, ManageableTypes...>::objectInfos {};
 
 template <typename DerivedManager, typename... ManageableTypes>
-std::unordered_map<std::string, uint32_t> ResourceManagerBase<DerivedManager, ManageableTypes...>::objectNames {};
+std::unordered_map<std::string, uint32_t> ResourceManagerBase<DerivedManager, ManageableTypes...>::objectIdMap {};
 
 template <typename DerivedManager, typename... ManageableTypes>
 std::vector<int32_t> ResourceManagerBase<DerivedManager, ManageableTypes...>::referenceCounts {};
