@@ -37,8 +37,8 @@ int ForwardRenderer::init() {
 	}
 
 
-	samplerCreateInfo.compareEnable			  = false;
-	samplerCreateInfo.compareOp				  = vk::CompareOp::eAlways;
+	samplerCreateInfo.compareEnable = false;
+	samplerCreateInfo.compareOp		= vk::CompareOp::eAlways;
 
 	result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkSampler);
 	if (result != vk::Result::eSuccess) {
@@ -66,7 +66,7 @@ int ForwardRenderer::init() {
 		return 1;
 	}
 
-	textureInfo = TextureManager::getTextureInfo(inputs[3]);
+	textureInfo											= TextureManager::getTextureInfo(inputs[3]);
 	imageViewCreateInfo.viewType						= vk::ImageViewType::eCube;
 	imageViewCreateInfo.format							= getInputDescriptions()[3].format;
 	imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eColor;
@@ -244,30 +244,6 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 	descriptorSetArrays[2].unmapBuffer(0, 0);
 
 
-	EntityManager::forEach<TransformComponent, ModelComponent>(
-		[&commandBuffer, pipelineLayout = vkPipelineLayout, &graphicsPipelines = vkPipelines](auto& transform,
-																							  auto& model) {
-			const auto& meshInfo	 = MeshManager::getMeshInfo(model.meshHandles[0]);
-			const auto& materialInfo = MaterialManager::getMaterialInfo(model.materialHandles[0]);
-
-			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics,
-									   graphicsPipelines[model.shaderHandles[0].getIndex()]);
-
-
-			auto transformMatrix = transform.getTransformMatrix();
-			commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eAll, 0, 64, &transformMatrix);
-
-			auto vertexBuffer		 = meshInfo.vertexBuffer.getVkBuffer();
-			vk::DeviceSize offsets[] = { 0 };
-			commandBuffer.bindVertexBuffers(0, 1, &vertexBuffer, offsets);
-
-			auto indexBuffer = meshInfo.indexBuffer.getVkBuffer();
-			commandBuffer.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint32);
-
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 3, 1,
-											 &materialInfo.descriptorSet, 0, nullptr);
-
-			commandBuffer.drawIndexed(meshInfo.indexCount, 1, 0, 0, 0);
-		});
+	drawObjects(pSecondaryCommandBuffers);
 }
 } // namespace Engine

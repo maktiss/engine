@@ -1,10 +1,11 @@
 #pragma once
 
 #include "GraphicsRendererBase.hpp"
+#include "ObjectRendererBase.hpp"
 
 
 namespace Engine {
-class ForwardRenderer : public GraphicsRendererBase {
+class ForwardRenderer : public ObjectRendererBase {
 private:
 	PROPERTY(uint, "Graphics", clusterCountX, 1);
 	PROPERTY(uint, "Graphics", clusterCountY, 1);
@@ -76,7 +77,7 @@ private:
 
 
 public:
-	ForwardRenderer() : GraphicsRendererBase(4, 2) {
+	ForwardRenderer() : ObjectRendererBase(4, 2) {
 	}
 
 

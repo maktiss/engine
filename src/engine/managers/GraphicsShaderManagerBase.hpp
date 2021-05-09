@@ -31,7 +31,7 @@ public:
 
 		Handle(uint32_t index) : index(index) {};
 
-		inline uint32_t getIndex() {
+		inline uint32_t getIndex() const {
 			return index;
 		}
 	};

@@ -78,6 +78,8 @@ add_executable(
 	src/engine/renderers/graphics/ImGuiRenderer.hpp
 	src/engine/renderers/graphics/IrradianceMapRenderer.cpp
 	src/engine/renderers/graphics/IrradianceMapRenderer.hpp
+	src/engine/renderers/graphics/ObjectRendererBase.cpp
+	src/engine/renderers/graphics/ObjectRendererBase.hpp
 	src/engine/renderers/graphics/PostFxRenderer.cpp
 	src/engine/renderers/graphics/PostFxRenderer.hpp
 	src/engine/renderers/graphics/ReflectionRenderer.cpp

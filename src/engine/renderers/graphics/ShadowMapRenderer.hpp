@@ -1,10 +1,13 @@
 #pragma once
 
 #include "GraphicsRendererBase.hpp"
+#include "ObjectRendererBase.hpp"
+
+#include <map>
 
 
 namespace Engine {
-class ShadowMapRenderer : public GraphicsRendererBase {
+class ShadowMapRenderer : public ObjectRendererBase {
 private:
 	PROPERTY(float, "Graphics", directionalLightCascadeBase, 2.0f);
 	PROPERTY(float, "Graphics", directionalLightCascadeOffset, 0.75f);
@@ -13,7 +16,7 @@ private:
 
 
 public:
-	ShadowMapRenderer() : GraphicsRendererBase(0, 1) {
+	ShadowMapRenderer() : ObjectRendererBase(0, 1) {
 	}
 
 
@@ -27,11 +30,11 @@ public:
 	}
 
 
-	virtual std::vector<std::string> getInputNames() const {
+	std::vector<std::string> getInputNames() const override {
 		return {};
 	}
 
-	virtual std::vector<std::string> getOutputNames() const {
+	std::vector<std::string> getOutputNames() const override {
 		return { "ShadowMap" };
 	}
 
@@ -41,7 +44,7 @@ public:
 	}
 
 
-	std::vector<AttachmentDescription> getOutputDescriptions() const {
+	std::vector<AttachmentDescription> getOutputDescriptions() const override {
 		std::vector<AttachmentDescription> outputDescriptions {};
 		outputDescriptions.resize(1);
 
@@ -51,17 +54,17 @@ public:
 		return outputDescriptions;
 	}
 
-	std::vector<AttachmentDescription> getInputDescriptions() const {
+	std::vector<AttachmentDescription> getInputDescriptions() const override {
 		std::vector<AttachmentDescription> descriptions {};
 		return descriptions;
 	}
 
 
-	std::vector<vk::ImageLayout> getInputInitialLayouts() const {
+	std::vector<vk::ImageLayout> getInputInitialLayouts() const override {
 		return std::vector<vk::ImageLayout>();
 	}
 
-	std::vector<vk::ImageLayout> getOutputInitialLayouts() const {
+	std::vector<vk::ImageLayout> getOutputInitialLayouts() const override {
 		std::vector<vk::ImageLayout> outputInitialLayouts {};
 		outputInitialLayouts.resize(1);
 
@@ -71,7 +74,7 @@ public:
 	}
 
 
-	inline std::vector<vk::ClearValue> getVkClearValues() const override {
+	std::vector<vk::ClearValue> getVkClearValues() const override {
 		std::vector<vk::ClearValue> clearValues {};
 		clearValues.resize(1);
 
@@ -81,7 +84,7 @@ public:
 	}
 
 
-	inline std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() const override {
+	std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() const override {
 		std::vector<vk::AttachmentDescription> attachmentDescriptions {};
 		attachmentDescriptions.resize(1);
 
@@ -98,7 +101,7 @@ public:
 	}
 
 
-	inline vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() const override {
+	vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() const override {
 		vk::PipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {};
 		pipelineDepthStencilStateCreateInfo.depthTestEnable	 = true;
 		pipelineDepthStencilStateCreateInfo.depthWriteEnable = true;

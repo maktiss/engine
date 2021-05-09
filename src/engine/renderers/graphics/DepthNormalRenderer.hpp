@@ -1,12 +1,13 @@
 #pragma once
 
 #include "GraphicsRendererBase.hpp"
+#include "ObjectRendererBase.hpp"
 
 
 namespace Engine {
-class DepthNormalRenderer : public GraphicsRendererBase {
+class DepthNormalRenderer : public ObjectRendererBase {
 public:
-	DepthNormalRenderer() : GraphicsRendererBase(0, 2) {
+	DepthNormalRenderer() : ObjectRendererBase(0, 2) {
 	}
 
 
