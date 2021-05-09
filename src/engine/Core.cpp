@@ -94,7 +94,7 @@ int Core::init(int argc, char** argv) {
 	EntityManager::init();
 
 
-	auto cameraEntity = EntityManager::createEntity<TransformComponent, ScriptComponent, CameraComponent>();
+	auto cameraEntity = EntityManager::createEntity<TransformComponent, ScriptComponent, CameraComponent>("camera");
 	cameraEntity.apply<TransformComponent, ScriptComponent, CameraComponent>(
 		[](auto& transform, auto& script, auto& camera) {
 			transform.position.z = -3.0f;
@@ -105,7 +105,7 @@ int Core::init(int argc, char** argv) {
 		});
 
 
-	auto modelEntity = EntityManager::createEntity<TransformComponent, ModelComponent, ScriptComponent>();
+	auto modelEntity = EntityManager::createEntity<TransformComponent, ModelComponent, ScriptComponent>("dragon");
 
 	std::vector<MeshManager::Handle> meshHandles {};
 	if (Importer::importMesh("assets/models/dragon.fbx", meshHandles)) {
@@ -144,7 +144,7 @@ int Core::init(int argc, char** argv) {
 
 
 
-	modelEntity = EntityManager::createEntity<TransformComponent, ModelComponent>();
+	modelEntity = EntityManager::createEntity<TransformComponent, ModelComponent>("sphere");
 	
 	modelEntity.getComponent<TransformComponent>().position.x = 3.0f;
 
@@ -160,7 +160,7 @@ int Core::init(int argc, char** argv) {
 
 
 
-	auto directionalLightEntity = EntityManager::createEntity<TransformComponent, LightComponent, ScriptComponent>();
+	auto directionalLightEntity = EntityManager::createEntity<TransformComponent, LightComponent, ScriptComponent>("sun");
 	directionalLightEntity.getComponent<LightComponent>().type			 = LightComponent::Type::DIRECTIONAL;
 	directionalLightEntity.getComponent<LightComponent>().color			 = { 2.00f, 1.98f, 1.95f };
 	directionalLightEntity.getComponent<LightComponent>().castsShadows	 = true;
@@ -171,7 +171,7 @@ int Core::init(int argc, char** argv) {
 		ScriptManager::getScriptHandle("script_sun_movement");
 
 
-	auto tileEntity = EntityManager::createEntity<TransformComponent, ModelComponent>();
+	auto tileEntity = EntityManager::createEntity<TransformComponent, ModelComponent>("tile");
 	// std::vector<MeshManager::Handle> meshHandles {};
 	if (Importer::importMesh("assets/models/tile.fbx", meshHandles)) {
 		return 1;
@@ -205,6 +205,27 @@ int Core::init(int argc, char** argv) {
 	tileEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
 	tileEntity.getComponent<ModelComponent>().shaderHandles[0] =
 		GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
+
+	
+	for (int x = -10; x <= 10; x++) {
+		for (int z = -10; z <= 10; z++) {
+			tileEntity = EntityManager::createEntity<TransformComponent, ModelComponent>("tile");
+			tileEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
+			tileEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
+			tileEntity.getComponent<ModelComponent>().shaderHandles[0] =
+				GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
+
+			tileEntity.apply<TransformComponent>([=](auto& transform) {
+				transform.position.x = x * 11;
+				transform.position.z = z * 11;
+
+				transform.position.y = glm::length(glm::vec2(x, z)) * 0.5;
+
+				transform.rotation.x = -z * 0.1;
+				transform.rotation.z = x * 0.1;
+			});
+		}
+	}
 
 
 	spdlog::info("Initialization completed successfully");

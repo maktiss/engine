@@ -1,9 +1,13 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
+
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <string>
 #include <tuple>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -49,8 +53,16 @@ public:
 
 	using Ranges = std::vector<std::pair<uint32_t, uint32_t>>;
 
+
 private:
 	static std::tuple<std::vector<ComponentTypes>...> componentArrays;
+
+	// Entity name to index mapping
+	static std::unordered_map<std::string, uint32_t> entityIndicesMap;
+
+	// Index to name mapping
+	static std::vector<std::string> entityNames;
+
 	static std::vector<int32_t> referenceCounts;
 
 	static std::array<Ranges, sizeof...(ComponentTypes)> componentRanges;
@@ -73,7 +85,7 @@ public:
 
 
 	template <typename... RequiredComponentTypes>
-	static Handle createEntity() {
+	static Handle createEntity(std::string name) {
 		uint32_t index = getEntityCount();
 		reserve(index + 1);
 
@@ -105,6 +117,33 @@ public:
 		assert((index == (getEntityCount() - 1)) || (signature > getSignature(index + 1)));
 
 		resetEntity(index);
+
+
+		std::string originalName = name;
+
+		auto suffix = 1;
+
+		while (entityIndicesMap.find(name) != entityIndicesMap.end()) {
+			auto foundPos = name.find_last_of("_");
+
+			if (foundPos != std::string::npos) {
+				auto indexStr = name.substr(foundPos + 1);
+
+				if (indexStr.find_first_not_of("1234567890") == std::string::npos) {
+					suffix = std::stoi(indexStr) + 1;
+				}
+			}
+
+			name = name.substr(0, foundPos) + "_" + std::to_string(suffix);
+		}
+
+		if (originalName != name) {
+			spdlog::warn("Attempt to create an entity with existing name '{}', using '{}' instead", originalName, name);
+		}
+
+		entityIndicesMap[name] = index;
+		entityNames[index] = name;
+
 
 		return Handle(index);
 	}
@@ -173,6 +212,7 @@ protected:
 private:
 	static void reserve(uint32_t size) {
 		((std::get<std::vector<ComponentTypes>>(componentArrays).resize(size)), ...);
+		entityNames.resize(size);
 		referenceCounts.resize(size);
 	}
 
@@ -350,7 +390,8 @@ private:
 	static void moveEntity(uint32_t from, uint32_t to) {
 		moveEntityImpl(from, to, std::make_index_sequence<getComponentTypeCount()>());
 
-		// FIXME: update handles
+		entityNames[to] = entityNames[from];
+		entityIndicesMap[entityNames[to]] = to;
 	}
 
 	template <std::size_t... Indices>
@@ -397,12 +438,18 @@ private:
 };
 
 template <typename... ComponentTypes>
-std::tuple<std::vector<ComponentTypes>...> EntityManagerBase<ComponentTypes...>::componentArrays;
+std::tuple<std::vector<ComponentTypes>...> EntityManagerBase<ComponentTypes...>::componentArrays {};
 
 template <typename... ComponentTypes>
-std::vector<int32_t> EntityManagerBase<ComponentTypes...>::referenceCounts;
+std::unordered_map<std::string, uint32_t> EntityManagerBase<ComponentTypes...>::entityIndicesMap {};
+
+template <typename... ComponentTypes>
+std::vector<std::string> EntityManagerBase<ComponentTypes...>::entityNames {};
+
+template <typename... ComponentTypes>
+std::vector<int32_t> EntityManagerBase<ComponentTypes...>::referenceCounts {};
 
 template <typename... ComponentTypes>
 std::array<typename EntityManagerBase<ComponentTypes...>::Ranges, sizeof...(ComponentTypes)>
-	EntityManagerBase<ComponentTypes...>::componentRanges;
+	EntityManagerBase<ComponentTypes...>::componentRanges {};
 } // namespace Engine
