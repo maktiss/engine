@@ -38,6 +38,8 @@ void MeshManager::update(Handle handle) {
 	uint32_t indexCount = 0;
 
 	apply(handle, [&](auto& mesh) {
+		meshInfo.boundingBox = mesh.boundingBox;
+
 		vertexBufferSize = mesh.getVertexBufferSize();
 		vertexBufferData = mesh.getVertexBuffer().data();
 
@@ -45,6 +47,7 @@ void MeshManager::update(Handle handle) {
 		indexBufferData = mesh.getIndexBuffer().data();
 		indexCount		= mesh.getIndexBuffer().size();
 	});
+
 
 	meshInfo.vertexBuffer.allocate(vmaAllocator, vertexBufferSize);
 	meshInfo.vertexBuffer.writeStaged(vkDevice, vkTransferQueue, vkCommandPool, vertexBufferData);

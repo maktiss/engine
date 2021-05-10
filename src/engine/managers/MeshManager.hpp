@@ -6,6 +6,8 @@
 
 #include "engine/graphics/meshes/Meshes.hpp"
 
+#include "engine/graphics/BoundingBox.hpp"
+
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
 
@@ -17,6 +19,8 @@ class MeshManager : public ResourceManagerBase<MeshManager, StaticMesh> {
 public:
 	// info required for rendering
 	struct MeshInfo {
+		BoundingBox boundingBox {};
+
 		// TODO: keep vk::Buffer's only
 		Buffer vertexBuffer = { vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
 								VMA_MEMORY_USAGE_GPU_ONLY };

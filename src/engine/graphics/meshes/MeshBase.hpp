@@ -1,5 +1,7 @@
 #pragma once
 
+#include "engine/graphics/BoundingBox.hpp"
+
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
 
@@ -26,7 +28,9 @@ namespace Engine {
 template <typename MeshType>
 class MeshBase {
 public:
-	std::vector<uint32_t> indexBuffer;
+	std::vector<uint32_t> indexBuffer {};
+
+	BoundingBox boundingBox {};
 
 
 public:
