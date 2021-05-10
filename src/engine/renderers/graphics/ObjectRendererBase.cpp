@@ -2,7 +2,7 @@
 
 
 namespace Engine {
-void ObjectRendererBase::drawObjects(const vk::CommandBuffer* pSecondaryCommandBuffers) {
+void ObjectRendererBase::drawObjects(const vk::CommandBuffer* pSecondaryCommandBuffers, const Frustum& frustum) {
 	// TODO: multithreading
 	// TODO: frustum culling
 
@@ -13,30 +13,35 @@ void ObjectRendererBase::drawObjects(const vk::CommandBuffer* pSecondaryCommandB
 	renderInfoIndices.clear();
 
 	EntityManager::forEach<TransformComponent, ModelComponent>([&](auto& transform, auto& model) {
+		const auto transformMatrix = transform.getTransformMatrix();
+
 		const auto& meshHandle	   = model.meshHandles[0];
 		const auto& materialHandle = model.materialHandles[0];
 		const auto& shaderHandle   = model.shaderHandles[0];
 
-		const auto& meshInfo	 = MeshManager::getMeshInfo(meshHandle);
-		const auto& materialInfo = MaterialManager::getMaterialInfo(materialHandle);
+		const auto& meshInfo = MeshManager::getMeshInfo(meshHandle);
 
-		uint64_t pipelineIndex = shaderHandle.getIndex();
-		uint64_t materialIndex = materialHandle.getIndex();
-		uint64_t meshIndex	   = meshHandle.getIndex();
+		if (frustum.contains(meshInfo.boundingBox.transform(transformMatrix))) {
+			const auto& materialInfo = MaterialManager::getMaterialInfo(materialHandle);
 
-		renderInfoIndices[(pipelineIndex << 54) + (materialIndex << 44) + (meshIndex << 34) + entityIndex] =
-			renderInfoCache.size();
+			uint64_t pipelineIndex = shaderHandle.getIndex();
+			uint64_t materialIndex = materialHandle.getIndex();
+			uint64_t meshIndex	   = meshHandle.getIndex();
 
-		renderInfoCache.push_back({
-			shaderHandle.getIndex(),
-			materialInfo.descriptorSet,
-			meshInfo.vertexBuffer.getVkBuffer(),
-			meshInfo.indexBuffer.getVkBuffer(),
-			meshInfo.indexCount,
-			transform.getTransformMatrix(),
-		});
+			renderInfoIndices[(pipelineIndex << 54) + (materialIndex << 44) + (meshIndex << 34) + entityIndex] =
+				renderInfoCache.size();
 
-		entityIndex++;
+			renderInfoCache.push_back({
+				shaderHandle.getIndex(),
+				materialInfo.descriptorSet,
+				meshInfo.vertexBuffer.getVkBuffer(),
+				meshInfo.indexBuffer.getVkBuffer(),
+				meshInfo.indexCount,
+				transformMatrix,
+			});
+
+			entityIndex++;
+		}
 	});
 
 

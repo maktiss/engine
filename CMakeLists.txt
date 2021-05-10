@@ -20,10 +20,13 @@ add_executable(
 	src/engine/components/ModelComponent.hpp
 	src/engine/components/ScriptComponent.hpp
 	src/engine/components/TransformComponent.hpp
+	src/engine/graphics/BoundingBox.hpp
 	src/engine/graphics/Buffer.cpp
 	src/engine/graphics/Buffer.hpp
 	src/engine/graphics/DescriptorSetArray.cpp
 	src/engine/graphics/DescriptorSetArray.hpp
+	src/engine/graphics/Frustum.cpp
+	src/engine/graphics/Frustum.hpp
 	src/engine/graphics/OneTimeCommandBuffer.hpp
 	src/engine/graphics/StagingBuffer.cpp
 	src/engine/graphics/StagingBuffer.hpp

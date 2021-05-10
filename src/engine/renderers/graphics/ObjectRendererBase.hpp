@@ -2,6 +2,8 @@
 
 #include "GraphicsRendererBase.hpp"
 
+#include "engine/graphics/Frustum.hpp"
+
 #include <map>
 #include <vector>
 
@@ -32,6 +34,6 @@ public:
 
 
 protected:
-	void drawObjects(const vk::CommandBuffer* pSecondaryCommandBuffers);
+	void drawObjects(const vk::CommandBuffer* pSecondaryCommandBuffers, const Frustum& frustum);
 };
 } // namespace Engine

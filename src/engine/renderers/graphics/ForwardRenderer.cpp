@@ -244,6 +244,6 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 	descriptorSetArrays[2].unmapBuffer(0, 0);
 
 
-	drawObjects(pSecondaryCommandBuffers);
+	drawObjects(pSecondaryCommandBuffers, Frustum(cameraBlock.projectionMatrix * cameraBlock.viewMatrix));
 }
 } // namespace Engine

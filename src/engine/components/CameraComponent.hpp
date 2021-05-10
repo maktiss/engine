@@ -2,6 +2,7 @@
 
 #include "ComponentBase.hpp"
 
+#define GLM_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
