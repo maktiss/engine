@@ -47,8 +47,8 @@ private:
 public:
 	static int init();
 
-	static void postCreate(Handle handle);
-	static void update(Handle handle);
+	static void postCreate(Handle& handle);
+	static void update(Handle& handle);
 
 
 	static void setVkDevice(vk::Device device) {
@@ -68,12 +68,12 @@ public:
 	}
 
 
-	static inline MeshInfo& getMeshInfo(Handle handle) {
+	static inline MeshInfo& getMeshInfo(const Handle& handle) {
 		return meshInfos[handle.getIndex()];
 	}
 
 
-	static inline std::string getMeshTypeString(Handle handle) {
+	static inline std::string getMeshTypeString(const Handle& handle) {
 		std::string string;
 		apply(handle, [&string](auto& mesh) {
 			string = mesh.getMeshTypeString();

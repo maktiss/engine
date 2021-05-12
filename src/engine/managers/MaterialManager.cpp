@@ -54,7 +54,7 @@ int MaterialManager::init() {
 };
 
 
-void MaterialManager::postCreate(Handle handle) {
+void MaterialManager::postCreate(Handle& handle) {
 	materialInfos.push_back({});
 	allocationInfos.push_back({});
 
@@ -139,7 +139,7 @@ void MaterialManager::postCreate(Handle handle) {
 	vkDevice.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 }
 
-void MaterialManager::update(Handle handle) {
+void MaterialManager::update(Handle& handle) {
 	auto& allocationInfo = allocationInfos[handle.getIndex()];
 
 

@@ -23,11 +23,11 @@ int MeshManager::init() {
 };
 
 
-void MeshManager::postCreate(Handle handle) {
+void MeshManager::postCreate(Handle& handle) {
 	meshInfos.push_back({});
 }
 
-void MeshManager::update(Handle handle) {
+void MeshManager::update(Handle& handle) {
 	auto& meshInfo = getMeshInfo(handle);
 
 	vk::DeviceSize vertexBufferSize;

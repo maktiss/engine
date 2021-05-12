@@ -150,7 +150,7 @@ public:
 		return objectInfos.size();
 	}
 
-	static inline uint32_t getTypeIndex(Handle handle) {
+	static inline uint32_t getTypeIndex(const Handle& handle) {
 		return objectInfos[handle.getId()].typeIndex;
 	}
 
@@ -159,7 +159,7 @@ public:
 	}
 
 	template <typename Func>
-	static void apply(Handle handle, Func&& func) {
+	static void apply(const Handle& handle, Func&& func) {
 		applyImpl(objectInfos[handle.getId()], func, std::make_index_sequence<getTypeCount()>());
 	}
 
@@ -180,7 +180,7 @@ public:
 				...);
 	}
 
-	static void update(Handle handle) {
+	static void update(Handle& handle) {
 		DerivedManager::update(handle);
 	}
 

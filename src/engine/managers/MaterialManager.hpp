@@ -46,8 +46,8 @@ private:
 public:
 	static int init();
 
-	static void postCreate(Handle handle);
-	static void update(Handle handle);
+	static void postCreate(Handle& handle);
+	static void update(Handle& handle);
 
 
 	static inline void setVkDevice(vk::Device device) {
@@ -64,7 +64,7 @@ public:
 	}
 
 
-	static inline MaterialInfo& getMaterialInfo(Handle handle) {
+	static inline MaterialInfo& getMaterialInfo(const Handle& handle) {
 		return materialInfos[handle.getIndex()];
 	}
 

@@ -102,12 +102,12 @@ int TextureManager::init() {
 }
 
 
-void TextureManager::postCreate(Handle handle) {
+void TextureManager::postCreate(Handle& handle) {
 	textureInfos.push_back({});
 	allocationInfos.push_back({});
 }
 
-void TextureManager::update(Handle handle) {
+void TextureManager::update(Handle& handle) {
 	destroy(handle.getIndex());
 
 	auto& textureInfo = textureInfos[handle.getIndex()];

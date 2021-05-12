@@ -90,7 +90,7 @@ public:
 		return Handle(index);
 	}
 
-	static Handle getHandle(MeshManager::Handle meshHandle, MaterialManager::Handle materialHandle) {
+	static Handle getHandle(MeshManager::Handle& meshHandle, MaterialManager::Handle& materialHandle) {
 		auto meshTypeIndex	 = MeshManager::getTypeIndex(meshHandle);
 		auto shaderTypeIndex = getCompatibleShaderTypeIndex(materialHandle);
 
@@ -103,7 +103,7 @@ public:
 	}
 
 	template <typename ShaderType>
-	static Handle getHandle(MeshManager::Handle meshHandle, uint signature = 0) {
+	static Handle getHandle(MeshManager::Handle& meshHandle, uint signature = 0) {
 		auto meshTypeIndex	 = MeshManager::getTypeIndex(meshHandle);
 		auto shaderTypeIndex = getTypeIndex<ShaderType>();
 
@@ -371,7 +371,7 @@ private:
 	}
 
 
-	static uint32_t getCompatibleShaderTypeIndex(MaterialManager::Handle materialHandle) {
+	static uint32_t getCompatibleShaderTypeIndex(MaterialManager::Handle& materialHandle) {
 		auto materialTypeIndex = MaterialManager::getTypeIndex(materialHandle);
 
 		uint32_t shaderTypeIndex = 0;
