@@ -15,7 +15,7 @@ public:
 	bool isPerspective = true;
 
 	float zNear = 0.01f;
-	float zFar	= 1000.0f;
+	float zFar	= 4000.0f;
 
 	float fov = 70.0f;
 
