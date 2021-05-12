@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <string>
 #include <tuple>
@@ -25,15 +26,6 @@ public:
 		}
 
 		Handle(uint32_t index) : index(index) {
-			incrementReferenceCount(index);
-		}
-
-		Handle(const Handle& handle) : index(handle.index) {
-			incrementReferenceCount(index);
-		}
-
-		~Handle() {
-			decrementReferenceCount(index);
 		}
 
 		inline uint32_t getIndex() const {
@@ -62,8 +54,6 @@ private:
 
 	// Index to name mapping
 	static std::vector<std::string> entityNames;
-
-	static std::vector<int32_t> referenceCounts;
 
 	static std::array<Ranges, sizeof...(ComponentTypes)> componentRanges;
 
@@ -142,7 +132,7 @@ public:
 		}
 
 		entityIndicesMap[name] = index;
-		entityNames[index] = name;
+		entityNames[index]	   = name;
 
 
 		return Handle(index);
@@ -177,8 +167,8 @@ public:
 
 
 	template <typename... RequiredComponentTypes, typename Func>
-	static void forEach(Func&& func) {
-		auto ranges = getValidRanges<RequiredComponentTypes...>();
+	static void forEach(Func&& func, uint fragmentIndex = 0, uint fragmentCount = 1) {
+		auto ranges = getValidRanges<RequiredComponentTypes...>(fragmentIndex, fragmentCount);
 
 		for (auto range : ranges) {
 			for (uint32_t i = range.first; i < range.second; i++) {
@@ -188,8 +178,8 @@ public:
 	}
 
 	template <typename... RequiredComponentTypes, typename Func>
-	static void forEachIndexed(Func&& func) {
-		auto ranges = getValidRanges<RequiredComponentTypes...>();
+	static void forEachIndexed(Func&& func, uint fragmentIndex = 0, uint fragmentCount = 1) {
+		auto ranges = getValidRanges<RequiredComponentTypes...>(fragmentIndex, fragmentCount);
 
 		for (auto range : ranges) {
 			for (uint32_t i = range.first; i < range.second; i++) {
@@ -213,7 +203,6 @@ private:
 	static void reserve(uint32_t size) {
 		((std::get<std::vector<ComponentTypes>>(componentArrays).resize(size)), ...);
 		entityNames.resize(size);
-		referenceCounts.resize(size);
 	}
 
 
@@ -229,7 +218,7 @@ private:
 
 
 	template <typename... RequiredComponentTypes>
-	static Ranges getValidRanges() {
+	static Ranges getValidRanges(uint fragmentIndex, uint fragmentCount) {
 		Ranges ranges;
 
 		auto leastSignificantTypeIndex = getLeastSignificantTypeIndex<RequiredComponentTypes...>();
@@ -259,7 +248,7 @@ private:
 
 					componentTypeIterators[requiredTypeIndex]++;
 
-					// stop searching if there are no more ranges of required type left
+					// Stop searching if there are no more ranges of required type left
 					if (componentTypeIterators[requiredTypeIndex] >=
 						componentRanges[leastSignificantTypeIndex].size()) {
 						currentRangeIndex = componentRanges[leastSignificantTypeIndex].size();
@@ -269,9 +258,35 @@ private:
 			}
 		}
 
-		// make sure first fallback entity won't be used
+		// Make sure first fallback entity won't be used
 		if (ranges.size() > 0) {
 			ranges[0].first = std::max(1U, ranges[0].first);
+		}
+
+
+		// Shrink ranges to fit fragment
+
+		uint totalEntities = 0;
+		for (const auto& range : ranges) {
+			totalEntities += range.second - range.first;
+		}
+
+		uint entitiesPerFragment = std::ceil(static_cast<float>(totalEntities) / fragmentCount);
+		uint leftShiftCount		 = entitiesPerFragment * fragmentIndex;
+		uint rightShiftCount	 = totalEntities - std::min(leftShiftCount + entitiesPerFragment, totalEntities);
+
+		for (auto& range : ranges) {
+			auto offset = std::min(range.second - range.first, leftShiftCount);
+			range.first += offset;
+			leftShiftCount -= offset;
+		}
+
+		for (int i = ranges.size() - 1; i >= 0; i--) {
+			auto& range = ranges[i];
+
+			auto offset = std::min(range.second - range.first, rightShiftCount);
+			range.second -= offset;
+			rightShiftCount -= offset;
 		}
 
 		return ranges;
@@ -390,7 +405,7 @@ private:
 	static void moveEntity(uint32_t from, uint32_t to) {
 		moveEntityImpl(from, to, std::make_index_sequence<getComponentTypeCount()>());
 
-		entityNames[to] = entityNames[from];
+		entityNames[to]					  = entityNames[from];
 		entityIndicesMap[entityNames[to]] = to;
 	}
 
@@ -426,15 +441,6 @@ private:
 					 : 0) +
 				...);
 	}
-
-
-	static void incrementReferenceCount(uint32_t index) {
-		referenceCounts[index]++;
-	}
-
-	static void decrementReferenceCount(uint32_t index) {
-		referenceCounts[index]--;
-	}
 };
 
 template <typename... ComponentTypes>
@@ -445,9 +451,6 @@ std::unordered_map<std::string, uint32_t> EntityManagerBase<ComponentTypes...>::
 
 template <typename... ComponentTypes>
 std::vector<std::string> EntityManagerBase<ComponentTypes...>::entityNames {};
-
-template <typename... ComponentTypes>
-std::vector<int32_t> EntityManagerBase<ComponentTypes...>::referenceCounts {};
 
 template <typename... ComponentTypes>
 std::array<typename EntityManagerBase<ComponentTypes...>::Ranges, sizeof...(ComponentTypes)>
