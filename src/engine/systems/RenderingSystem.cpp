@@ -39,6 +39,9 @@ void RenderingSystem::RenderGraph::addOutputConnection(std::string srcName, std:
 int RenderingSystem::init() {
 	spdlog::info("Initializing RenderingSystem...");
 
+	// TODO: if renderingThreadCount == 0 use core count
+	threadCount = renderingThreadCount;
+
 
 	// add required glfw extensions
 
@@ -791,6 +794,7 @@ int RenderingSystem::init() {
 	}
 
 	for (const auto& [rendererName, renderer] : renderers) {
+		renderer->setThreadCount(threadCount);
 		renderer->init();
 	}
 

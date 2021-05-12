@@ -116,22 +116,25 @@ int ForwardRenderer::init() {
 	descriptorSetArrays[2].init(vkDevice, vmaAllocator);
 
 
-	return GraphicsRendererBase::init();
+	return ObjectRendererBase::init();
 }
 
 
 void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
 													double dt) {
-	const auto& commandBuffer = pSecondaryCommandBuffers[0];
+	// TODO: move to function
+	for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
+		const auto& commandBuffer = pSecondaryCommandBuffers[threadIndex];
 
-	for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-										 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
+		for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
+											 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
+		}
+
+		const auto textureDescriptorSet = TextureManager::getVkDescriptorSet();
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, 4, 1,
+										 &textureDescriptorSet, 0, nullptr);
 	}
-
-	const auto textureDescriptorSet = TextureManager::getVkDescriptorSet();
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, 4, 1, &textureDescriptorSet, 0,
-									 nullptr);
 
 
 	struct {

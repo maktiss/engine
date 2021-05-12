@@ -19,7 +19,7 @@ public:
 	// TODO: better name?
 	struct AttachmentDescription {
 		vk::Format format {};
-		
+
 		vk::ImageUsageFlags usage {};
 		vk::ImageCreateFlags flags {};
 
@@ -105,7 +105,7 @@ public:
 
 	inline uint getInputIndex(std::string name) {
 		const auto inputNames = getInputNames();
-		auto iter = std::find(inputNames.begin(), inputNames.end(), name);
+		auto iter			  = std::find(inputNames.begin(), inputNames.end(), name);
 
 		assert(iter != inputNames.end());
 
@@ -114,7 +114,7 @@ public:
 
 	inline uint getOutputIndex(std::string name) {
 		const auto outputNames = getOutputNames();
-		auto iter = std::find(outputNames.begin(), outputNames.end(), name);
+		auto iter			   = std::find(outputNames.begin(), outputNames.end(), name);
 
 		assert(iter != outputNames.end());
 

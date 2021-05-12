@@ -28,17 +28,20 @@ int ShadowMapRenderer::init() {
 	descriptorSetArrays[2].init(vkDevice, vmaAllocator);
 
 
-	return GraphicsRendererBase::init();
+	return ObjectRendererBase::init();
 }
 
 
 void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
 													  uint layerIndex, double dt) {
-	const auto& commandBuffer = pSecondaryCommandBuffers[0];
+	// TODO: move to function
+	for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
+		const auto& commandBuffer = pSecondaryCommandBuffers[threadIndex];
 
-	for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-										 &descriptorSetArrays[setIndex].getVkDescriptorSet(layerIndex), 0, nullptr);
+		for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
+											 &descriptorSetArrays[setIndex].getVkDescriptorSet(layerIndex), 0, nullptr);
+		}
 	}
 
 

@@ -28,7 +28,7 @@ void MipMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 	for (uint layer = 0; layer < textureInfo.arrayLayers; layer++) {
 		// TODO: 3D texture support
 		vk::Offset3D mipSize = { static_cast<int32_t>(outputSize.width), static_cast<int32_t>(outputSize.height), 1 };
-		
+
 		imageMemoryBarrier.subresourceRange.baseArrayLayer = layer;
 
 		for (uint level = 0; level < textureInfo.mipLevels - 1; level++) {

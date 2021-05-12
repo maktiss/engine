@@ -207,9 +207,11 @@ int Core::init(int argc, char** argv) {
 		GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
 
 	
-	for (int x = -10; x <= 10; x++) {
-		for (int z = -10; z <= 10; z++) {
-			tileEntity = EntityManager::createEntity<TransformComponent, ModelComponent>("tile");
+	uint index = 0;
+	for (int x = -100; x <= 100; x++) {
+		for (int z = -100; z <= 100; z++) {
+			index++;
+			tileEntity = EntityManager::createEntity<TransformComponent, ModelComponent>("tile_" + std::to_string(index));
 			tileEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
 			tileEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
 			tileEntity.getComponent<ModelComponent>().shaderHandles[0] =
