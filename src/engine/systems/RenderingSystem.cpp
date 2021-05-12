@@ -39,8 +39,10 @@ void RenderingSystem::RenderGraph::addOutputConnection(std::string srcName, std:
 int RenderingSystem::init() {
 	spdlog::info("Initializing RenderingSystem...");
 
-	// TODO: if renderingThreadCount == 0 use core count
 	threadCount = renderingThreadCount;
+	if (renderingThreadCount == 0) {
+		threadCount = std::thread::hardware_concurrency();
+	}
 
 	if (enableValidationLayers) {
 		validationLayers.push_back("VK_LAYER_KHRONOS_validation");

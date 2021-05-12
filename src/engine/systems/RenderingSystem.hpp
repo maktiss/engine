@@ -105,10 +105,12 @@ private:
 private:
 	PROPERTY(int, "Video", vSync, 1);
 
-	PROPERTY(uint, "Graphics", renderingThreadCount, 4);
+	PROPERTY(uint, "Graphics", renderingThreadCount, 0);
 
 	PROPERTY(uint, "Debug", enableValidationLayers, 0);
 
+
+private:
 	GLFWwindow* glfwWindow = nullptr;
 
 	vk::Instance vkInstance;
@@ -168,7 +170,7 @@ private:
 	std::vector<const char*> requiredDeviceExtensionNames	= { VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 																VK_KHR_MULTIVIEW_EXTENSION_NAME };
 
-	std::vector<const char*> validationLayers = {  };
+	std::vector<const char*> validationLayers = {};
 
 	std::vector<vk::PhysicalDevice> vkSupportedPhysicalDevices;
 	uint32_t activePhysicalDeviceIndex = 0;
