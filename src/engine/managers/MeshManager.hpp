@@ -2,11 +2,12 @@
 
 #include "ResourceManagerBase.hpp"
 
+#include "engine/graphics/BoundingBox.hpp"
+#include "engine/graphics/BoundingSphere.hpp"
 #include "engine/graphics/Buffer.hpp"
 
 #include "engine/graphics/meshes/Meshes.hpp"
 
-#include "engine/graphics/BoundingBox.hpp"
 
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
@@ -19,6 +20,7 @@ class MeshManager : public ResourceManagerBase<MeshManager, StaticMesh> {
 public:
 	// info required for rendering
 	struct MeshInfo {
+		BoundingSphere boundingSphere {};
 		BoundingBox boundingBox {};
 
 		// TODO: keep vk::Buffer's only

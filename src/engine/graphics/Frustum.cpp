@@ -4,11 +4,6 @@
 
 
 namespace Engine {
-Frustum::Frustum(glm::mat4 viewProjectionMatrix) {
-	buildFromViewProjectionMatrix(viewProjectionMatrix);
-}
-
-
 void Frustum::buildFromViewProjectionMatrix(glm::mat4 viewProjectionMatrix) {
 	for (uint i = 0; i < 6; i++) {
 		planes[i].normal = { viewProjectionMatrix[0][3] + (i % 2 ? -1 : 1) * viewProjectionMatrix[0][i / 2],

@@ -35,10 +35,11 @@ int Importer::importMesh(std::string filename, std::vector<MeshManager::Handle>&
 
 		meshHandle.apply([&assimpMesh](auto& mesh) {
 			for (int i = 0; i < 8; i++) {
-				mesh.boundingBox.points[i].x	  = i & 1 ? assimpMesh->mAABB.mMax.x : assimpMesh->mAABB.mMin.x;
+				mesh.boundingBox.points[i].x = i & 1 ? assimpMesh->mAABB.mMax.x : assimpMesh->mAABB.mMin.x;
 				mesh.boundingBox.points[i].y = i & 2 ? assimpMesh->mAABB.mMax.y : assimpMesh->mAABB.mMin.y;
 				mesh.boundingBox.points[i].z = i & 4 ? assimpMesh->mAABB.mMax.z : assimpMesh->mAABB.mMin.z;
 			}
+			mesh.boundingSphere = { mesh.boundingBox };
 
 
 			auto& vertexBuffer = mesh.getVertexBuffer();

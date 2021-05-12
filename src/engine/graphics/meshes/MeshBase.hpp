@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/graphics/BoundingBox.hpp"
+#include "engine/graphics/BoundingSphere.hpp"
 
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #include <vulkan/vulkan.hpp>
@@ -30,6 +31,7 @@ class MeshBase {
 public:
 	std::vector<uint32_t> indexBuffer {};
 
+	BoundingSphere boundingSphere {};
 	BoundingBox boundingBox {};
 
 

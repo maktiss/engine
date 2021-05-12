@@ -38,6 +38,7 @@ void MeshManager::update(Handle& handle) {
 	uint32_t indexCount = 0;
 
 	apply(handle, [&](auto& mesh) {
+		meshInfo.boundingSphere = mesh.boundingSphere;
 		meshInfo.boundingBox = mesh.boundingBox;
 
 		vertexBufferSize = mesh.getVertexBufferSize();

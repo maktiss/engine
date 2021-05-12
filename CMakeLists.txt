@@ -22,6 +22,7 @@ add_executable(
 	src/engine/components/ScriptComponent.hpp
 	src/engine/components/TransformComponent.hpp
 	src/engine/graphics/BoundingBox.hpp
+	src/engine/graphics/BoundingSphere.hpp
 	src/engine/graphics/Buffer.cpp
 	src/engine/graphics/Buffer.hpp
 	src/engine/graphics/DescriptorSetArray.cpp

@@ -55,7 +55,9 @@ void ObjectRendererBase::drawObjectsThreadFunc(uint threadIndex, void* pData) {
 
 			const auto& meshInfo = MeshManager::getMeshInfo(meshHandle);
 
-			if (frustum.contains(meshInfo.boundingBox.transform(transformMatrix))) {
+			if (frustum.contains(meshInfo.boundingSphere.transform(transformMatrix)) &&
+				frustum.contains(meshInfo.boundingBox.transform(transformMatrix))) {
+
 				const auto& materialInfo = MaterialManager::getMaterialInfo(materialHandle);
 
 				uint64_t pipelineIndex = shaderHandle.getIndex();
