@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(Engine VERSION 0.1.0)
 
+find_package(Threads REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
 
@@ -127,6 +128,8 @@ add_executable(
 	src/engine/utils/Importer.hpp
 	src/engine/utils/IO.hpp
 	src/engine/utils/StbImageImpl.cpp
+	src/engine/utils/ThreadPool.cpp
+	src/engine/utils/ThreadPool.hpp
 	src/engine/utils/VkMemAllocImpl.cpp
 	src/thirdparty/imgui/imgui.cpp
 	src/thirdparty/imgui/imgui_demo.cpp
@@ -147,6 +150,7 @@ target_include_directories(
 
 target_link_libraries(
 	${PROJECT_NAME}
+	Threads::Threads
 	Vulkan::Vulkan
 	glfw
 	spdlog
