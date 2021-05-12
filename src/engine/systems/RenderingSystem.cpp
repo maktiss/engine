@@ -42,6 +42,10 @@ int RenderingSystem::init() {
 	// TODO: if renderingThreadCount == 0 use core count
 	threadCount = renderingThreadCount;
 
+	if (enableValidationLayers) {
+		validationLayers.push_back("VK_LAYER_KHRONOS_validation");
+	}
+
 
 	// add required glfw extensions
 

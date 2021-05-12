@@ -107,6 +107,8 @@ private:
 
 	PROPERTY(uint, "Graphics", renderingThreadCount, 4);
 
+	PROPERTY(uint, "Debug", enableValidationLayers, 0);
+
 	GLFWwindow* glfwWindow = nullptr;
 
 	vk::Instance vkInstance;
