@@ -29,6 +29,13 @@ public:
 		// bool required {};
 	};
 
+	struct SpecializationConstantDescription {
+		uint id {};
+
+		void* pData {};
+		size_t size {};
+	};
+
 
 protected:
 	vk::Device vkDevice {};
@@ -206,6 +213,14 @@ public:
 	}
 
 
+	void dispose() {
+		for (auto& uniformBuffer : descriptorSetArrays) {
+			uniformBuffer.dispose();
+		}
+	}
+
+
+protected:
 	virtual std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() {
 		std::vector<vk::DescriptorSetLayout> layouts(descriptorSetArrays.size());
 		for (uint i = 0; i < layouts.size(); i++) {
@@ -215,13 +230,11 @@ public:
 	}
 
 
-	int createVkPipelineLayout();
-
-
-	void dispose() {
-		for (auto& uniformBuffer : descriptorSetArrays) {
-			uniformBuffer.dispose();
-		}
+	virtual std::vector<SpecializationConstantDescription> getSpecializationConstantDescriptions() const {
+		return std::vector<SpecializationConstantDescription>();
 	}
+
+
+	int createVkPipelineLayout();
 };
 } // namespace Engine

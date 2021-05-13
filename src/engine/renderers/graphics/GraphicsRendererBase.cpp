@@ -31,6 +31,7 @@ int GraphicsRendererBase::init() {
 int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers,
 								 const vk::CommandBuffer* pSecondaryCommandBuffers,
 								 const vk::QueryPool& timestampQueryPool, double dt) {
+
 	for (uint layerIndex = 0; layerIndex < getLayerCount(); layerIndex++) {
 		vk::CommandBufferBeginInfo commandBufferBeginInfo {};
 
@@ -124,6 +125,7 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 									 queryIndex + getMultiviewLayerCount());
 
 		result = commandBuffer.end();
+
 		if (result != vk::Result::eSuccess) {
 			spdlog::error("Failed to record command buffer. Error code: {} ({})", result, vk::to_string(result));
 			return 1;
@@ -148,6 +150,7 @@ uint GraphicsRendererBase::getColorAttachmentCount() const {
 	auto colorAttachmentCount = getOutputCount();
 
 	const auto& lastAttachmentReference = attachmentReferences[attachmentReferences.size() - 1];
+
 	// FIXME: check for all depth layout variations
 	if (lastAttachmentReference.layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
 		colorAttachmentCount--;
@@ -193,6 +196,7 @@ int GraphicsRendererBase::createRenderPass() {
 
 
 	auto attachmentDescriptions = getVkAttachmentDescriptions();
+
 	for (uint i = 0; i < attachmentDescriptions.size(); i++) {
 		attachmentDescriptions[i].initialLayout = vkOutputInitialLayouts[i];
 		attachmentDescriptions[i].finalLayout	= vkOutputFinalLayouts[i];
@@ -217,6 +221,7 @@ int GraphicsRendererBase::createRenderPass() {
 	}
 
 	auto result = vkDevice.createRenderPass(&renderPassCreateInfo, nullptr, &vkRenderPass);
+
 	if (result != vk::Result::eSuccess) {
 		spdlog::error("Failed to create render pass. Error code: {} ({})", result, vk::to_string(result));
 		return 1;
@@ -255,6 +260,7 @@ int GraphicsRendererBase::createFramebuffer() {
 			});
 
 			auto result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &imageView);
+
 			if (result != vk::Result::eSuccess) {
 				spdlog::error("Failed to create image view. Error code: {} ({})", result,
 							  vk::to_string(vk::Result(result)));
@@ -313,8 +319,45 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 	pipelineColorBlendStateCreateInfo.attachmentCount = pipelineColorBlendAttachmentStates.size();
 	pipelineColorBlendStateCreateInfo.pAttachments	  = pipelineColorBlendAttachmentStates.data();
 
+	const std::array shaderStages = {
+		vk::ShaderStageFlagBits::eVertex,
+		vk::ShaderStageFlagBits::eGeometry,
+		vk::ShaderStageFlagBits::eTessellationControl,
+		vk::ShaderStageFlagBits::eTessellationEvaluation,
+		vk::ShaderStageFlagBits::eFragment,
+		vk::ShaderStageFlagBits::eCompute,
+	};
 
 	std::vector<vk::Pipeline> graphicsPipelines {};
+
+
+	const auto specConstDescriptions = getSpecializationConstantDescriptions();
+
+	std::vector<vk::SpecializationMapEntry> specializationMapEntries(specConstDescriptions.size());
+	std::vector<uint8_t> specializationConstantBuffer {};
+
+	for (uint i = 0; i < specConstDescriptions.size(); i++) {
+		const auto& specConstDescription = specConstDescriptions[i];
+
+		uint offset = specializationConstantBuffer.size();
+		specializationConstantBuffer.resize(offset + specConstDescription.size);
+
+		memcpy(&specializationConstantBuffer[offset], specConstDescription.pData, specConstDescription.size);
+
+		auto& specializationMapEntry = specializationMapEntries[i];
+
+		specializationMapEntry.constantID = specConstDescription.id;
+		specializationMapEntry.offset	  = offset;
+		specializationMapEntry.size		  = specConstDescription.size;
+	}
+
+	vk::SpecializationInfo specializationInfo {};
+	specializationInfo.pData		 = specializationConstantBuffer.data();
+	specializationInfo.dataSize		 = specializationConstantBuffer.size();
+	specializationInfo.mapEntryCount = specializationMapEntries.size();
+	specializationInfo.pMapEntries	 = specializationMapEntries.data();
+
+
 	for (uint shaderTypeIndex = 0; shaderTypeIndex < shaderTypeCount; shaderTypeIndex++) {
 		for (uint meshTypeIndex = 0; meshTypeIndex < meshTypeCount; meshTypeIndex++) {
 			vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {};
@@ -335,33 +378,20 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 
 				auto shaderInfo =
 					GraphicsShaderManager::getShaderInfo(renderPassIndex, shaderTypeIndex, meshTypeIndex, signature);
+
 				for (uint shaderStageIndex = 0; shaderStageIndex < 6; shaderStageIndex++) {
-					if (shaderInfo.shaderModules[shaderStageIndex] != vk::ShaderModule()) {
-						switch (shaderStageIndex) {
-						case 0:
-							pipelineShaderStageCreateInfos[shaderStageCount].stage = vk::ShaderStageFlagBits::eVertex;
-							break;
-						case 1:
-							pipelineShaderStageCreateInfos[shaderStageCount].stage = vk::ShaderStageFlagBits::eGeometry;
-							break;
-						case 2:
-							pipelineShaderStageCreateInfos[shaderStageCount].stage =
-								vk::ShaderStageFlagBits::eTessellationControl;
-							break;
-						case 3:
-							pipelineShaderStageCreateInfos[shaderStageCount].stage =
-								vk::ShaderStageFlagBits::eTessellationEvaluation;
-							break;
-						case 4:
-							pipelineShaderStageCreateInfos[shaderStageCount].stage = vk::ShaderStageFlagBits::eFragment;
-							break;
-						case 5:
-							pipelineShaderStageCreateInfos[shaderStageCount].stage = vk::ShaderStageFlagBits::eCompute;
-							break;
-						}
-						pipelineShaderStageCreateInfos[shaderStageCount].module =
-							shaderInfo.shaderModules[shaderStageIndex];
-						pipelineShaderStageCreateInfos[shaderStageCount].pName = "main";
+					auto& pipelineShaderStageCreateInfo = pipelineShaderStageCreateInfos[shaderStageCount];
+
+					auto& shaderModule = shaderInfo.shaderModules[shaderStageIndex];
+
+					if (shaderModule != vk::ShaderModule()) {
+						pipelineShaderStageCreateInfo.stage = shaderStages[shaderStageIndex];
+
+						pipelineShaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
+
+						pipelineShaderStageCreateInfo.module = shaderModule;
+						pipelineShaderStageCreateInfo.pName	 = "main";
+
 						shaderStageCount++;
 					}
 				}
@@ -387,6 +417,7 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 				vk::Pipeline pipeline;
 				auto result =
 					vkDevice.createGraphicsPipelines(nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline);
+
 				if (result != vk::Result::eSuccess) {
 					spdlog::error("Failed to create graphics pipeline. Error code: {} ({})", result,
 								  vk::to_string(result));
@@ -398,7 +429,6 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 		}
 	}
 	vkPipelines = graphicsPipelines;
-
 
 	return 0;
 }
