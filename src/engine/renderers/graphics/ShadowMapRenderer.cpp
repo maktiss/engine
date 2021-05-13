@@ -67,9 +67,8 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 		cameraViewDir = glm::vec3(viewVector);
 	});
 
-	// FIXME
-	const float cascadeHalfSizes[] = { 2.0f, 4.0f, 8.0f };
-	const float cascadeHalfSize	   = cascadeHalfSizes[layerIndex];
+
+	float cascadeHalfSize = directionalLightCascadeBase * std::pow(2, layerIndex + 1);
 
 	EntityManager::forEach<TransformComponent, LightComponent>([&](const auto& transform, auto& light) {
 		if (light.castsShadows) {

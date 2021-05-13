@@ -16,16 +16,22 @@
 
 namespace Engine {
 class Core {
-public:
+private:
+	PROPERTY(uint, "Video", windowWidth, 1920);
+	PROPERTY(uint, "Video", windowHeight, 1080);
+
+	PROPERTY(uint, "Debug", maxLogEntries, 1024);
+	PROPERTY(uint, "Debug", maxLogLength, 1024);
+
+
 private:
 	std::vector<std::shared_ptr<SystemBase>> systems {};
 
 	GLFWwindow* glfwWindow = nullptr;
 
+
 	std::stringstream logBuffer {};
 
-	PROPERTY(uint, "Debug", maxLogEntries, 1024);
-	PROPERTY(uint, "Debug", maxLogLength, 1024);
 
 public:
 	~Core();

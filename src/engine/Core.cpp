@@ -49,7 +49,7 @@ int Core::init(int argc, char** argv) {
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	// TODO: different window types
-	glfwWindow = glfwCreateWindow(1920, 1080, "Engine", glfwGetPrimaryMonitor(), nullptr);
+	glfwWindow = glfwCreateWindow(windowWidth, windowHeight, "Engine", glfwGetPrimaryMonitor(), nullptr);
 	if (!glfwWindow) {
 		spdlog::critical("Failed to create window");
 		return 1;
@@ -96,12 +96,13 @@ int Core::init(int argc, char** argv) {
 
 	auto cameraEntity = EntityManager::createEntity<TransformComponent, ScriptComponent, CameraComponent>("camera");
 	cameraEntity.apply<TransformComponent, ScriptComponent, CameraComponent>(
-		[](auto& transform, auto& script, auto& camera) {
+		[&](auto& transform, auto& script, auto& camera) {
 			transform.position.z = -3.0f;
 
 			script.handle = ScriptManager::getScriptHandle("script_camera");
 
-			camera.viewport = { 1920.0f, 1080.0f };
+			camera.viewport.x = static_cast<float>(windowWidth);
+			camera.viewport.y = static_cast<float>(windowHeight);
 		});
 
 
@@ -142,10 +143,8 @@ int Core::init(int argc, char** argv) {
 	modelEntity.getComponent<ScriptComponent>().handle = ScriptManager::getScriptHandle("script_floating_object");
 
 
-
-
 	modelEntity = EntityManager::createEntity<TransformComponent, ModelComponent>("sphere");
-	
+
 	modelEntity.getComponent<TransformComponent>().position.x = 3.0f;
 
 	// std::vector<MeshManager::Handle> meshHandles {};
@@ -159,8 +158,8 @@ int Core::init(int argc, char** argv) {
 		GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
 
 
-
-	auto directionalLightEntity = EntityManager::createEntity<TransformComponent, LightComponent, ScriptComponent>("sun");
+	auto directionalLightEntity =
+		EntityManager::createEntity<TransformComponent, LightComponent, ScriptComponent>("sun");
 	directionalLightEntity.getComponent<LightComponent>().type			 = LightComponent::Type::DIRECTIONAL;
 	directionalLightEntity.getComponent<LightComponent>().color			 = { 2.00f, 1.98f, 1.95f };
 	directionalLightEntity.getComponent<LightComponent>().castsShadows	 = true;
@@ -206,13 +205,14 @@ int Core::init(int argc, char** argv) {
 	tileEntity.getComponent<ModelComponent>().shaderHandles[0] =
 		GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
 
-	
+
 	uint index = 0;
 	for (int x = -100; x <= 100; x++) {
 		for (int z = -100; z <= 100; z++) {
 			index++;
-			tileEntity = EntityManager::createEntity<TransformComponent, ModelComponent>("tile_" + std::to_string(index));
-			tileEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
+			tileEntity =
+				EntityManager::createEntity<TransformComponent, ModelComponent>("tile_" + std::to_string(index));
+			tileEntity.getComponent<ModelComponent>().meshHandles[0]	 = meshHandles[0];
 			tileEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
 			tileEntity.getComponent<ModelComponent>().shaderHandles[0] =
 				GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);

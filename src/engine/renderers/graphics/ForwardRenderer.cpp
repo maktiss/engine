@@ -213,9 +213,8 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 			*environmentBlockMap.directionalLight.color			 = light.color;
 			*environmentBlockMap.directionalLight.shadowMapIndex = light.shadowMapIndex;
 
-			// FIXME
-			const float cascadeHalfSizes[] = { 2.0f, 4.0f, 8.0f };
-			float cascadeHalfSize		   = cascadeHalfSizes[0];
+
+			float cascadeHalfSize = directionalLightCascadeBase;
 
 			auto lightSpaceMatrix =
 				glm::lookAtLH(cameraPos, cameraPos + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -226,8 +225,8 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 
 			*environmentBlockMap.directionalLight.baseLightSpaceMatrix = lightSpaceMatrix;
 
-			for (uint cascadeIndex = 0; cascadeIndex < 3; cascadeIndex++) {
-				cascadeHalfSize = cascadeHalfSizes[cascadeIndex];
+			for (uint cascadeIndex = 0; cascadeIndex < directionalLightCascadeCount; cascadeIndex++) {
+				float cascadeHalfSize = directionalLightCascadeBase * std::pow(2, cascadeIndex + 1);
 
 				glm::vec3 position = cameraPos + cascadeHalfSize * directionalLightCascadeOffset * cameraViewDir;
 

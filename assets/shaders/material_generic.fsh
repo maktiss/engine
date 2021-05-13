@@ -86,45 +86,7 @@ void main() {
 	color += reflectedColor * max(dot(normal, reflectedDir), 0.0);
 
 	if (uEnvironment.useDirectionalLight) {
-		float shadowAmount = 1.0f;
-
-		vec4 baseLightSpaceCoord = uEnvironment.directionalLight.baseLightSpaceMatrix * vec4(inData.worldPosition, 1.0);
-
-		const float directionalLightCascadeBase = 2.0;
-
-		vec4 cameraDir = uEnvironment.directionalLight.baseLightSpaceMatrix *
-						 vec4(uCamera.viewMatrix[0][2], uCamera.viewMatrix[1][2], uCamera.viewMatrix[2][2], 0.0) *
-						 directionalLightCascadeBase;
-
-		const float offset = 0.75;
-
-		// TODO: more meaningful name?
-		vec2 cascadeRelatedPos =
-			baseLightSpaceCoord.xy / (cameraDir.xy * (2 * offset * step(0.0, baseLightSpaceCoord.xy) - offset) + 1.0);
-
-		uint cascade = uint(max(0.0, log2(max(abs(cascadeRelatedPos.x), abs(cascadeRelatedPos.y))) + 1.0));
-
-#ifdef DEBUG
-		if (cascade == 0) {
-			color.r += 0.2;
-		} else if (cascade == 1) {
-			color.g += 0.2;
-		} else if (cascade == 2) {
-			color.b += 0.2;
-		}
-#endif
-
-		vec4 lightSpaceCoord =
-			uEnvironment.directionalLight.lightSpaceMatrices[cascade] * vec4(inData.worldPosition, 1.0);
-
-		lightSpaceCoord.xy *= vec2(0.5, -0.5);
-		lightSpaceCoord.xy += vec2(0.5);
-
-		// TODO: normal bias
-		float bias = 0.00001;
-
-		shadowAmount *=
-			texture(uDirectionalShadowMapBuffer, vec4(lightSpaceCoord.xy, cascade, lightSpaceCoord.z - bias)).r;
+		float shadowAmount = calcDirectionalShadow(inData.worldPosition);
 
 		vec3 lightDir = -uEnvironment.directionalLight.direction;
 

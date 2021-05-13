@@ -157,6 +157,21 @@ public:
 	}
 
 
+	std::vector<SpecializationConstantDescription> getSpecializationConstantDescriptions() const override {
+		std::vector<SpecializationConstantDescription> specializationConstantDescriptions {};
+		specializationConstantDescriptions.resize(3);
+
+		specializationConstantDescriptions[0] = { 0, (void*)(&directionalLightCascadeCount),
+												  sizeof(directionalLightCascadeCount) };
+		specializationConstantDescriptions[1] = { 1, (void*)(&directionalLightCascadeBase),
+												  sizeof(directionalLightCascadeBase) };
+		specializationConstantDescriptions[2] = { 2, (void*)(&directionalLightCascadeOffset),
+												  sizeof(directionalLightCascadeOffset) };
+
+		return specializationConstantDescriptions;
+	}
+
+
 	inline std::vector<vk::ClearValue> getVkClearValues() const override {
 		std::vector<vk::ClearValue> clearValues {};
 		clearValues.resize(2);

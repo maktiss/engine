@@ -165,32 +165,32 @@ int RenderingSystem::init() {
 
 	auto depthNormalRenderer = std::make_shared<DepthNormalRenderer>();
 	depthNormalRenderer->setVkDevice(vkDevice);
-	depthNormalRenderer->setOutputSize({ 1920, 1080 });
+	depthNormalRenderer->setOutputSize({ windowWidth, windowHeight });
 	depthNormalRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto forwardRenderer = std::make_shared<ForwardRenderer>();
 	forwardRenderer->setVkDevice(vkDevice);
-	forwardRenderer->setOutputSize({ 1920, 1080 });
+	forwardRenderer->setOutputSize({ windowWidth, windowHeight });
 	forwardRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto shadowMapRenderer = std::make_shared<ShadowMapRenderer>();
 	shadowMapRenderer->setVkDevice(vkDevice);
-	shadowMapRenderer->setOutputSize({ 1920, 1080 });
+	shadowMapRenderer->setOutputSize({ shadowMapSize, shadowMapSize });
 	shadowMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto skyboxRenderer = std::make_shared<SkyboxRenderer>();
 	skyboxRenderer->setVkDevice(vkDevice);
-	skyboxRenderer->setOutputSize({ 1920, 1080 });
+	skyboxRenderer->setOutputSize({ windowWidth, windowHeight });
 	skyboxRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto skymapRenderer = std::make_shared<SkymapRenderer>();
 	skymapRenderer->setVkDevice(vkDevice);
-	skymapRenderer->setOutputSize({ 1024, 1024 });
+	skymapRenderer->setOutputSize({ skyMapSize, skyMapSize });
 	skymapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto imGuiRenderer = std::make_shared<ImGuiRenderer>();
 	imGuiRenderer->setVkDevice(vkDevice);
-	imGuiRenderer->setOutputSize({ 1920, 1080 });
+	imGuiRenderer->setOutputSize({ windowWidth, windowHeight });
 	imGuiRenderer->setVulkanMemoryAllocator(vmaAllocator);
 	imGuiRenderer->setVkInstance(vkInstance);
 	imGuiRenderer->setVkPhysicalDevice(getActivePhysicalDevice());
@@ -198,22 +198,22 @@ int RenderingSystem::init() {
 
 	auto postFxRenderer = std::make_shared<PostFxRenderer>();
 	postFxRenderer->setVkDevice(vkDevice);
-	postFxRenderer->setOutputSize({ 1920, 1080 });
+	postFxRenderer->setOutputSize({ windowWidth, windowHeight });
 	postFxRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto reflectionRenderer = std::make_shared<ReflectionRenderer>();
 	reflectionRenderer->setVkDevice(vkDevice);
-	reflectionRenderer->setOutputSize({ 1920, 1080 });
+	reflectionRenderer->setOutputSize({ windowWidth, windowHeight });
 	reflectionRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto skyMipMapRenderer = std::make_shared<MipMapRenderer>();
 	skyMipMapRenderer->setVkDevice(vkDevice);
-	skyMipMapRenderer->setOutputSize({ 1024, 1024 });
+	skyMipMapRenderer->setOutputSize({ skyMapSize, skyMapSize });
 	skyMipMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto irradianceMapRenderer = std::make_shared<IrradianceMapRenderer>();
 	irradianceMapRenderer->setVkDevice(vkDevice);
-	irradianceMapRenderer->setOutputSize({ 64, 64 });
+	irradianceMapRenderer->setOutputSize({ irradianceMapSize, irradianceMapSize });
 	irradianceMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 
@@ -820,7 +820,7 @@ int RenderingSystem::init() {
 	// 			}
 
 	// 			// FIXME: output size
-	// 			textureHandle.size = vk::Extent3D(1920, 1080, 1);
+	// 			textureHandle.size = vk::Extent3D(windowWidth, windowHeight, 1);
 
 	// 			// FIXME: for final texture only
 	// 			textureHandle.usage |= vk::ImageUsageFlagBits::eTransferSrc;
@@ -1217,14 +1217,14 @@ int RenderingSystem::present() {
 	imageBlitRegion.srcSubresource.baseArrayLayer = 0;
 	imageBlitRegion.srcSubresource.layerCount	  = 1;
 	imageBlitRegion.srcOffsets[0]				  = vk::Offset3D { 0, 0, 0 };
-	imageBlitRegion.srcOffsets[1]				  = vk::Offset3D { 1920, 1080, 1 };
+	imageBlitRegion.srcOffsets[1]				  = vk::Offset3D { windowWidth, windowHeight, 1 };
 
 	imageBlitRegion.dstSubresource.aspectMask	  = vk::ImageAspectFlagBits::eColor;
 	imageBlitRegion.dstSubresource.mipLevel		  = 0;
 	imageBlitRegion.dstSubresource.baseArrayLayer = 0;
 	imageBlitRegion.dstSubresource.layerCount	  = 1;
 	imageBlitRegion.dstOffsets[0]				  = vk::Offset3D { 0, 0, 0 };
-	imageBlitRegion.dstOffsets[1]				  = vk::Offset3D { 1920, 1080, 1 };
+	imageBlitRegion.dstOffsets[1]				  = vk::Offset3D { windowWidth, windowHeight, 1 };
 
 
 	auto& commandBuffer = vkImageBlitCommandBuffers[currentFrameInFlight];

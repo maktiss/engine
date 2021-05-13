@@ -185,6 +185,12 @@ public:
 			}
 		}
 
+
+		const std::array shaderStages = {
+			shaderc_glsl_vertex_shader,			 shaderc_glsl_geometry_shader, shaderc_glsl_tess_control_shader,
+			shaderc_glsl_tess_evaluation_shader, shaderc_glsl_fragment_shader, shaderc_glsl_compute_shader,
+		};
+
 		for (uint renderPassIndex = 0; renderPassIndex < getRenderPassStringCount(); renderPassIndex++) {
 			for (uint meshTypeIndex = 0; meshTypeIndex < MeshManager::getTypeCount(); meshTypeIndex++) {
 				for (uint signature = 0; signature < ShaderType::getSignatureCount(); signature++) {
@@ -205,27 +211,7 @@ public:
 
 					for (uint shaderStageIndex = 0; shaderStageIndex < 6; shaderStageIndex++) {
 						if (!glslSources[shaderStageIndex].empty()) {
-							shaderc_shader_kind kind;
-							switch (shaderStageIndex) {
-							case 0:
-								kind = shaderc_glsl_vertex_shader;
-								break;
-							case 1:
-								kind = shaderc_glsl_geometry_shader;
-								break;
-							case 2:
-								kind = shaderc_glsl_tess_control_shader;
-								break;
-							case 3:
-								kind = shaderc_glsl_tess_evaluation_shader;
-								break;
-							case 4:
-								kind = shaderc_glsl_fragment_shader;
-								break;
-							case 5:
-								kind = shaderc_glsl_compute_shader;
-								break;
-							}
+							shaderc_shader_kind kind = shaderStages[shaderStageIndex];
 
 							shaderc::SpvCompilationResult result =
 								compiler.CompileGlslToSpv(glslSources[shaderStageIndex], kind,

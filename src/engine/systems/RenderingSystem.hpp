@@ -103,9 +103,16 @@ private:
 
 
 private:
+	PROPERTY(uint, "Video", windowWidth, 1920);
+	PROPERTY(uint, "Video", windowHeight, 1080);
+	PROPERTY(int, "Video", windowMode, 1);
 	PROPERTY(int, "Video", vSync, 1);
 
 	PROPERTY(uint, "Graphics", renderingThreadCount, 0);
+
+	PROPERTY(uint, "Graphics", irradianceMapSize, 64);
+	PROPERTY(uint, "Graphics", shadowMapSize, 2048);
+	PROPERTY(uint, "Graphics", skyMapSize, 1024);
 
 	PROPERTY(uint, "Debug", enableValidationLayers, 0);
 

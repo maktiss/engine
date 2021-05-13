@@ -1,17 +1,20 @@
 #define PI 3.14159265358979323846
 
+// #define DEBUG
 
 #if defined(RENDER_PASS_FORWARD) || defined(RENDER_PASS_DEPTH_NORMAL) || defined(RENDER_PASS_SHADOW_MAP)
 
 
-#define FRAME_BLOCK_SET 0
-#define CAMERA_BLOCK_SET 1
+#define FRAME_BLOCK_SET		  0
+#define CAMERA_BLOCK_SET	  1
 #define ENVIRONMENT_BLOCK_SET 2
-#define MATERIAL_BLOCK_SET 3
-#define TEXTURE_BLOCK_SET 4
+#define MATERIAL_BLOCK_SET	  3
+#define TEXTURE_BLOCK_SET	  4
 
 
-layout(constant_id = 0) const uint DIRECTIONAL_LIGHT_CASCADE_COUNT = 3;
+layout(constant_id = 0) const uint DIRECTIONAL_LIGHT_CASCADE_COUNT	 = 3;
+layout(constant_id = 1) const float DIRECTIONAL_LIGHT_CASCADE_BASE	 = 2.0;
+layout(constant_id = 2) const float DIRECTIONAL_LIGHT_CASCADE_OFFSET = 0.75;
 
 layout(constant_id = 10) const uint CLUSTER_COUNT_X = 1;
 layout(constant_id = 11) const uint CLUSTER_COUNT_Y = 1;
@@ -20,7 +23,7 @@ layout(constant_id = 12) const uint CLUSTER_COUNT_Z = 1;
 
 struct DirectionalLight {
 	vec3 direction;
-	
+
 	vec3 color;
 	int shadowMapIndex;
 
@@ -60,7 +63,8 @@ struct LightCluster {
 
 layout(set = FRAME_BLOCK_SET, binding = 0) uniform FrameBlock {
 	float dt;
-} uFrame;
+}
+uFrame;
 
 layout(set = FRAME_BLOCK_SET, binding = 1) uniform sampler2DArrayShadow uDirectionalShadowMapBuffer;
 layout(set = FRAME_BLOCK_SET, binding = 2) uniform sampler2D uNormalBuffer;
@@ -75,16 +79,18 @@ layout(set = CAMERA_BLOCK_SET, binding = 0) uniform CameraBlock {
 
 	mat4 invViewMatrix;
 	mat4 invProjectionMatrix;
-} uCamera;
+}
+uCamera;
 
 
 layout(set = ENVIRONMENT_BLOCK_SET, binding = 0) uniform EnvironmentBlock {
 	bool useDirectionalLight;
 	DirectionalLight directionalLight;
-	
+
 	LightCluster pointLightClusters[CLUSTER_COUNT_X * CLUSTER_COUNT_Y * CLUSTER_COUNT_Z];
 	LightCluster spotLightClusters[CLUSTER_COUNT_X * CLUSTER_COUNT_Y * CLUSTER_COUNT_Z];
-} uEnvironment;
+}
+uEnvironment;
 
 layout(set = ENVIRONMENT_BLOCK_SET, binding = 1) readonly buffer PointLightsBlock {
 	PointLight uPointLights[];
@@ -100,14 +106,44 @@ uint getClusterIndex(uint x, uint y, uint z) {
 }
 
 
+float calcDirectionalShadow(vec3 worldPosition) {
+	float shadowAmount = 1.0;
+
+	vec4 baseLightSpaceCoord = uEnvironment.directionalLight.baseLightSpaceMatrix * vec4(worldPosition, 1.0);
+
+	vec4 cameraDir = uEnvironment.directionalLight.baseLightSpaceMatrix *
+					 vec4(uCamera.viewMatrix[0][2], uCamera.viewMatrix[1][2], uCamera.viewMatrix[2][2], 0.0) *
+					 DIRECTIONAL_LIGHT_CASCADE_BASE;
+
+	vec2 cascadeSpacePos = baseLightSpaceCoord.xy /
+						   (cameraDir.xy * (2.0 * DIRECTIONAL_LIGHT_CASCADE_OFFSET * step(0.0, baseLightSpaceCoord.xy) -
+											DIRECTIONAL_LIGHT_CASCADE_OFFSET) +
+							1.0);
+
+	uint cascade = uint(max(0.0, log2(max(abs(cascadeSpacePos.x), abs(cascadeSpacePos.y))) + 1.0));
+
+	vec4 lightSpaceCoord = uEnvironment.directionalLight.lightSpaceMatrices[cascade] * vec4(worldPosition, 1.0);
+
+	lightSpaceCoord.xy *= vec2(0.5, -0.5);
+	lightSpaceCoord.xy += vec2(0.5);
+
+	// TODO: normal bias
+	float bias = 0.00001;
+
+	shadowAmount *= texture(uDirectionalShadowMapBuffer, vec4(lightSpaceCoord.xy, cascade, lightSpaceCoord.z - bias)).r;
+
+	return shadowAmount;
+}
+
+
 float calcNormalDistributionTrowbridgeReitz(vec3 normal, vec3 halfway, float roughness) {
-	float roughness2 = roughness * roughness;
-	float normalDotHalfway = max(dot(normal, halfway), 0.0);
+	float roughness2		= roughness * roughness;
+	float normalDotHalfway	= max(dot(normal, halfway), 0.0);
 	float normalDotHalfway2 = normalDotHalfway * normalDotHalfway;
 
-	float numerator = roughness2;
+	float numerator	  = roughness2;
 	float denominator = normalDotHalfway2 * (roughness2 - 1.0) + 1.0;
-	denominator = PI * denominator * denominator;
+	denominator		  = PI * denominator * denominator;
 
 	return numerator / denominator;
 }
@@ -116,7 +152,7 @@ float calcGeometrySchlickBeckman(vec3 normal, vec3 viewDir, vec3 lightDir, float
 	float r = roughness + 1.0;
 	float k = (r * r) / 8.0;
 
-	float normalDotViewDir = max(dot(normal, viewDir), 0.00001);
+	float normalDotViewDir	= max(dot(normal, viewDir), 0.00001);
 	float normalDotLightDir = max(dot(normal, lightDir), 0.00001);
 
 	float smithL = normalDotViewDir / (normalDotViewDir * (1.0 - k) + k);
@@ -127,7 +163,7 @@ float calcGeometrySchlickBeckman(vec3 normal, vec3 viewDir, vec3 lightDir, float
 float calcGeometrySchlickGGX(vec3 normal, vec3 viewDir, vec3 lightDir, float roughness) {
 	float k = roughness / 2;
 
-	float normalDotViewDir = max(dot(normal, viewDir), 0.00001);
+	float normalDotViewDir	= max(dot(normal, viewDir), 0.00001);
 	float normalDotLightDir = max(dot(normal, lightDir), 0.00001);
 
 	float smithL = normalDotViewDir / (normalDotViewDir * (1.0 - k) + k);
@@ -141,16 +177,16 @@ vec3 calcFresnelSchlick(vec3 F0, float halfwayDotViewDir) {
 }
 
 vec3 calcBRDF(vec3 normal, vec3 lightDir, vec3 viewDir, vec3 albedo, float metallic, float roughness) {
-	vec3 halfway = normalize(viewDir + lightDir);
+	vec3 halfway			= normalize(viewDir + lightDir);
 	float normalDotLightDir = max(dot(normal, lightDir), 0.0);
 	float halfwayDotViewDir = max(dot(halfway, viewDir), 0.0);
-	float normalDotViewDir = max(dot(normal, viewDir), 0.0);
+	float normalDotViewDir	= max(dot(normal, viewDir), 0.0);
 
 	float NDF = calcNormalDistributionTrowbridgeReitz(normal, halfway, roughness);
-	float G = calcGeometrySchlickGGX(normal, viewDir, lightDir, roughness);
+	float G	  = calcGeometrySchlickGGX(normal, viewDir, lightDir, roughness);
 
 	vec3 F0 = mix(vec3(0.04), albedo, metallic);
-	vec3 F = calcFresnelSchlick(F0, halfwayDotViewDir);
+	vec3 F	= calcFresnelSchlick(F0, halfwayDotViewDir);
 
 	vec3 specular = (NDF * G * F) / max(4.0 * normalDotViewDir * normalDotLightDir, 0.00001);
 
