@@ -18,15 +18,18 @@ layout(location = 0) out OutData {
 	vec2 texCoord;
 
 	vec3 worldPosition;
+	vec3 worldNormal;
 	vec4 screenPosition;
 
-	mat3 tbnMatrix;
-} outData;
+	mat3 tangentMatrix;
+}
+outData;
 
 
 layout(push_constant) uniform ModelBlock {
 	mat4 transformMatrix;
-} uModel;
+}
+uModel;
 
 
 void main() {
@@ -39,8 +42,10 @@ void main() {
 	outData.position = position.xyz;
 	outData.texCoord = aTexCoord;
 
-	outData.tbnMatrix = mat3(uCamera.viewMatrix * uModel.transformMatrix) * mat3(aTangent, aBitangent, aNormal);
+	mat3 worldTangentMatrix = mat3(uModel.transformMatrix) * mat3(aTangent, aBitangent, aNormal);
 
+	outData.worldNormal	   = worldTangentMatrix[2];
+	outData.tangentMatrix  = mat3(uCamera.viewMatrix) * worldTangentMatrix;
 	outData.screenPosition = uCamera.projectionMatrix * position;
 
 	gl_Position = outData.screenPosition;

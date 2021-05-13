@@ -106,7 +106,7 @@ uint getClusterIndex(uint x, uint y, uint z) {
 }
 
 
-float calcDirectionalShadow(vec3 worldPosition) {
+float calcDirectionalShadow(vec3 worldPosition, vec3 worldNormal) {
 	float shadowAmount = 1.0;
 
 	vec4 baseLightSpaceCoord = uEnvironment.directionalLight.baseLightSpaceMatrix * vec4(worldPosition, 1.0);
@@ -122,15 +122,24 @@ float calcDirectionalShadow(vec3 worldPosition) {
 
 	uint cascade = uint(max(0.0, log2(max(abs(cascadeSpacePos.x), abs(cascadeSpacePos.y))) + 1.0));
 
-	vec4 lightSpaceCoord = uEnvironment.directionalLight.lightSpaceMatrices[cascade] * vec4(worldPosition, 1.0);
+	vec4 lightSpaceNormal = uEnvironment.directionalLight.baseLightSpaceMatrix * vec4(worldNormal, 0.0);
+
+	// vec3 bias = worldNormal * 0.4 * length(lightSpaceNormal.xy);
+
+	vec3 lightDir = vec3(uCamera.invViewMatrix * vec4(-uEnvironment.directionalLight.direction, 0.0));
+
+	// TODO: calculate scaling factor from frustum depth
+	float scalingFactor = 0.002;
+
+	vec3 bias = worldNormal * pow(2, cascade + 1) * scalingFactor * DIRECTIONAL_LIGHT_CASCADE_BASE *
+				(1.0 - scalingFactor * max(0.0, dot(worldNormal, lightDir)));
+
+	vec4 lightSpaceCoord = uEnvironment.directionalLight.lightSpaceMatrices[cascade] * vec4(worldPosition + bias, 1.0);
 
 	lightSpaceCoord.xy *= vec2(0.5, -0.5);
 	lightSpaceCoord.xy += vec2(0.5);
 
-	// TODO: normal bias
-	float bias = 0.00001;
-
-	shadowAmount *= texture(uDirectionalShadowMapBuffer, vec4(lightSpaceCoord.xy, cascade, lightSpaceCoord.z - bias)).r;
+	shadowAmount *= texture(uDirectionalShadowMapBuffer, vec4(lightSpaceCoord.xy, cascade, lightSpaceCoord.z)).r;
 
 	return shadowAmount;
 }

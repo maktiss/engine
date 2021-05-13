@@ -13,9 +13,10 @@ layout(location = 0) in InData {
 	vec2 texCoord;
 
 	vec3 worldPosition;
+	vec3 worldNormal;
 	vec4 screenPosition;
 
-	mat3 tbnMatrix;
+	mat3 tangentMatrix;
 }
 inData;
 
@@ -48,20 +49,20 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
 	vec2 screenCoord = inData.screenPosition.xy / inData.screenPosition.w;
-	screenCoord = screenCoord * vec2(0.5, -0.5) + vec2(0.5);
+	screenCoord		 = screenCoord * vec2(0.5, -0.5) + vec2(0.5);
 
 	vec3 viewDir = -normalize(inData.position);
 
 	vec3 colorAlbedo = uMaterial.color.rgb;
 
-#ifdef USE_TEXTURE_ALBEDO
+#ifdef USE_TEXTURE_ALBEDOa
 	colorAlbedo *= texture(sampler2D(uTextures[uMaterial.textureAlbedo], uSampler), inData.texCoord).rgb;
 #endif
 
 	vec3 normal = texture(uNormalBuffer, screenCoord).xyz;
 
-	float metallic = uMaterial.metallic;
-	float roughness = uMaterial.roughness;
+	float metallic		   = uMaterial.metallic;
+	float roughness		   = uMaterial.roughness;
 	float ambientOcclusion = uMaterial.ambientOcclusion;
 
 #ifdef USE_TEXTURE_MRA
@@ -72,7 +73,7 @@ void main() {
 	ambientOcclusion *= mra.b;
 #endif
 
-	normal = normalize(normal);
+	normal			 = normalize(normal);
 	vec3 worldNormal = vec3(uCamera.invViewMatrix * vec4(normal, 0.0));
 
 	vec3 irradiance = texture(uIrradianceMap, worldNormal).rgb;
@@ -80,13 +81,13 @@ void main() {
 	vec3 color = colorAlbedo * ambientOcclusion * irradiance;
 
 	vec3 reflectedColor = texture(uReflectionBuffer, screenCoord).rgb;
-	vec3 reflectedDir = normalize(reflect(-viewDir, normal));
+	vec3 reflectedDir	= normalize(reflect(-viewDir, normal));
 
 	reflectedColor *= calcBRDF(normal, reflectedDir, viewDir, colorAlbedo, metallic, roughness);
 	color += reflectedColor * max(dot(normal, reflectedDir), 0.0);
 
 	if (uEnvironment.useDirectionalLight) {
-		float shadowAmount = calcDirectionalShadow(inData.worldPosition);
+		float shadowAmount = calcDirectionalShadow(inData.worldPosition, normalize(inData.worldNormal));
 
 		vec3 lightDir = -uEnvironment.directionalLight.direction;
 
@@ -109,11 +110,11 @@ layout(location = 0) out vec4 outNormal;
 
 
 void main() {
-#ifdef USE_TEXTURE_NORMAL
-	vec3 normal = inData.tbnMatrix *
+#ifdef USE_TEXTURE_NORMALa
+	vec3 normal = inData.tangentMatrix *
 				  (texture(sampler2D(uTextures[uMaterial.textureNormal], uSampler), inData.texCoord).rgb * 2.0 - 1.0);
 #else
-	vec3 normal = inData.tbnMatrix[2];
+	vec3 normal = inData.tangentMatrix[2];
 #endif
 
 	outNormal = vec4(normalize(normal), 1.0);
