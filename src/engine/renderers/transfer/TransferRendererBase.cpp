@@ -22,9 +22,9 @@ int TransferRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 			return 1;
 		}
 
-		auto queryIndex = layerIndex * getMultiviewLayerCount() * 2;
+		auto queryIndex = layerIndex * 2;
 
-		commandBuffer.resetQueryPool(timestampQueryPool, queryIndex, getMultiviewLayerCount() * 2);
+		commandBuffer.resetQueryPool(timestampQueryPool, queryIndex, 2);
 		commandBuffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, timestampQueryPool, queryIndex);
 
 
@@ -58,8 +58,7 @@ int TransferRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 		commandBuffer.executeCommands(threadCount, pSecondaryCommandBuffersForLayer);
 
 
-		commandBuffer.writeTimestamp(vk::PipelineStageFlagBits::eTransfer, timestampQueryPool,
-									 queryIndex + getMultiviewLayerCount());
+		commandBuffer.writeTimestamp(vk::PipelineStageFlagBits::eTransfer, timestampQueryPool, queryIndex + 1);
 
 		result = commandBuffer.end();
 		if (result != vk::Result::eSuccess) {

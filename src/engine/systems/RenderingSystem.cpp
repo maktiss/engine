@@ -994,7 +994,7 @@ int RenderingSystem::init() {
 	uint maxQueries = 0;
 	for (const auto& [rendererName, renderer] : renderers) {
 		auto rendererIndex = getRendererIndex(rendererName);
-		auto queryCount	   = renderer->getLayerCount() * renderer->getMultiviewLayerCount() * 2;
+		auto queryCount	   = renderer->getLayerCount() * 2;
 
 		maxQueries = std::max(maxQueries, queryCount);
 
@@ -1018,8 +1018,7 @@ int RenderingSystem::init() {
 	for (const auto& rendererName : rendererExecutionOrder) {
 		auto& renderer = renderers[rendererName];
 
-		const auto layerCount		   = renderer->getLayerCount();
-		const auto multiviewLayerCount = renderer->getMultiviewLayerCount();
+		const auto layerCount = renderer->getLayerCount();
 
 		DebugState::ExecutionTime executionTime {};
 		executionTime.level = 1;
@@ -1030,17 +1029,8 @@ int RenderingSystem::init() {
 			executionTime.level = 2;
 			executionTime.name	= "Layer " + std::to_string(layerIndex);
 
-			if (layerCount > 1 || multiviewLayerCount > 1) {
+			if (layerCount > 1) {
 				executionTimes.push_back(executionTime);
-			}
-
-			for (uint multiviewLayerIndex = 0; multiviewLayerIndex < multiviewLayerCount; multiviewLayerIndex++) {
-				executionTime.level = 3;
-				executionTime.name	= "MV Layer " + std::to_string(multiviewLayerIndex);
-
-				if (multiviewLayerCount > 1) {
-					executionTimes.push_back(executionTime);
-				}
 			}
 		}
 	}
@@ -1089,65 +1079,43 @@ int RenderingSystem::run(double dt) {
 
 		const auto& queryPool = getTimestampQueryPool(currentFrameInFlight, rendererIndex);
 
-		const auto layerCount		   = renderer->getLayerCount();
-		const auto multiviewLayerCount = renderer->getMultiviewLayerCount();
+		const auto layerCount = renderer->getLayerCount();
 
-		const auto queryCount = layerCount * multiviewLayerCount * 2;
+		const auto queryCount = layerCount * 2;
 
 		vkDevice.getQueryPoolResults(queryPool, 0, queryCount, sizeof(uint64_t) * queryCount,
 									 timestampQueriesBuffer.data(), sizeof(uint64_t), vk::QueryResultFlagBits::e64);
 
 		auto& times = debugState.rendererExecutionTimes[rendererName];
+
 		for (uint i = 0; i < times.size(); i++) {
 			// FIXME multiply by timeperiod
-			times[i] =
-				(timestampQueriesBuffer[i * 2 + multiviewLayerCount] - timestampQueriesBuffer[i * 2]) / 1'000'000.0f;
+			times[i] = (timestampQueriesBuffer[i * 2 + 1] - timestampQueriesBuffer[i * 2]) / 1'000'000.0f;
 		}
 
 
 		float totalRendererTime {};
 
 		for (uint layerIndex = 0; layerIndex < layerCount; layerIndex++) {
-			float totalLayerTime {};
-
-			if (layerCount > 1 || multiviewLayerCount > 1) {
+			if (layerCount > 1) {
 				executionTimeIndex++;
 			}
 
-			for (uint multiviewLayerIndex = 0; multiviewLayerIndex < multiviewLayerCount; multiviewLayerIndex++) {
-				// FIXME multiply by timeperiod
-				float multiviewLayerTime =
-					(timestampQueriesBuffer[layerIndex * 2 * multiviewLayerCount + multiviewLayerCount] -
-					 timestampQueriesBuffer[layerIndex * 2 * multiviewLayerCount + multiviewLayerIndex]) /
-					1'000'000.0f;
+			// FIXME multiply by timeperiod
+			float layerTime =
+				(timestampQueriesBuffer[layerIndex * 2 + 1] - timestampQueriesBuffer[layerIndex * 2]) / 1'000'000.0f;
 
-				if (multiviewLayerCount > 1) {
-					executionTimeIndex++;
-					executionTimes[executionTimeIndex].gpuTime = multiviewLayerTime;
-				}
-
-				totalLayerTime += multiviewLayerTime;
+			if (layerCount > 1) {
+				executionTimes[executionTimeIndex].gpuTime = layerTime;
 			}
 
-
-			if (layerCount > 1 || multiviewLayerCount > 1) {
-				if (multiviewLayerCount > 1) {
-					executionTimes[executionTimeIndex - multiviewLayerCount].gpuTime = totalLayerTime;
-				} else {
-					executionTimes[executionTimeIndex].gpuTime = totalLayerTime;
-				}
-			}
-
-			totalRendererTime += totalLayerTime;
+			totalRendererTime += layerTime;
 		}
 
 		// Calculate offset to get total execution time index
 		uint offset = 0;
 		if (layerCount > 1) {
 			offset = layerCount;
-		}
-		if (multiviewLayerCount > 1) {
-			offset = layerCount + layerCount * multiviewLayerCount;
 		}
 
 		executionTimes[executionTimeIndex - offset].cpuTime = cpuTimings[rendererName];

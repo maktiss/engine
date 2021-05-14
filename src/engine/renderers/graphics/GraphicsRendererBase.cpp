@@ -54,9 +54,9 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 			return 1;
 		}
 
-		auto queryIndex = layerIndex * getMultiviewLayerCount() * 2;
+		auto queryIndex = layerIndex * 2;
 
-		commandBuffer.resetQueryPool(timestampQueryPool, queryIndex, getMultiviewLayerCount() * 2);
+		commandBuffer.resetQueryPool(timestampQueryPool, queryIndex, 2);
 		commandBuffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, timestampQueryPool, queryIndex);
 
 
@@ -121,8 +121,7 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 		}
 
 
-		commandBuffer.writeTimestamp(vk::PipelineStageFlagBits::eFragmentShader, timestampQueryPool,
-									 queryIndex + getMultiviewLayerCount());
+		commandBuffer.writeTimestamp(vk::PipelineStageFlagBits::eFragmentShader, timestampQueryPool, queryIndex + 1);
 
 		result = commandBuffer.end();
 
