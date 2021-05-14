@@ -43,6 +43,8 @@ protected:
 
 	vk::Extent2D outputSize {};
 
+	uint layerCount = 1;
+
 	uint threadCount		 = 1;
 	uint framesInFlightCount = 3;
 
@@ -89,6 +91,15 @@ public:
 
 	inline uint getOutputCount() const {
 		return outputs.size();
+	}
+
+
+	inline uint getLayerCount() const {
+		return layerCount;
+	}
+
+	inline void setLayerCount(uint count) {
+		layerCount = count;
 	}
 
 
@@ -139,11 +150,6 @@ public:
 		return std::vector<vk::ImageLayout>();
 	}
 
-
-	// Number of layers renderer can to render to
-	virtual inline uint getLayerCount() const {
-		return 1;
-	}
 
 	// Number of multiview layers per layer
 	virtual inline uint getMultiviewLayerCount() const {

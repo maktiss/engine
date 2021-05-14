@@ -169,76 +169,53 @@ int RenderingSystem::init() {
 
 
 	auto depthNormalRenderer = std::make_shared<DepthNormalRenderer>();
-	depthNormalRenderer->setVkDevice(vkDevice);
 	depthNormalRenderer->setOutputSize({ windowWidth, windowHeight });
-	depthNormalRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto forwardRenderer = std::make_shared<ForwardRenderer>();
-	forwardRenderer->setVkDevice(vkDevice);
 	forwardRenderer->setOutputSize({ windowWidth, windowHeight });
-	forwardRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto shadowMapRenderer = std::make_shared<ShadowMapRenderer>();
-	shadowMapRenderer->setVkDevice(vkDevice);
 	shadowMapRenderer->setOutputSize({ shadowMapSize, shadowMapSize });
-	shadowMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
+	shadowMapRenderer->setLayerCount(directionalLightCascadeCount);
 
 	auto skyboxRenderer = std::make_shared<SkyboxRenderer>();
-	skyboxRenderer->setVkDevice(vkDevice);
 	skyboxRenderer->setOutputSize({ windowWidth, windowHeight });
-	skyboxRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto skymapRenderer = std::make_shared<SkymapRenderer>();
-	skymapRenderer->setVkDevice(vkDevice);
 	skymapRenderer->setOutputSize({ skyMapSize, skyMapSize });
-	skymapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto imGuiRenderer = std::make_shared<ImGuiRenderer>();
-	imGuiRenderer->setVkDevice(vkDevice);
 	imGuiRenderer->setOutputSize({ windowWidth, windowHeight });
-	imGuiRenderer->setVulkanMemoryAllocator(vmaAllocator);
 	imGuiRenderer->setVkInstance(vkInstance);
 	imGuiRenderer->setVkPhysicalDevice(getActivePhysicalDevice());
 	imGuiRenderer->setVkGraphicsQueue(vkGraphicsQueue);
 
 	auto postFxRenderer = std::make_shared<PostFxRenderer>();
-	postFxRenderer->setVkDevice(vkDevice);
 	postFxRenderer->setOutputSize({ windowWidth, windowHeight });
-	postFxRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto reflectionRenderer = std::make_shared<ReflectionRenderer>();
-	reflectionRenderer->setVkDevice(vkDevice);
 	reflectionRenderer->setOutputSize({ windowWidth, windowHeight });
-	reflectionRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto skyMipMapRenderer = std::make_shared<MipMapRenderer>();
-	skyMipMapRenderer->setVkDevice(vkDevice);
 	skyMipMapRenderer->setOutputSize({ skyMapSize, skyMapSize });
-	skyMipMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto irradianceMapRenderer = std::make_shared<IrradianceMapRenderer>();
-	irradianceMapRenderer->setVkDevice(vkDevice);
 	irradianceMapRenderer->setOutputSize({ irradianceMapSize, irradianceMapSize });
-	irradianceMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto shadowMipMapRenderer = std::make_shared<MipMapRenderer>();
-	shadowMipMapRenderer->setVkDevice(vkDevice);
 	shadowMipMapRenderer->setOutputSize({ shadowMapSize, shadowMapSize });
-	shadowMipMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
 	auto shadowBlurXRenderer = std::make_shared<BoxBlurRenderer>();
-	shadowBlurXRenderer->setVkDevice(vkDevice);
 	shadowBlurXRenderer->setOutputSize({ shadowMapSize, shadowMapSize });
-	shadowBlurXRenderer->setVulkanMemoryAllocator(vmaAllocator);
 	shadowBlurXRenderer->setDirection(false);
 	shadowBlurXRenderer->setKernelSize(shadowBlurKernelSize);
+	shadowBlurXRenderer->setLayerCount(directionalLightCascadeCount);
 
 	auto shadowBlurYRenderer = std::make_shared<BoxBlurRenderer>();
-	shadowBlurYRenderer->setVkDevice(vkDevice);
 	shadowBlurYRenderer->setOutputSize({ shadowMapSize, shadowMapSize });
-	shadowBlurYRenderer->setVulkanMemoryAllocator(vmaAllocator);
 	shadowBlurYRenderer->setDirection(true);
 	shadowBlurYRenderer->setKernelSize(shadowBlurKernelSize);
+	shadowBlurYRenderer->setLayerCount(directionalLightCascadeCount);
 
 
 	renderers["DepthNormalRenderer"]   = depthNormalRenderer;
@@ -835,6 +812,8 @@ int RenderingSystem::init() {
 	}
 
 	for (const auto& [rendererName, renderer] : renderers) {
+		renderer->setVkDevice(vkDevice);
+		renderer->setVulkanMemoryAllocator(vmaAllocator);
 		renderer->setThreadCount(threadCount);
 		renderer->init();
 	}

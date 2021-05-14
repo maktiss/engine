@@ -114,6 +114,7 @@ private:
 	PROPERTY(uint, "Graphics", shadowMapSize, 2048);
 	PROPERTY(uint, "Graphics", skyMapSize, 1024);
 
+	PROPERTY(uint, "Graphics", directionalLightCascadeCount, 3);
 	PROPERTY(uint, "Graphics", shadowBlurKernelSize, 5);
 
 	PROPERTY(uint, "Debug", enableValidationLayers, 0);

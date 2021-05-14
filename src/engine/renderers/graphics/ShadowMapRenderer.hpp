@@ -9,8 +9,6 @@
 namespace Engine {
 class ShadowMapRenderer : public ObjectRendererBase {
 private:
-	PROPERTY(uint, "Graphics", directionalLightCascadeCount, 3);
-
 	PROPERTY(float, "Graphics", directionalLightCascadeBase, 2.0f);
 	PROPERTY(float, "Graphics", directionalLightCascadeOffset, 0.75f);
 
@@ -40,11 +38,6 @@ public:
 
 	std::vector<std::string> getOutputNames() const override {
 		return { "ShadowMap", "DepthBuffer" };
-	}
-
-
-	inline uint getLayerCount() const override {
-		return directionalLightCascadeCount;
 	}
 
 

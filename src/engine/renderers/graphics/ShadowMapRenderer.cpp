@@ -13,7 +13,7 @@ int ShadowMapRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
-	excludeFrustums.resize(directionalLightCascadeCount - 1);
+	excludeFrustums.resize(getLayerCount() - 1);
 
 
 	descriptorSetArrays.resize(3);
@@ -84,7 +84,7 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 
 				excludeFrustumCount = 0;
 
-				for (uint cascade = 0; cascade < directionalLightCascadeCount; cascade++) {
+				for (uint cascade = 0; cascade < getLayerCount(); cascade++) {
 					float cascadeHalfSize = directionalLightCascadeBase * std::pow(2, cascade * 2 + 1);
 
 					glm::vec3 position = cameraPos + cascadeHalfSize * directionalLightCascadeOffset * cameraViewDir;

@@ -41,11 +41,6 @@ public:
 	}
 
 
-	inline uint getLayerCount() const override {
-		return 3;
-	}
-
-
 	std::vector<AttachmentDescription> getInputDescriptions() const {
 		std::vector<AttachmentDescription> descriptions {};
 		descriptions.resize(1);
