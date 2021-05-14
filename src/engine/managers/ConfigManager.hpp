@@ -74,8 +74,8 @@ public:
 	}
 
 
-	[[nodiscard]] static int loadConfig();
-	[[nodiscard]] static int saveConfig();
+	static int loadConfig();
+	static int saveConfig();
 
 
 private:
