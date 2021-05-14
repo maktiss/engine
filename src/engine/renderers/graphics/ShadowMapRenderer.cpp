@@ -13,6 +13,9 @@ int ShadowMapRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
+	excludeFrustums.resize(directionalLightCascadeCount - 1);
+
+
 	descriptorSetArrays.resize(3);
 
 	descriptorSetArrays[0].setSetCount(getLayerCount());
@@ -68,7 +71,7 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 	});
 
 
-	float cascadeHalfSize = directionalLightCascadeBase * std::pow(2, layerIndex + 1);
+	uint excludeFrustumCount = 0;
 
 	EntityManager::forEach<TransformComponent, LightComponent>([&](const auto& transform, auto& light) {
 		if (light.castsShadows) {
@@ -78,13 +81,30 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 				lightDirection		= glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * lightDirection;
 				lightDirection		= glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * lightDirection;
 
-				glm::vec3 position = cameraPos + cascadeHalfSize * directionalLightCascadeOffset * cameraViewDir;
 
-				cameraBlock.viewMatrix =
-					glm::lookAtLH(position, position + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
+				excludeFrustumCount = 0;
 
-				cameraBlock.projectionMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize,
-															   cascadeHalfSize, -1000.0f, 1000.0f);
+				for (uint cascade = 0; cascade < directionalLightCascadeCount; cascade++) {
+					float cascadeHalfSize = directionalLightCascadeBase * std::pow(2, cascade * 2 + 1);
+
+					glm::vec3 position = cameraPos + cascadeHalfSize * directionalLightCascadeOffset * cameraViewDir;
+
+					auto viewMatrix =
+						glm::lookAtLH(position, position + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
+
+					auto projectionMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize,
+															cascadeHalfSize, -cascadeHalfSize * 4.0f, cascadeHalfSize);
+
+					if (cascade == layerIndex) {
+						cameraBlock.viewMatrix		 = viewMatrix;
+						cameraBlock.projectionMatrix = projectionMatrix;
+						break;
+
+					} else {
+						excludeFrustums[excludeFrustumCount] = projectionMatrix * viewMatrix;
+						excludeFrustumCount++;
+					}
+				}
 
 				light.shadowMapIndex = 0;
 			}
@@ -97,6 +117,7 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 	descriptorSetArrays[1].updateBuffer(layerIndex, 0, &cameraBlock, sizeof(cameraBlock));
 
 
-	drawObjects(pSecondaryCommandBuffers, Frustum(cameraBlock.projectionMatrix * cameraBlock.viewMatrix));
+	Frustum frustum { cameraBlock.projectionMatrix * cameraBlock.viewMatrix };
+	drawObjects(pSecondaryCommandBuffers, &frustum, 1, excludeFrustums.data(), excludeFrustumCount);
 }
 } // namespace Engine

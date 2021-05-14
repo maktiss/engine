@@ -1,5 +1,6 @@
 #pragma once
 
+#include "graphics/BoxBlurRenderer.hpp"
 #include "graphics/DepthNormalRenderer.hpp"
 #include "graphics/ForwardRenderer.hpp"
 #include "graphics/ImGuiRenderer.hpp"

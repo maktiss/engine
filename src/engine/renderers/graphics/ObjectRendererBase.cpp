@@ -14,11 +14,16 @@ int ObjectRendererBase::init() {
 }
 
 
-void ObjectRendererBase::drawObjects(const vk::CommandBuffer* pSecondaryCommandBuffers, const Frustum& frustum) {
+void ObjectRendererBase::drawObjects(const vk::CommandBuffer* pSecondaryCommandBuffers, const Frustum* includeFrustums,
+									 uint includeFrustumCount, const Frustum* excludeFrustums,
+									 uint excludeFrustumCount) {
 	for (uint i = 0; i < drawObjectsThreadInfos.size(); i++) {
 		drawObjectsThreadInfos[i].renderer				   = this;
 		drawObjectsThreadInfos[i].pSecondaryCommandBuffers = pSecondaryCommandBuffers;
-		drawObjectsThreadInfos[i].frustum				   = frustum;
+		drawObjectsThreadInfos[i].includeFrustums		   = includeFrustums;
+		drawObjectsThreadInfos[i].includeFrustumCount	   = includeFrustumCount;
+		drawObjectsThreadInfos[i].excludeFrustums		   = excludeFrustums;
+		drawObjectsThreadInfos[i].excludeFrustumCount	   = excludeFrustumCount;
 		drawObjectsThreadInfos[i].fragmentIndex			   = i;
 		drawObjectsThreadInfos[i].fragmentCount			   = drawObjectsThreadInfos.size();
 
@@ -36,7 +41,11 @@ void ObjectRendererBase::drawObjectsThreadFunc(uint threadIndex, void* pData) {
 
 	const auto& commandBuffer = drawObjectsThreadInfo.pSecondaryCommandBuffers[threadIndex];
 
-	const auto& frustum		= drawObjectsThreadInfo.frustum;
+	const auto& includeFrustums		= drawObjectsThreadInfo.includeFrustums;
+	const auto& includeFrustumCount = drawObjectsThreadInfo.includeFrustumCount;
+	const auto& excludeFrustums		= drawObjectsThreadInfo.excludeFrustums;
+	const auto& excludeFrustumCount = drawObjectsThreadInfo.excludeFrustumCount;
+
 	auto& renderInfoIndices = drawObjectsThreadInfo.renderer->renderInfoIndicesPerThread[threadIndex];
 	auto& renderInfoCache	= drawObjectsThreadInfo.renderer->renderInfoCachePerThread[threadIndex];
 
@@ -55,9 +64,24 @@ void ObjectRendererBase::drawObjectsThreadFunc(uint threadIndex, void* pData) {
 
 			const auto& meshInfo = MeshManager::getMeshInfo(meshHandle);
 
-			if (frustum.contains(meshInfo.boundingSphere.transform(transformMatrix)) &&
-				frustum.contains(meshInfo.boundingBox.transform(transformMatrix))) {
+			auto boundingSphere = meshInfo.boundingSphere.transform(transformMatrix);
+			auto boundingBox	= meshInfo.boundingBox.transform(transformMatrix);
 
+			bool shouldDraw = includeFrustumCount == 0;
+
+			for (uint i = 0; i < includeFrustumCount; i++) {
+				const auto& includeFrustum = includeFrustums[i];
+
+				shouldDraw = shouldDraw || includeFrustum.intersects(boundingBox);
+			}
+
+			for (uint i = 0; i < excludeFrustumCount; i++) {
+				const auto& excludeFrustum = excludeFrustums[i];
+
+				shouldDraw = shouldDraw && !excludeFrustum.contains(boundingBox);
+			}
+
+			if (shouldDraw) {
 				const auto& materialInfo = MaterialManager::getMaterialInfo(materialHandle);
 
 				uint64_t pipelineIndex = shaderHandle.getIndex();

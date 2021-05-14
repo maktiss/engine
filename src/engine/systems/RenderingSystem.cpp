@@ -128,6 +128,11 @@ int RenderingSystem::init() {
 		return 1;
 	}
 
+	if (GraphicsShaderManager::importShaderSources<BoxBlurShader>(std::array<std::string, 6> {
+			"assets/shaders/box_blur.vsh", "", "", "", "assets/shaders/box_blur.fsh", "" })) {
+		return 1;
+	}
+
 
 	TextureManager::setVkDevice(vkDevice);
 	TextureManager::setVkCommandPool(vkCommandPools[0]);
@@ -216,6 +221,25 @@ int RenderingSystem::init() {
 	irradianceMapRenderer->setOutputSize({ irradianceMapSize, irradianceMapSize });
 	irradianceMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
 
+	auto shadowMipMapRenderer = std::make_shared<MipMapRenderer>();
+	shadowMipMapRenderer->setVkDevice(vkDevice);
+	shadowMipMapRenderer->setOutputSize({ shadowMapSize, shadowMapSize });
+	shadowMipMapRenderer->setVulkanMemoryAllocator(vmaAllocator);
+
+	auto shadowBlurXRenderer = std::make_shared<BoxBlurRenderer>();
+	shadowBlurXRenderer->setVkDevice(vkDevice);
+	shadowBlurXRenderer->setOutputSize({ shadowMapSize, shadowMapSize });
+	shadowBlurXRenderer->setVulkanMemoryAllocator(vmaAllocator);
+	shadowBlurXRenderer->setDirection(false);
+	shadowBlurXRenderer->setKernelSize(shadowBlurKernelSize);
+
+	auto shadowBlurYRenderer = std::make_shared<BoxBlurRenderer>();
+	shadowBlurYRenderer->setVkDevice(vkDevice);
+	shadowBlurYRenderer->setOutputSize({ shadowMapSize, shadowMapSize });
+	shadowBlurYRenderer->setVulkanMemoryAllocator(vmaAllocator);
+	shadowBlurYRenderer->setDirection(true);
+	shadowBlurYRenderer->setKernelSize(shadowBlurKernelSize);
+
 
 	renderers["DepthNormalRenderer"]   = depthNormalRenderer;
 	renderers["ForwardRenderer"]	   = forwardRenderer;
@@ -227,6 +251,9 @@ int RenderingSystem::init() {
 	renderers["ReflectionRenderer"]	   = reflectionRenderer;
 	renderers["SkyMipMapRenderer"]	   = skyMipMapRenderer;
 	renderers["IrradianceMapRenderer"] = irradianceMapRenderer;
+	renderers["ShadowMipMapRenderer"]  = shadowMipMapRenderer;
+	renderers["ShadowBlurXRenderer"]   = shadowBlurXRenderer;
+	renderers["ShadowBlurYRenderer"]   = shadowBlurYRenderer;
 
 
 	renderGraph.addOutputConnection("SkymapRenderer", "SkyMap", "SkyMipMapRenderer", "Buffer");
@@ -243,7 +270,15 @@ int RenderingSystem::init() {
 	renderGraph.addInputConnection("DepthNormalRenderer", "NormalBuffer", "ReflectionRenderer", "NormalBuffer");
 	renderGraph.addInputConnection("SkyMipMapRenderer", "Buffer", "ReflectionRenderer", "EnvironmentMap");
 
-	renderGraph.addInputConnection("ShadowMapRenderer", "ShadowMap", "ForwardRenderer", "ShadowMap");
+	// renderGraph.addInputConnection("ShadowMapRenderer", "ShadowMap", "ForwardRenderer", "ShadowMap");
+
+	renderGraph.addInputConnection("ShadowMapRenderer", "ShadowMap", "ShadowBlurXRenderer", "ColorBuffer");
+	renderGraph.addInputConnection("ShadowBlurXRenderer", "ColorBuffer", "ShadowBlurYRenderer", "ColorBuffer");
+
+	renderGraph.addOutputConnection("ShadowBlurYRenderer", "ColorBuffer", "ShadowMipMapRenderer", "Buffer");
+
+	// renderGraph.addInputConnection("ShadowBlurYRenderer", "ColorBuffer", "ForwardRenderer", "ShadowMap");
+	renderGraph.addInputConnection("ShadowMipMapRenderer", "Buffer", "ForwardRenderer", "ShadowMap");
 	renderGraph.addInputConnection("DepthNormalRenderer", "NormalBuffer", "ForwardRenderer", "NormalBuffer");
 	renderGraph.addInputConnection("ReflectionRenderer", "ReflectionBuffer", "ForwardRenderer", "ReflectionBuffer");
 	renderGraph.addInputConnection("IrradianceMapRenderer", "IrradianceMap", "ForwardRenderer", "IrradianceMap");

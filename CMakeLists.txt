@@ -73,12 +73,14 @@ add_executable(
 	src/engine/managers/TextureManager.cpp
 	src/engine/managers/TextureManager.hpp
 	src/engine/renderers/compute/ComputeRendererBase.hpp
-	src/engine/renderers/graphics/GraphicsRendererBase.cpp
-	src/engine/renderers/graphics/GraphicsRendererBase.hpp
+	src/engine/renderers/graphics/BoxBlurRenderer.cpp
+	src/engine/renderers/graphics/BoxBlurRenderer.hpp
 	src/engine/renderers/graphics/DepthNormalRenderer.cpp
 	src/engine/renderers/graphics/DepthNormalRenderer.hpp
 	src/engine/renderers/graphics/ForwardRenderer.cpp
 	src/engine/renderers/graphics/ForwardRenderer.hpp
+	src/engine/renderers/graphics/GraphicsRendererBase.cpp
+	src/engine/renderers/graphics/GraphicsRendererBase.hpp
 	src/engine/renderers/graphics/ImGuiRenderer.cpp
 	src/engine/renderers/graphics/ImGuiRenderer.hpp
 	src/engine/renderers/graphics/IrradianceMapRenderer.cpp

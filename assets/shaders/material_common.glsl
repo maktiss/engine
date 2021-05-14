@@ -66,7 +66,7 @@ layout(set = FRAME_BLOCK_SET, binding = 0) uniform FrameBlock {
 }
 uFrame;
 
-layout(set = FRAME_BLOCK_SET, binding = 1) uniform sampler2DArrayShadow uDirectionalShadowMapBuffer;
+layout(set = FRAME_BLOCK_SET, binding = 1) uniform sampler2DArray uDirectionalShadowMapBuffer;
 layout(set = FRAME_BLOCK_SET, binding = 2) uniform sampler2D uNormalBuffer;
 layout(set = FRAME_BLOCK_SET, binding = 3) uniform sampler2D uReflectionBuffer;
 layout(set = FRAME_BLOCK_SET, binding = 4) uniform samplerCube uIrradianceMap;
@@ -106,40 +106,55 @@ uint getClusterIndex(uint x, uint y, uint z) {
 }
 
 
+float calcChebyshevUpperBound(vec2 moments, float sampleDepth) {
+	float p = float(sampleDepth <= moments.x);
+
+	// TODO: calculate biase based on frustum size
+	float bias = 0.00001;
+	float variance = max(bias, moments.y - (moments.x * moments.x));
+
+	float d = sampleDepth - moments.x;
+	float pMax = variance / (variance + d * d);
+
+	return max(p, pMax);
+}
+
 float calcDirectionalShadow(vec3 worldPosition, vec3 worldNormal) {
+	// vec4 baseLightSpaceCoord = uEnvironment.directionalLight.baseLightSpaceMatrix * vec4(worldPosition, 1.0);
+
+	// vec4 cameraDir = uEnvironment.directionalLight.baseLightSpaceMatrix *
+	// 				 vec4(uCamera.viewMatrix[0][2], uCamera.viewMatrix[1][2], uCamera.viewMatrix[2][2], 0.0) *
+	// 				 DIRECTIONAL_LIGHT_CASCADE_BASE;
+
+	// vec2 cascadeSpacePos = baseLightSpaceCoord.xy /
+	// 					   (cameraDir.xy * (2.0 * DIRECTIONAL_LIGHT_CASCADE_OFFSET * step(0.0, baseLightSpaceCoord.xy) -
+	// 										DIRECTIONAL_LIGHT_CASCADE_OFFSET) +
+	// 						1.0);
+
+	// uint cascade = uint(max(0.0, log2(max(abs(cascadeSpacePos.x), abs(cascadeSpacePos.y))) + 1.0)) / 2;
+
+	// vec4 lightSpaceNormal = uEnvironment.directionalLight.baseLightSpaceMatrix * vec4(worldNormal, 0.0);
+
+	// vec3 lightDir = vec3(uCamera.invViewMatrix * vec4(-uEnvironment.directionalLight.direction, 0.0));
+
+	// // TODO: calculate scaling factor from frustum depth
+	// float scalingFactor = 0.004;
+
+	// vec3 bias = worldNormal * pow(2, cascade + 1) * scalingFactor * DIRECTIONAL_LIGHT_CASCADE_BASE *
+	// 			(1.0 - scalingFactor * max(0.0, dot(worldNormal, lightDir)));
+
 	float shadowAmount = 1.0;
+	for (uint cascade = 0; cascade < DIRECTIONAL_LIGHT_CASCADE_COUNT; cascade++) {
+		vec4 lightSpaceCoord = uEnvironment.directionalLight.lightSpaceMatrices[cascade] * vec4(worldPosition, 1.0);
 
-	vec4 baseLightSpaceCoord = uEnvironment.directionalLight.baseLightSpaceMatrix * vec4(worldPosition, 1.0);
+		lightSpaceCoord.xy *= vec2(0.5, -0.5);
+		lightSpaceCoord.xy += vec2(0.5);
 
-	vec4 cameraDir = uEnvironment.directionalLight.baseLightSpaceMatrix *
-					 vec4(uCamera.viewMatrix[0][2], uCamera.viewMatrix[1][2], uCamera.viewMatrix[2][2], 0.0) *
-					 DIRECTIONAL_LIGHT_CASCADE_BASE;
+		vec3 texCoord = vec3(lightSpaceCoord.xy, cascade);
+		vec2 moments = texture(uDirectionalShadowMapBuffer, texCoord).xy;
 
-	vec2 cascadeSpacePos = baseLightSpaceCoord.xy /
-						   (cameraDir.xy * (2.0 * DIRECTIONAL_LIGHT_CASCADE_OFFSET * step(0.0, baseLightSpaceCoord.xy) -
-											DIRECTIONAL_LIGHT_CASCADE_OFFSET) +
-							1.0);
-
-	uint cascade = uint(max(0.0, log2(max(abs(cascadeSpacePos.x), abs(cascadeSpacePos.y))) + 1.0));
-
-	vec4 lightSpaceNormal = uEnvironment.directionalLight.baseLightSpaceMatrix * vec4(worldNormal, 0.0);
-
-	// vec3 bias = worldNormal * 0.4 * length(lightSpaceNormal.xy);
-
-	vec3 lightDir = vec3(uCamera.invViewMatrix * vec4(-uEnvironment.directionalLight.direction, 0.0));
-
-	// TODO: calculate scaling factor from frustum depth
-	float scalingFactor = 0.002;
-
-	vec3 bias = worldNormal * pow(2, cascade + 1) * scalingFactor * DIRECTIONAL_LIGHT_CASCADE_BASE *
-				(1.0 - scalingFactor * max(0.0, dot(worldNormal, lightDir)));
-
-	vec4 lightSpaceCoord = uEnvironment.directionalLight.lightSpaceMatrices[cascade] * vec4(worldPosition + bias, 1.0);
-
-	lightSpaceCoord.xy *= vec2(0.5, -0.5);
-	lightSpaceCoord.xy += vec2(0.5);
-
-	shadowAmount *= texture(uDirectionalShadowMapBuffer, vec4(lightSpaceCoord.xy, cascade, lightSpaceCoord.z)).r;
+		shadowAmount *= max(step(1.0, lightSpaceCoord.z), calcChebyshevUpperBound(moments, lightSpaceCoord.z));
+	}
 
 	return shadowAmount;
 }

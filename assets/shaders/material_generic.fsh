@@ -55,7 +55,7 @@ void main() {
 
 	vec3 colorAlbedo = uMaterial.color.rgb;
 
-#ifdef USE_TEXTURE_ALBEDOa
+#ifdef USE_TEXTURE_ALBEDO
 	colorAlbedo *= texture(sampler2D(uTextures[uMaterial.textureAlbedo], uSampler), inData.texCoord).rgb;
 #endif
 
@@ -110,7 +110,7 @@ layout(location = 0) out vec4 outNormal;
 
 
 void main() {
-#ifdef USE_TEXTURE_NORMALa
+#ifdef USE_TEXTURE_NORMAL
 	vec3 normal = inData.tangentMatrix *
 				  (texture(sampler2D(uTextures[uMaterial.textureNormal], uSampler), inData.texCoord).rgb * 2.0 - 1.0);
 #else
@@ -118,6 +118,22 @@ void main() {
 #endif
 
 	outNormal = vec4(normalize(normal), 1.0);
+}
+
+
+#elif defined(RENDER_PASS_SHADOW_MAP)
+
+
+layout(location = 0) out vec4 outMoments;
+
+
+void main() {
+	float depth = gl_FragCoord.z;
+
+	float dx = dFdx(depth);
+	float dy = dFdy(depth);
+
+	outMoments = vec4(depth, depth * depth + 0.25 * (dx * dx + dy * dy), 0.0, 1.0);
 }
 
 

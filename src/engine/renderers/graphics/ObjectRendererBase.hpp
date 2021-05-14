@@ -34,7 +34,11 @@ private:
 		ObjectRendererBase* renderer;
 		const vk::CommandBuffer* pSecondaryCommandBuffers;
 
-		Frustum frustum;
+		const Frustum* includeFrustums;
+		uint includeFrustumCount;
+
+		const Frustum* excludeFrustums;
+		uint excludeFrustumCount;
 
 		uint fragmentIndex;
 		uint fragmentCount;
@@ -50,7 +54,8 @@ public:
 
 
 protected:
-	void drawObjects(const vk::CommandBuffer* pSecondaryCommandBuffers, const Frustum& frustum);
+	void drawObjects(const vk::CommandBuffer* pSecondaryCommandBuffers, const Frustum* includeFrustums,
+					 uint includeFrustumCount, const Frustum* excludeFrustums = nullptr, uint excludeFrustumCount = 0);
 
 
 private:

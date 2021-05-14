@@ -104,7 +104,7 @@ public:
 		std::vector<AttachmentDescription> inputDescriptions {};
 		inputDescriptions.resize(4);
 
-		inputDescriptions[0].format = vk::Format::eD24UnormS8Uint;
+		inputDescriptions[0].format = vk::Format::eR32G32Sfloat;
 		inputDescriptions[0].usage	= vk::ImageUsageFlagBits::eSampled;
 
 		inputDescriptions[1].format = vk::Format::eR16G16B16A16Sfloat;

@@ -15,8 +15,12 @@ private:
 	PROPERTY(float, "Graphics", directionalLightCascadeOffset, 0.75f);
 
 
+private:
+	std::vector<Frustum> excludeFrustums {};
+
+
 public:
-	ShadowMapRenderer() : ObjectRendererBase(0, 1) {
+	ShadowMapRenderer() : ObjectRendererBase(0, 2) {
 	}
 
 
@@ -35,7 +39,7 @@ public:
 	}
 
 	std::vector<std::string> getOutputNames() const override {
-		return { "ShadowMap" };
+		return { "ShadowMap", "DepthBuffer" };
 	}
 
 
@@ -46,10 +50,13 @@ public:
 
 	std::vector<AttachmentDescription> getOutputDescriptions() const override {
 		std::vector<AttachmentDescription> outputDescriptions {};
-		outputDescriptions.resize(1);
+		outputDescriptions.resize(2);
 
-		outputDescriptions[0].format = vk::Format::eD24UnormS8Uint;
-		outputDescriptions[0].usage	 = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+		outputDescriptions[0].format = vk::Format::eR32G32Sfloat;
+		outputDescriptions[0].usage	 = vk::ImageUsageFlagBits::eColorAttachment;
+
+		outputDescriptions[1].format = vk::Format::eD24UnormS8Uint;
+		outputDescriptions[1].usage	 = vk::ImageUsageFlagBits::eDepthStencilAttachment;
 
 		return outputDescriptions;
 	}
@@ -66,9 +73,10 @@ public:
 
 	std::vector<vk::ImageLayout> getOutputInitialLayouts() const override {
 		std::vector<vk::ImageLayout> outputInitialLayouts {};
-		outputInitialLayouts.resize(1);
+		outputInitialLayouts.resize(2);
 
-		outputInitialLayouts[0] = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+		outputInitialLayouts[0] = vk::ImageLayout::eColorAttachmentOptimal;
+		outputInitialLayouts[1] = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
 		return outputInitialLayouts;
 	}
@@ -76,9 +84,10 @@ public:
 
 	std::vector<vk::ClearValue> getVkClearValues() const override {
 		std::vector<vk::ClearValue> clearValues {};
-		clearValues.resize(1);
+		clearValues.resize(2);
 
-		clearValues[0].depthStencil.depth = 1.0f;
+		clearValues[0].color			  = std::array { 1.0f, 1.0f, 1.0f, 1.0f };
+		clearValues[1].depthStencil.depth = 1.0f;
 
 		return clearValues;
 	}
@@ -86,7 +95,7 @@ public:
 
 	std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() const override {
 		std::vector<vk::AttachmentDescription> attachmentDescriptions {};
-		attachmentDescriptions.resize(1);
+		attachmentDescriptions.resize(2);
 
 		auto outputDescriptions = getOutputDescriptions();
 
@@ -96,6 +105,13 @@ public:
 		attachmentDescriptions[0].storeOp		 = vk::AttachmentStoreOp::eStore;
 		attachmentDescriptions[0].stencilLoadOp	 = vk::AttachmentLoadOp::eDontCare;
 		attachmentDescriptions[0].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+
+		attachmentDescriptions[1].format		 = outputDescriptions[1].format;
+		attachmentDescriptions[1].samples		 = vk::SampleCountFlagBits::e1;
+		attachmentDescriptions[1].loadOp		 = vk::AttachmentLoadOp::eClear;
+		attachmentDescriptions[1].storeOp		 = vk::AttachmentStoreOp::eStore;
+		attachmentDescriptions[1].stencilLoadOp	 = vk::AttachmentLoadOp::eDontCare;
+		attachmentDescriptions[1].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 
 		return attachmentDescriptions;
 	}

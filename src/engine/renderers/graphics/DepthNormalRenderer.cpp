@@ -70,7 +70,7 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 
 	descriptorSetArrays[1].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
 
-
-	drawObjects(pSecondaryCommandBuffers, Frustum(cameraBlock.projectionMatrix * cameraBlock.viewMatrix));
+	Frustum frustum { cameraBlock.projectionMatrix * cameraBlock.viewMatrix };
+	drawObjects(pSecondaryCommandBuffers, &frustum, 1);
 }
 } // namespace Engine

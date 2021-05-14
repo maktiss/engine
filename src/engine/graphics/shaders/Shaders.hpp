@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BoxBlurShader.hpp"
 #include "IrradianceShader.hpp"
 #include "PostFxShader.hpp"
 #include "ReflectionShader.hpp"

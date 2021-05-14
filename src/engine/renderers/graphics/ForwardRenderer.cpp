@@ -22,25 +22,26 @@ int ForwardRenderer::init() {
 	samplerCreateInfo.anisotropyEnable		  = false;
 	samplerCreateInfo.maxAnisotropy			  = 0.0f;
 	samplerCreateInfo.unnormalizedCoordinates = false;
-	samplerCreateInfo.compareEnable			  = true;
-	samplerCreateInfo.compareOp				  = vk::CompareOp::eLessOrEqual;
+	samplerCreateInfo.compareEnable			  = false;
+	samplerCreateInfo.compareOp				  = vk::CompareOp::eAlways;
 	samplerCreateInfo.mipmapMode			  = vk::SamplerMipmapMode::eLinear;
 	samplerCreateInfo.mipLodBias			  = 0.0f;
 	samplerCreateInfo.minLod				  = 0.0f;
-	samplerCreateInfo.maxLod				  = 0.0f;
+	samplerCreateInfo.maxLod				  = VK_LOD_CLAMP_NONE;
 
-	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkShadowSampler);
+	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkSampler);
 	if (result != vk::Result::eSuccess) {
 		spdlog::error("[ForwardRenderer] Failed to create image sampler. Error code: {} ({})", result,
 					  vk::to_string(vk::Result(result)));
 		return 1;
 	}
 
+	samplerCreateInfo.addressModeU = vk::SamplerAddressMode::eClampToBorder;
+	samplerCreateInfo.addressModeV = vk::SamplerAddressMode::eClampToBorder;
+	samplerCreateInfo.addressModeW = vk::SamplerAddressMode::eClampToBorder;
+	samplerCreateInfo.borderColor  = vk::BorderColor::eFloatOpaqueWhite;
 
-	samplerCreateInfo.compareEnable = false;
-	samplerCreateInfo.compareOp		= vk::CompareOp::eAlways;
-
-	result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkSampler);
+	result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkShadowSampler);
 	if (result != vk::Result::eSuccess) {
 		spdlog::error("[ForwardRenderer] Failed to create image sampler. Error code: {} ({})", result,
 					  vk::to_string(vk::Result(result)));
@@ -52,7 +53,7 @@ int ForwardRenderer::init() {
 	vk::ImageViewCreateInfo imageViewCreateInfo {};
 	imageViewCreateInfo.viewType						= vk::ImageViewType::e2DArray;
 	imageViewCreateInfo.format							= getInputDescriptions()[0].format;
-	imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eDepth;
+	imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eColor;
 	imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
 	imageViewCreateInfo.subresourceRange.levelCount		= textureInfo.mipLevels;
 	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
@@ -61,7 +62,7 @@ int ForwardRenderer::init() {
 
 	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkShadowImageView);
 	if (result != vk::Result::eSuccess) {
-		spdlog::error("[ReflectionRenderer] Failed to create image view. Error code: {} ({})", result,
+		spdlog::error("[ForwardRenderer] Failed to create image view. Error code: {} ({})", result,
 					  vk::to_string(vk::Result(result)));
 		return 1;
 	}
@@ -78,7 +79,7 @@ int ForwardRenderer::init() {
 
 	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkIrradianceImageView);
 	if (result != vk::Result::eSuccess) {
-		spdlog::error("[ReflectionRenderer] Failed to create image view. Error code: {} ({})", result,
+		spdlog::error("[ForwardRenderer] Failed to create image view. Error code: {} ({})", result,
 					  vk::to_string(vk::Result(result)));
 		return 1;
 	}
@@ -220,13 +221,13 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 				glm::lookAtLH(cameraPos, cameraPos + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
 
 			lightSpaceMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize, cascadeHalfSize,
-											   -1000.0f, 1000.0f) *
+											   -cascadeHalfSize * 4.0f, cascadeHalfSize) *
 							   lightSpaceMatrix;
 
 			*environmentBlockMap.directionalLight.baseLightSpaceMatrix = lightSpaceMatrix;
 
 			for (uint cascadeIndex = 0; cascadeIndex < directionalLightCascadeCount; cascadeIndex++) {
-				float cascadeHalfSize = directionalLightCascadeBase * std::pow(2, cascadeIndex + 1);
+				float cascadeHalfSize = directionalLightCascadeBase * std::pow(2, cascadeIndex * 2 + 1);
 
 				glm::vec3 position = cameraPos + cascadeHalfSize * directionalLightCascadeOffset * cameraViewDir;
 
@@ -234,7 +235,7 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 					glm::lookAtLH(position, position + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
 
 				lightSpaceMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize, cascadeHalfSize,
-												   -1000.0f, 1000.0f) *
+												   -cascadeHalfSize * 4.0f, cascadeHalfSize) *
 								   lightSpaceMatrix;
 
 				environmentBlockMap.directionalLight.lightSpaceMatrices[cascadeIndex] = lightSpaceMatrix;
@@ -245,7 +246,7 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 
 	descriptorSetArrays[2].unmapBuffer(0, 0);
 
-
-	drawObjects(pSecondaryCommandBuffers, Frustum(cameraBlock.projectionMatrix * cameraBlock.viewMatrix));
+	Frustum frustum { cameraBlock.projectionMatrix * cameraBlock.viewMatrix };
+	drawObjects(pSecondaryCommandBuffers, &frustum, 1);
 }
 } // namespace Engine
