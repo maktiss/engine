@@ -6,6 +6,12 @@
 namespace Engine {
 class SkymapRenderer : public GraphicsRendererBase {
 private:
+	struct CameraBlock {
+		glm::mat4 viewProjectionMatrices[6];
+	};
+
+
+private:
 	MeshManager::Handle skySphereMesh {};
 	GraphicsShaderManager::Handle shaderHandle {};
 
@@ -63,7 +69,7 @@ public:
 	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
 		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
 
-		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, 64 * 6 });
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, sizeof(CameraBlock) });
 		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, 16 });
 
 		return descriptorSetDescriptions;

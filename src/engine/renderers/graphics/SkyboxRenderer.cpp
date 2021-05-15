@@ -2,6 +2,8 @@
 
 #include "engine/managers/EntityManager.hpp"
 
+#include "engine/utils/Generator.hpp"
+
 #include <glm/glm.hpp>
 
 
@@ -13,31 +15,8 @@ int SkyboxRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
-	// TODO: move to Engine::Generator
-	// Generate skybox mesh
-
-	boxMesh = MeshManager::createObject(0, "generated_box");
-	boxMesh.apply([](auto& mesh) {
-		auto& vertexBuffer = mesh.getVertexBuffer();
-		vertexBuffer.resize(8);
-
-		std::get<0>(vertexBuffer[0]) = glm::vec3(-1.0f, -1.0f, -1.0f);
-		std::get<0>(vertexBuffer[1]) = glm::vec3(-1.0f, -1.0f, 1.0f);
-		std::get<0>(vertexBuffer[2]) = glm::vec3(1.0f, -1.0f, 1.0f);
-		std::get<0>(vertexBuffer[3]) = glm::vec3(1.0f, -1.0f, -1.0f);
-
-		std::get<0>(vertexBuffer[4]) = glm::vec3(-1.0f, 1.0f, -1.0f);
-		std::get<0>(vertexBuffer[5]) = glm::vec3(-1.0f, 1.0f, 1.0f);
-		std::get<0>(vertexBuffer[6]) = glm::vec3(1.0f, 1.0f, 1.0f);
-		std::get<0>(vertexBuffer[7]) = glm::vec3(1.0f, 1.0f, -1.0f);
-
-		auto& indexBuffer = mesh.getIndexBuffer();
-
-		indexBuffer = {
-			0, 2, 1, 0, 3, 2, 5, 6, 7, 5, 7, 4, 0, 4, 7, 0, 7, 3, 3, 7, 6, 3, 6, 2, 2, 6, 5, 2, 5, 1, 1, 5, 4, 1, 4, 0,
-		};
-	});
-	boxMesh.update();
+	boxMesh = MeshManager::createObject<StaticMesh>("generated_sky_box");
+	Generator::skyBoxMesh(boxMesh);
 
 	shaderHandle = GraphicsShaderManager::getHandle<SkyboxShader>(boxMesh);
 

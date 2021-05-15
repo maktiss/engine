@@ -1,24 +1,22 @@
 #pragma once
 
+#include "engine/managers/MeshManager.hpp"
+
 #include <glm/glm.hpp>
 
 #include <cmath>
 
 
-namespace Engine::Generator {
-void fibonacciSphere(glm::vec4* pData, uint sampleCount, uint fraction = 1) {
-	float phi = M_PI * (3.0 - std::sqrt(5.0));
+namespace Engine {
+class Generator {
+public:
+	static void skyBoxMesh(MeshManager::Handle& meshHandle);
+	static void skySphereMesh(MeshManager::Handle& meshHandle, uint verticalVertexCount, uint horisontalVertexCount);
 
-	for (uint i = 0; i < sampleCount; i++) {
-		float y		 = 1.0 - (i / static_cast<float>(sampleCount * fraction - 1)) * 2.0;
-		float radius = std::sqrt(1.0 - y * y);
+	static void screenTriangle(MeshManager::Handle& meshHandle);
 
-		float theta = phi * i;
+	static void cubeViewMatrices(glm::mat4 matrices[6], float nearZ, float farZ);
 
-		float x = std::cos(theta) * radius;
-		float z = std::sin(theta) * radius;
-
-		pData[i] = { x, y, z, 0.0 };
-	}
-}
-}; // namespace Engine::Generator
+	static void fibonacciSphere(glm::vec4* pData, uint sampleCount, uint fraction = 1);
+};
+}; // namespace Engine

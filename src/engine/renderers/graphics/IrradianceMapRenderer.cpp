@@ -15,62 +15,8 @@ int IrradianceMapRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
-	// Update camera block
-
-	CameraBlock cameraBlock;
-
-	glm::vec3 viewVectors[6] = {
-		{ 1.0f, 0.0f, 0.0f },  { -1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f },
-		{ 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f },  { 0.0f, 0.0f, -1.0f },
-	};
-
-	auto projectionMatrix = glm::perspectiveLH(glm::radians(90.0f), 1.0f, 0.1f, 1000.0f);
-
-	for (uint i = 0; i < 6; i++) {
-		auto up = glm::vec3(0.0f, 1.0f, 0.0f);
-		if (i == 2) {
-			up = glm::vec3(0.0f, 0.0f, -1.0f);
-		} else if (i == 3) {
-			up = glm::vec3(0.0f, 0.0f, 1.0f);
-		}
-
-		auto viewMatrix = glm::lookAtLH(glm::vec3(0.0f), viewVectors[i], up);
-
-		cameraBlock.viewProjectionMatrices[i] = projectionMatrix * viewMatrix;
-	}
-
-
-	// Update samples block
-
-	std::vector<glm::vec4> samples(irradianceMapSampleCount);
-	Generator::fibonacciSphere(samples.data(), samples.size(), 2);
-
-
-	// TODO: move to Engine::Generator
-	// Generate box mesh
-
-	boxMesh = MeshManager::createObject(0, "generated_box");
-	boxMesh.apply([](auto& mesh) {
-		auto& vertexBuffer = mesh.getVertexBuffer();
-		vertexBuffer.resize(8);
-
-		std::get<0>(vertexBuffer[0]) = glm::vec3(-1.0f, -1.0f, -1.0f);
-		std::get<0>(vertexBuffer[1]) = glm::vec3(-1.0f, -1.0f, 1.0f);
-		std::get<0>(vertexBuffer[2]) = glm::vec3(1.0f, -1.0f, 1.0f);
-		std::get<0>(vertexBuffer[3]) = glm::vec3(1.0f, -1.0f, -1.0f);
-
-		std::get<0>(vertexBuffer[4]) = glm::vec3(-1.0f, 1.0f, -1.0f);
-		std::get<0>(vertexBuffer[5]) = glm::vec3(-1.0f, 1.0f, 1.0f);
-		std::get<0>(vertexBuffer[6]) = glm::vec3(1.0f, 1.0f, 1.0f);
-		std::get<0>(vertexBuffer[7]) = glm::vec3(1.0f, 1.0f, -1.0f);
-
-		auto& indexBuffer = mesh.getIndexBuffer();
-
-		indexBuffer = {
-			0, 2, 1, 0, 3, 2, 5, 6, 7, 5, 7, 4, 0, 4, 7, 0, 7, 3, 3, 7, 6, 3, 6, 2, 2, 6, 5, 2, 5, 1, 1, 5, 4, 1, 4, 0,
-		};
-	});
-	boxMesh.update();
+	boxMesh = MeshManager::createObject<StaticMesh>("generated_sky_box");
+	Generator::skyBoxMesh(boxMesh);
 
 	shaderHandle = GraphicsShaderManager::getHandle<IrradianceShader>(boxMesh);
 
@@ -78,6 +24,13 @@ int IrradianceMapRenderer::init() {
 	if (GraphicsRendererBase::init()) {
 		return 1;
 	}
+
+
+	CameraBlock cameraBlock;
+	Generator::cubeViewMatrices(cameraBlock.viewProjectionMatrices, 0.1f, 1000.0f);
+
+	std::vector<glm::vec4> samples(irradianceMapSampleCount);
+	Generator::fibonacciSphere(samples.data(), samples.size(), 2);
 
 	descriptorSetArrays[0].updateImage(0, 0, 0, inputVkSamplers[0], inputVkImageViews[0]);
 	descriptorSetArrays[1].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));

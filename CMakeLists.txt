@@ -126,6 +126,7 @@ add_executable(
 	src/engine/systems/SystemBase.hpp
 	src/engine/systems/Systems.hpp
 	src/engine/utils/CPUTimer.hpp
+	src/engine/utils/Generator.cpp
 	src/engine/utils/Generator.hpp
 	src/engine/utils/Importer.cpp
 	src/engine/utils/Importer.hpp
