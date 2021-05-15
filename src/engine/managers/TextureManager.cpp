@@ -68,10 +68,12 @@ int TextureManager::init() {
 	}
 
 
-	descriptorSetArray.setBindingCount(2);
+	// descriptorSetArray.setBindingCount(2);
 	descriptorSetArray.setBindingLayoutInfo(0, vk::DescriptorType::eSampler, 0);
 	descriptorSetArray.setBindingLayoutInfo(1, vk::DescriptorType::eSampledImage, 0, properties.maxTextureHandles);
-	descriptorSetArray.init(vkDevice, vmaAllocator);
+	descriptorSetArray.setVkDevice(vkDevice);
+	descriptorSetArray.setVmaAllocator(vmaAllocator);
+	descriptorSetArray.init();
 
 	descriptorSetArray.updateImage(0, 0, 0, vkSampler, {});
 
@@ -123,6 +125,7 @@ void TextureManager::update(Handle& handle) {
 				static_cast<uint32_t>(std::floor(std::log2(std::max(texture.size.width, texture.size.height)))) + 1;
 		}
 
+		textureInfo.format = texture.format;
 		textureInfo.imageAspect = texture.imageAspect;
 
 		textureInfo.arrayLayers = texture.layerCount;

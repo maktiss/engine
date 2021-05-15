@@ -13,111 +13,16 @@ int ForwardRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
-	vk::SamplerCreateInfo samplerCreateInfo {};
-	samplerCreateInfo.minFilter				  = vk::Filter::eLinear;
-	samplerCreateInfo.magFilter				  = vk::Filter::eLinear;
-	samplerCreateInfo.addressModeU			  = vk::SamplerAddressMode::eClampToEdge;
-	samplerCreateInfo.addressModeV			  = vk::SamplerAddressMode::eClampToEdge;
-	samplerCreateInfo.addressModeW			  = vk::SamplerAddressMode::eClampToEdge;
-	samplerCreateInfo.anisotropyEnable		  = false;
-	samplerCreateInfo.maxAnisotropy			  = 0.0f;
-	samplerCreateInfo.unnormalizedCoordinates = false;
-	samplerCreateInfo.compareEnable			  = false;
-	samplerCreateInfo.compareOp				  = vk::CompareOp::eAlways;
-	samplerCreateInfo.mipmapMode			  = vk::SamplerMipmapMode::eLinear;
-	samplerCreateInfo.mipLodBias			  = 0.0f;
-	samplerCreateInfo.minLod				  = 0.0f;
-	samplerCreateInfo.maxLod				  = VK_LOD_CLAMP_NONE;
-
-	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkSampler);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("[ForwardRenderer] Failed to create image sampler. Error code: {} ({})", result,
-					  vk::to_string(vk::Result(result)));
+	if (ObjectRendererBase::init()) {
 		return 1;
 	}
 
-	samplerCreateInfo.addressModeU = vk::SamplerAddressMode::eClampToBorder;
-	samplerCreateInfo.addressModeV = vk::SamplerAddressMode::eClampToBorder;
-	samplerCreateInfo.addressModeW = vk::SamplerAddressMode::eClampToBorder;
-	samplerCreateInfo.borderColor  = vk::BorderColor::eFloatOpaqueWhite;
+	descriptorSetArrays[0].updateImage(0, 1, 0, inputVkSamplers[0], inputVkImageViews[0]);
+	descriptorSetArrays[0].updateImage(0, 2, 0, inputVkSamplers[1], inputVkImageViews[1]);
+	descriptorSetArrays[0].updateImage(0, 3, 0, inputVkSamplers[2], inputVkImageViews[2]);
+	descriptorSetArrays[0].updateImage(0, 4, 0, inputVkSamplers[3], inputVkImageViews[3]);
 
-	result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkShadowSampler);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("[ForwardRenderer] Failed to create image sampler. Error code: {} ({})", result,
-					  vk::to_string(vk::Result(result)));
-		return 1;
-	}
-
-
-	auto textureInfo = TextureManager::getTextureInfo(inputs[0]);
-	vk::ImageViewCreateInfo imageViewCreateInfo {};
-	imageViewCreateInfo.viewType						= vk::ImageViewType::e2DArray;
-	imageViewCreateInfo.format							= getInputDescriptions()[0].format;
-	imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eColor;
-	imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
-	imageViewCreateInfo.subresourceRange.levelCount		= textureInfo.mipLevels;
-	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-	imageViewCreateInfo.subresourceRange.layerCount		= textureInfo.arrayLayers;
-	imageViewCreateInfo.image							= textureInfo.image;
-
-	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkShadowImageView);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("[ForwardRenderer] Failed to create image view. Error code: {} ({})", result,
-					  vk::to_string(vk::Result(result)));
-		return 1;
-	}
-
-	textureInfo											= TextureManager::getTextureInfo(inputs[3]);
-	imageViewCreateInfo.viewType						= vk::ImageViewType::eCube;
-	imageViewCreateInfo.format							= getInputDescriptions()[3].format;
-	imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eColor;
-	imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
-	imageViewCreateInfo.subresourceRange.levelCount		= textureInfo.mipLevels;
-	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-	imageViewCreateInfo.subresourceRange.layerCount		= 6;
-	imageViewCreateInfo.image							= textureInfo.image;
-
-	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkIrradianceImageView);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("[ForwardRenderer] Failed to create image view. Error code: {} ({})", result,
-					  vk::to_string(vk::Result(result)));
-		return 1;
-	}
-
-
-	descriptorSetArrays.resize(3);
-
-	descriptorSetArrays[0].setBindingCount(5);
-	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
-	descriptorSetArrays[0].setBindingLayoutInfo(1, vk::DescriptorType::eCombinedImageSampler, 0);
-	descriptorSetArrays[0].setBindingLayoutInfo(2, vk::DescriptorType::eCombinedImageSampler, 0);
-	descriptorSetArrays[0].setBindingLayoutInfo(3, vk::DescriptorType::eCombinedImageSampler, 0);
-	descriptorSetArrays[0].setBindingLayoutInfo(4, vk::DescriptorType::eCombinedImageSampler, 0);
-	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-	descriptorSetArrays[0].updateImage(0, 1, 0, vkShadowSampler, vkShadowImageView);
-	descriptorSetArrays[0].updateImage(0, 2, 0, vkSampler, TextureManager::getTextureInfo(inputs[1]).imageView);
-	descriptorSetArrays[0].updateImage(0, 3, 0, vkSampler, TextureManager::getTextureInfo(inputs[2]).imageView);
-	descriptorSetArrays[0].updateImage(0, 4, 0, vkSampler, vkIrradianceImageView);
-
-	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
-	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
-
-
-	uint environmentBlockSize =
-		16 + (16 + 16 + 64 * directionalLightCascadeCount) +
-		(2 * sizeof(EnvironmentBlockMap::LightCluster) * clusterCountX * clusterCountY * clusterCountZ);
-
-	uint pointLightsBlockSize = maxVisiblePointLights * sizeof(PointLight);
-	uint spotLightsBlockSize  = maxVisibleSpotLights * sizeof(SpotLight);
-
-	descriptorSetArrays[2].setBindingCount(3);
-	descriptorSetArrays[2].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, environmentBlockSize);
-	descriptorSetArrays[2].setBindingLayoutInfo(1, vk::DescriptorType::eStorageBuffer, pointLightsBlockSize);
-	descriptorSetArrays[2].setBindingLayoutInfo(2, vk::DescriptorType::eStorageBuffer, spotLightsBlockSize);
-	descriptorSetArrays[2].init(vkDevice, vmaAllocator);
-
-
-	return ObjectRendererBase::init();
+	return 0;
 }
 
 
@@ -127,10 +32,7 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 	for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
 		const auto& commandBuffer = pSecondaryCommandBuffers[threadIndex];
 
-		for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-											 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
-		}
+		bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
 
 		const auto textureDescriptorSet = TextureManager::getVkDescriptorSet();
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, 4, 1,

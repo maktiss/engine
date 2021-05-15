@@ -15,13 +15,6 @@ private:
 	MeshManager::Handle mesh {};
 	GraphicsShaderManager::Handle shaderHandle {};
 
-	// TODO: destroy
-	vk::Sampler vkSampler {};
-
-	vk::ImageView vkDepthImageView {};
-	vk::ImageView vkNormalImageView {};
-	vk::ImageView vkEnvironmentImageView {};
-
 
 public:
 	ReflectionRenderer() : GraphicsRendererBase(3, 1) {
@@ -93,6 +86,35 @@ public:
 		outputInitialLayouts[0] = vk::ImageLayout::eColorAttachmentOptimal;
 
 		return outputInitialLayouts;
+	}
+
+
+	std::vector<vk::ImageViewCreateInfo> getInputVkImageViewCreateInfos() override {
+		auto imageViewCreateInfos = RendererBase::getInputVkImageViewCreateInfos();
+
+		{
+			auto& imageViewCreateInfo						= imageViewCreateInfos[getInputIndex("DepthBuffer")];
+			imageViewCreateInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+		}
+
+		{
+			auto& imageViewCreateInfo	 = imageViewCreateInfos[getInputIndex("EnvironmentMap")];
+			imageViewCreateInfo.viewType = vk::ImageViewType::eCube;
+		}
+
+		return imageViewCreateInfos;
+	}
+
+
+	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
+		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
+
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, sizeof(ParamBlock) });
+		descriptorSetDescriptions.push_back({ 0, 1, vk::DescriptorType::eCombinedImageSampler });
+		descriptorSetDescriptions.push_back({ 0, 2, vk::DescriptorType::eCombinedImageSampler });
+		descriptorSetDescriptions.push_back({ 0, 3, vk::DescriptorType::eCombinedImageSampler });
+
+		return descriptorSetDescriptions;
 	}
 
 

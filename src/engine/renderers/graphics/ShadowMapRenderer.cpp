@@ -12,23 +12,7 @@ int ShadowMapRenderer::init() {
 	assert(vkDevice != vk::Device());
 	assert(outputSize != vk::Extent2D());
 
-
 	excludeFrustums.resize(getLayerCount() - 1);
-
-
-	descriptorSetArrays.resize(3);
-
-	descriptorSetArrays[0].setSetCount(getLayerCount());
-	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
-	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-
-	descriptorSetArrays[1].setSetCount(getLayerCount());
-	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
-	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
-
-	descriptorSetArrays[2].setSetCount(getLayerCount());
-	descriptorSetArrays[2].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 16);
-	descriptorSetArrays[2].init(vkDevice, vmaAllocator);
 
 
 	return ObjectRendererBase::init();
@@ -41,10 +25,7 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 	for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
 		const auto& commandBuffer = pSecondaryCommandBuffers[threadIndex];
 
-		for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-											 &descriptorSetArrays[setIndex].getVkDescriptorSet(layerIndex), 0, nullptr);
-		}
+		bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
 	}
 
 

@@ -49,25 +49,6 @@ public:
 		return outputDescriptions;
 	}
 
-	// std::vector<AttachmentDescription> getInputDescriptions() const {
-	// 	std::vector<AttachmentDescription> descriptions {};
-	// 	descriptions.resize(1);
-
-	// 	descriptions[0].format = vk::Format::eD24UnormS8Uint;
-	// 	descriptions[0].usage  = vk::ImageUsageFlagBits::eSampled;
-
-	// 	return descriptions;
-	// }
-
-
-	// std::vector<vk::ImageLayout> getInputInitialLayouts() const {
-	// 	std::vector<vk::ImageLayout> initialLayouts {};
-	// 	initialLayouts.resize(1);
-
-	// 	initialLayouts[0] = vk::ImageLayout::eShaderReadOnlyOptimal;
-
-	// 	return initialLayouts;
-	// }
 
 	std::vector<vk::ImageLayout> getOutputInitialLayouts() const {
 		std::vector<vk::ImageLayout> outputInitialLayouts {};
@@ -76,6 +57,16 @@ public:
 		outputInitialLayouts[0] = vk::ImageLayout::eColorAttachmentOptimal;
 
 		return outputInitialLayouts;
+	}
+
+
+	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
+		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
+
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, 64 * 6 });
+		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, 16 });
+
+		return descriptorSetDescriptions;
 	}
 
 

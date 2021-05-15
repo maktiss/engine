@@ -9,10 +9,6 @@ private:
 	MeshManager::Handle boxMesh {};
 	GraphicsShaderManager::Handle shaderHandle {};
 
-	// TODO: destroy
-	vk::Sampler vkSampler {};
-	vk::ImageView vkImageView {};
-
 
 public:
 	SkyboxRenderer() : GraphicsRendererBase(1, 1) {
@@ -76,6 +72,26 @@ public:
 		outputInitialLayouts[0] = vk::ImageLayout::eColorAttachmentOptimal;
 
 		return outputInitialLayouts;
+	}
+
+
+	std::vector<vk::ImageViewCreateInfo> getInputVkImageViewCreateInfos() override {
+		auto imageViewCreateInfos = RendererBase::getInputVkImageViewCreateInfos();
+
+		auto& imageViewCreateInfo	 = imageViewCreateInfos[getInputIndex("SkyMap")];
+		imageViewCreateInfo.viewType = vk::ImageViewType::eCube;
+
+		return imageViewCreateInfos;
+	}
+
+
+	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
+		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
+
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, 64 });
+		descriptorSetDescriptions.push_back({ 0, 1, vk::DescriptorType::eCombinedImageSampler });
+
+		return descriptorSetDescriptions;
 	}
 
 

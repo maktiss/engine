@@ -75,6 +75,17 @@ public:
 	}
 
 
+	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
+		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
+
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, 4 });
+		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, 256 });
+		descriptorSetDescriptions.push_back({ 2, 0, vk::DescriptorType::eUniformBuffer, 16 });
+
+		return descriptorSetDescriptions;
+	}
+
+
 	std::vector<vk::ClearValue> getVkClearValues() const override {
 		std::vector<vk::ClearValue> clearValues {};
 		clearValues.resize(2);

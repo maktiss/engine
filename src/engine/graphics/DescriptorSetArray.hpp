@@ -19,7 +19,7 @@ private:
 		VmaAllocation allocation {};
 	};
 
-	// Buffer for each set for each binding
+	// Buffer for each element for each binding
 	std::vector<BufferInfo> bufferInfos { 1, BufferInfo() };
 
 	struct BindingLayoutInfo {
@@ -33,35 +33,46 @@ private:
 	vk::DescriptorSetLayout vkDescriptorSetLayout {};
 	std::vector<vk::DescriptorSet> vkDescriptorSets { 1, vk::DescriptorSet() };
 
-public:
-	int init(vk::Device device, VmaAllocator allocator);
 
-	int updateBuffer(uint setIndex, uint bindingIndex, void* pData, uint64_t size);
-	int updateImage(uint setIndex, uint bindingIndex, uint descriptorIndex, vk::Sampler sampler,
+public:
+	int init();
+
+	int updateBuffer(uint elementIndex, uint bindingIndex, void* pData, uint64_t size);
+	int updateImage(uint elementIndex, uint bindingIndex, uint descriptorIndex, vk::Sampler sampler,
 					vk::ImageView imageView);
 
-	int mapBuffer(uint setIndex, uint bindingIndex, void*& pData);
-	int unmapBuffer(uint setIndex, uint bindingIndex);
+	int mapBuffer(uint elementIndex, uint bindingIndex, void*& pData);
+	int unmapBuffer(uint elementIndex, uint bindingIndex);
 
 	void dispose();
 
 
-	inline void setSetCount(uint count) {
+	inline void setVkDevice(vk::Device device) {
+		vkDevice = device;
+	}
+
+	inline void setVmaAllocator(VmaAllocator allocator) {
+		vmaAllocator = allocator;
+	}
+
+
+	inline void setElementCount(uint count) {
 		vkDescriptorSets.resize(count);
 	}
 
-	inline void setBindingCount(uint count) {
-		bindingLayoutInfos.resize(count);
+	inline uint getElementCount() const {
+		return vkDescriptorSets.size();
 	}
+
 
 	inline void setBindingLayoutInfo(uint bindingIndex, vk::DescriptorType descriptorType, vk::DeviceSize size,
 									 uint32_t descriptorCount = 1) {
+
+		if (bindingIndex >= bindingLayoutInfos.size()) {
+			bindingLayoutInfos.resize(bindingIndex + 1);
+		}
+
 		bindingLayoutInfos[bindingIndex] = { descriptorType, size, descriptorCount };
-	}
-
-
-	inline uint getSetCount() const {
-		return vkDescriptorSets.size();
 	}
 
 	inline uint getBindingCount() const {
@@ -69,8 +80,8 @@ public:
 	}
 
 
-	inline uint getBufferInfoIndex(uint setIndex, uint bindingIndex) const {
-		return setIndex * getBindingCount() + bindingIndex;
+	inline uint getBufferInfoIndex(uint elementIndex, uint bindingIndex) const {
+		return elementIndex * getBindingCount() + bindingIndex;
 	}
 
 

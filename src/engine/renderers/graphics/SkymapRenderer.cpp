@@ -13,15 +13,6 @@ int SkymapRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
-	descriptorSetArrays.resize(2);
-
-	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 64 * 6);
-	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-
-	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 16);
-	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
-
-
 	// Update cameras descriptor set
 
 	struct CameraBlock {
@@ -49,9 +40,8 @@ int SkymapRenderer::init() {
 		cameraBlock.viewProjectionMatrices[i] = projectionMatrix * viewMatrix;
 	}
 
-	descriptorSetArrays[0].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
 
-
+	// TODO: move to Engine::Generator
 	// Generate mesh
 
 	const uint verticalVertexCount	 = 15;
@@ -159,7 +149,13 @@ int SkymapRenderer::init() {
 	shaderHandle = GraphicsShaderManager::getHandle<SkymapShader>(skySphereMesh);
 
 
-	return GraphicsRendererBase::init();
+	if (GraphicsRendererBase::init()) {
+		return 1;
+	}
+
+	descriptorSetArrays[0].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
+
+	return 0;
 }
 
 
@@ -167,11 +163,7 @@ void SkymapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 												   double dt) {
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
-	// TODO: move to function
-	for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-										 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
-	}
+	bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
 
 
 	auto sunDirection = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);

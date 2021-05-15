@@ -8,15 +8,15 @@
 
 namespace Engine {
 int GraphicsRendererBase::init() {
+	if (RendererBase::init()) {
+		return 1;
+	}
+
 	if (createRenderPass()) {
 		return 1;
 	}
 
 	if (createFramebuffer()) {
-		return 1;
-	}
-
-	if (createVkPipelineLayout()) {
 		return 1;
 	}
 

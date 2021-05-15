@@ -4,13 +4,13 @@
 
 
 namespace Engine {
-int DescriptorSetArray::init(vk::Device device, VmaAllocator allocator) {
+int DescriptorSetArray::init() {
 	dispose();
 
-	vkDevice	 = device;
-	vmaAllocator = allocator;
+	assert(vkDevice != vk::Device());
+	assert(vmaAllocator != nullptr);
 
-	bufferInfos.resize(getSetCount() * getBindingCount());
+	bufferInfos.resize(getElementCount() * getBindingCount());
 
 
 	// Create descriptor set layout
@@ -43,7 +43,7 @@ int DescriptorSetArray::init(vk::Device device, VmaAllocator allocator) {
 	vk::DescriptorPoolCreateInfo descriptorPoolCreateInfo {};
 	descriptorPoolCreateInfo.poolSizeCount = 1;
 	descriptorPoolCreateInfo.pPoolSizes	   = &descriptorPoolSize;
-	descriptorPoolCreateInfo.maxSets	   = getSetCount();
+	descriptorPoolCreateInfo.maxSets	   = getElementCount();
 
 	result = vkDevice.createDescriptorPool(&descriptorPoolCreateInfo, nullptr, &vkDescriptorPool);
 	if (result != vk::Result::eSuccess) {
@@ -52,7 +52,7 @@ int DescriptorSetArray::init(vk::Device device, VmaAllocator allocator) {
 	}
 
 
-	for (uint setIndex = 0; setIndex < getSetCount(); setIndex++) {
+	for (uint elementIndex = 0; elementIndex < getElementCount(); elementIndex++) {
 		// Allocate descriptor set
 
 		vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo {};
@@ -60,7 +60,7 @@ int DescriptorSetArray::init(vk::Device device, VmaAllocator allocator) {
 		descriptorSetAllocateInfo.descriptorSetCount = 1;
 		descriptorSetAllocateInfo.pSetLayouts		 = &vkDescriptorSetLayout;
 
-		auto& descriptorSet = vkDescriptorSets[setIndex];
+		auto& descriptorSet = vkDescriptorSets[elementIndex];
 
 		result = vkDevice.allocateDescriptorSets(&descriptorSetAllocateInfo, &descriptorSet);
 		if (result != vk::Result::eSuccess) {
@@ -95,7 +95,7 @@ int DescriptorSetArray::init(vk::Device device, VmaAllocator allocator) {
 				VmaAllocationCreateInfo allocationCreateInfo {};
 				allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-				auto& bufferInfo = bufferInfos[getBufferInfoIndex(setIndex, bindingIndex)];
+				auto& bufferInfo = bufferInfos[getBufferInfoIndex(elementIndex, bindingIndex)];
 
 				VkBuffer cBuffer;
 				result = vk::Result(vmaCreateBuffer(vmaAllocator, &cBufferCreateInfo, &allocationCreateInfo, &cBuffer,
@@ -134,10 +134,10 @@ int DescriptorSetArray::init(vk::Device device, VmaAllocator allocator) {
 }
 
 
-int DescriptorSetArray::updateBuffer(uint setIndex, uint bindingIndex, void* pData, uint64_t size) {
+int DescriptorSetArray::updateBuffer(uint elementIndex, uint bindingIndex, void* pData, uint64_t size) {
 	assert(size <= bindingLayoutInfos[bindingIndex].size);
 
-	const auto& allocation = bufferInfos[getBufferInfoIndex(setIndex, bindingIndex)].allocation;
+	const auto& allocation = bufferInfos[getBufferInfoIndex(elementIndex, bindingIndex)].allocation;
 
 	void* pBufferData;
 	auto result = vk::Result(vmaMapMemory(vmaAllocator, allocation, &pBufferData));
@@ -152,7 +152,7 @@ int DescriptorSetArray::updateBuffer(uint setIndex, uint bindingIndex, void* pDa
 	return 0;
 }
 
-int DescriptorSetArray::updateImage(uint setIndex, uint bindingIndex, uint descriptorIndex, vk::Sampler sampler,
+int DescriptorSetArray::updateImage(uint elementIndex, uint bindingIndex, uint descriptorIndex, vk::Sampler sampler,
 									vk::ImageView imageView) {
 	assert(vkDevice != vk::Device());
 
@@ -162,7 +162,7 @@ int DescriptorSetArray::updateImage(uint setIndex, uint bindingIndex, uint descr
 	descriptorImageInfo.imageView	= imageView;
 
 	vk::WriteDescriptorSet writeDescriptorSet {};
-	writeDescriptorSet.dstSet		   = vkDescriptorSets[setIndex];
+	writeDescriptorSet.dstSet		   = vkDescriptorSets[elementIndex];
 	writeDescriptorSet.dstBinding	   = bindingIndex;
 	writeDescriptorSet.dstArrayElement = descriptorIndex;
 	writeDescriptorSet.descriptorType  = bindingLayoutInfos[bindingIndex].descriptorType;
@@ -174,8 +174,8 @@ int DescriptorSetArray::updateImage(uint setIndex, uint bindingIndex, uint descr
 }
 
 
-int DescriptorSetArray::mapBuffer(uint setIndex, uint bindingIndex, void*& pData) {
-	const auto& allocation = bufferInfos[getBufferInfoIndex(setIndex, bindingIndex)].allocation;
+int DescriptorSetArray::mapBuffer(uint elementIndex, uint bindingIndex, void*& pData) {
+	const auto& allocation = bufferInfos[getBufferInfoIndex(elementIndex, bindingIndex)].allocation;
 
 	auto result = vk::Result(vmaMapMemory(vmaAllocator, allocation, &pData));
 	if (result != vk::Result::eSuccess) {
@@ -185,8 +185,8 @@ int DescriptorSetArray::mapBuffer(uint setIndex, uint bindingIndex, void*& pData
 	return 0;
 }
 
-int DescriptorSetArray::unmapBuffer(uint setIndex, uint bindingIndex) {
-	const auto& allocation = bufferInfos[getBufferInfoIndex(setIndex, bindingIndex)].allocation;
+int DescriptorSetArray::unmapBuffer(uint elementIndex, uint bindingIndex) {
+	const auto& allocation = bufferInfos[getBufferInfoIndex(elementIndex, bindingIndex)].allocation;
 	vmaUnmapMemory(vmaAllocator, allocation);
 	return 0;
 }
@@ -201,10 +201,12 @@ void DescriptorSetArray::dispose() {
 	}
 
 	if (vkDevice != vk::Device()) {
-		vkDevice.destroyDescriptorPool(vkDescriptorPool);
-		vkDevice.destroyDescriptorSetLayout(vkDescriptorSetLayout);
-
-		vkDevice = vk::Device();
+		if (vkDescriptorPool != vk::DescriptorPool()) {
+			vkDevice.destroyDescriptorPool(vkDescriptorPool);
+		}
+		if (vkDescriptorSetLayout != vk::DescriptorSetLayout()) {
+			vkDevice.destroyDescriptorSetLayout(vkDescriptorSetLayout);
+		}
 	}
 }
 } // namespace Engine

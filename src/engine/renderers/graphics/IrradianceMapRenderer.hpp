@@ -15,10 +15,8 @@ private:
 	MeshManager::Handle boxMesh {};
 	GraphicsShaderManager::Handle shaderHandle {};
 
-	// TODO: destroy
-	vk::Sampler vkSampler {};
-	vk::ImageView vkImageView {};
 
+private:
 	PROPERTY(uint, "Graphics", irradianceMapSampleCount, 64);
 
 
@@ -56,8 +54,8 @@ public:
 		inputDescriptions.resize(1);
 
 		inputDescriptions[0].format = vk::Format::eR16G16B16A16Sfloat;
-		inputDescriptions[0].usage = vk::ImageUsageFlagBits::eSampled;
-		inputDescriptions[0].flags = vk::ImageCreateFlagBits::eCubeCompatible;
+		inputDescriptions[0].usage	= vk::ImageUsageFlagBits::eSampled;
+		inputDescriptions[0].flags	= vk::ImageCreateFlagBits::eCubeCompatible;
 
 		return inputDescriptions;
 	}
@@ -89,6 +87,30 @@ public:
 		outputInitialLayouts[0] = vk::ImageLayout::eColorAttachmentOptimal;
 
 		return outputInitialLayouts;
+	}
+
+
+	std::vector<vk::ImageViewCreateInfo> getInputVkImageViewCreateInfos() override {
+		auto imageViewCreateInfos = RendererBase::getInputVkImageViewCreateInfos();
+
+		{
+			auto& imageViewCreateInfo	 = imageViewCreateInfos[getInputIndex("EnvironmentMap")];
+			imageViewCreateInfo.viewType = vk::ImageViewType::eCube;
+		}
+
+		return imageViewCreateInfos;
+	}
+
+
+	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
+		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
+
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eCombinedImageSampler });
+		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, sizeof(CameraBlock) });
+		descriptorSetDescriptions.push_back(
+			{ 2, 0, vk::DescriptorType::eUniformBuffer, sizeof(glm::vec4) * irradianceMapSampleCount });
+
+		return descriptorSetDescriptions;
 	}
 
 

@@ -36,6 +36,16 @@ public:
 		size_t size {};
 	};
 
+	struct DescriptorSetDescription {
+		uint setIndex {};
+		uint bindingIndex {};
+
+		vk::DescriptorType type {};
+
+		uint64_t size {};
+		uint descriptorCount = 1;
+	};
+
 
 protected:
 	vk::Device vkDevice {};
@@ -52,6 +62,9 @@ protected:
 	std::vector<TextureManager::Handle> inputs {};
 	std::vector<TextureManager::Handle> outputs {};
 
+	// Set by rendering system, used for log messages
+	std::string rendererName {};
+
 	// Set by rendering system based on render graph
 	std::vector<vk::ImageLayout> vkInputInitialLayouts {};
 	std::vector<vk::ImageLayout> vkOutputInitialLayouts {};
@@ -62,7 +75,10 @@ protected:
 	vk::PipelineLayout vkPipelineLayout {};
 	std::vector<vk::Pipeline> vkPipelines {};
 
-	std::vector<DescriptorSetArray> descriptorSetArrays {};
+	std::vector<vk::Sampler> inputVkSamplers {};
+	std::vector<vk::ImageView> inputVkImageViews {};
+
+	std::unordered_map<uint, DescriptorSetArray> descriptorSetArrays {};
 
 
 public:
@@ -78,7 +94,7 @@ public:
 	}
 
 
-	virtual int init() = 0;
+	virtual int init();
 
 	virtual int render(const vk::CommandBuffer* pPrimaryCommandBuffers,
 					   const vk::CommandBuffer* pSecondaryCommandBuffers, const vk::QueryPool& timestampQueryPool,
@@ -219,14 +235,69 @@ public:
 	}
 
 
-	void dispose() {
-		for (auto& uniformBuffer : descriptorSetArrays) {
-			uniformBuffer.dispose();
-		}
+	inline void setRendererName(std::string name) {
+		rendererName = name;
 	}
 
 
+	void dispose();
+
+
 protected:
+	inline virtual std::vector<vk::SamplerCreateInfo> getInputVkSamplerCreateInfos() {
+		std::vector<vk::SamplerCreateInfo> samplerCreateInfos {};
+
+		vk::SamplerCreateInfo samplerCreateInfo {};
+		samplerCreateInfo.minFilter				  = vk::Filter::eLinear;
+		samplerCreateInfo.magFilter				  = vk::Filter::eLinear;
+		samplerCreateInfo.addressModeU			  = vk::SamplerAddressMode::eClampToEdge;
+		samplerCreateInfo.addressModeV			  = vk::SamplerAddressMode::eClampToEdge;
+		samplerCreateInfo.addressModeW			  = vk::SamplerAddressMode::eClampToEdge;
+		samplerCreateInfo.anisotropyEnable		  = false;
+		samplerCreateInfo.maxAnisotropy			  = 0.0f;
+		samplerCreateInfo.unnormalizedCoordinates = false;
+		samplerCreateInfo.compareEnable			  = false;
+		samplerCreateInfo.compareOp				  = vk::CompareOp::eAlways;
+		samplerCreateInfo.mipmapMode			  = vk::SamplerMipmapMode::eLinear;
+		samplerCreateInfo.mipLodBias			  = 0.0f;
+		samplerCreateInfo.minLod				  = 0.0f;
+		samplerCreateInfo.maxLod				  = VK_LOD_CLAMP_NONE;
+
+		samplerCreateInfos.resize(getInputCount(), samplerCreateInfo);
+
+		return samplerCreateInfos;
+	}
+
+	inline virtual std::vector<vk::ImageViewCreateInfo> getInputVkImageViewCreateInfos() {
+		std::vector<vk::ImageViewCreateInfo> imageViewCreateInfos {};
+
+		for (uint inputIndex = 0; inputIndex < getInputCount(); inputIndex++) {
+			vk::ImageViewCreateInfo imageViewCreateInfo {};
+
+			auto textureInfo = TextureManager::getTextureInfo(inputs[inputIndex]);
+
+			imageViewCreateInfo.viewType						= vk::ImageViewType::e2D;
+			imageViewCreateInfo.format							= textureInfo.format;
+			imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eColor;
+			imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
+			imageViewCreateInfo.subresourceRange.levelCount		= textureInfo.mipLevels;
+			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+			imageViewCreateInfo.subresourceRange.layerCount		= textureInfo.arrayLayers;
+			imageViewCreateInfo.image							= textureInfo.image;
+
+			imageViewCreateInfos.push_back(imageViewCreateInfo);
+		}
+
+		return imageViewCreateInfos;
+	}
+
+
+	inline virtual std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
+		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
+		return descriptorSetDescriptions;
+	}
+
+
 	virtual std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() {
 		std::vector<vk::DescriptorSetLayout> layouts(descriptorSetArrays.size());
 		for (uint i = 0; i < layouts.size(); i++) {
@@ -241,6 +312,28 @@ protected:
 	}
 
 
+	inline int testVkResult(vk::Result result, std::string errorMessage) {
+		if (result != vk::Result::eSuccess) {
+			if (errorMessage.empty()) {
+				errorMessage = "Vulkan error occured";
+			}
+			spdlog::error(std::string("[") + rendererName + "]" + errorMessage + ". Error code: {} ({})", result,
+						  vk::to_string(vk::Result(result)));
+			return VkResult(result);
+		}
+		return 0;
+	}
+
+
+	void bindDescriptorSets(const vk::CommandBuffer& commandBuffer, vk::PipelineBindPoint bindPoint);
+
+
+private:
+	int defineDescriptorSets();
+
 	int createVkPipelineLayout();
+
+	int createInputVkSamplers();
+	int createInputVkImageViews();
 };
 } // namespace Engine

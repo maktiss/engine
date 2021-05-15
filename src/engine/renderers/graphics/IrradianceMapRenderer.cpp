@@ -15,72 +15,6 @@ int IrradianceMapRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
-	// Create input sampler
-
-	vk::SamplerCreateInfo samplerCreateInfo {};
-	samplerCreateInfo.minFilter				  = vk::Filter::eLinear;
-	samplerCreateInfo.magFilter				  = vk::Filter::eLinear;
-	samplerCreateInfo.addressModeU			  = vk::SamplerAddressMode::eClampToEdge;
-	samplerCreateInfo.addressModeV			  = vk::SamplerAddressMode::eClampToEdge;
-	samplerCreateInfo.addressModeW			  = vk::SamplerAddressMode::eClampToEdge;
-	samplerCreateInfo.anisotropyEnable		  = false;
-	samplerCreateInfo.maxAnisotropy			  = 0.0f;
-	samplerCreateInfo.unnormalizedCoordinates = false;
-	samplerCreateInfo.compareEnable			  = false;
-	samplerCreateInfo.compareOp				  = vk::CompareOp::eAlways;
-	samplerCreateInfo.mipmapMode			  = vk::SamplerMipmapMode::eLinear;
-	samplerCreateInfo.mipLodBias			  = 0.0f;
-	samplerCreateInfo.minLod				  = 0.0f;
-	samplerCreateInfo.maxLod				  = VK_LOD_CLAMP_NONE;
-
-	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkSampler);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("[IrradianceMapRenderer] Failed to create image sampler. Error code: {} ({})", result,
-					  vk::to_string(vk::Result(result)));
-		return 1;
-	}
-
-
-	// Create input imageview
-
-	auto textureInfo = TextureManager::getTextureInfo(inputs[0]);
-	vk::ImageViewCreateInfo imageViewCreateInfo {};
-	imageViewCreateInfo.viewType						= vk::ImageViewType::eCube;
-	imageViewCreateInfo.format							= getInputDescriptions()[0].format;
-	imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eColor;
-	imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
-	imageViewCreateInfo.subresourceRange.levelCount		= textureInfo.mipLevels;
-	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-	imageViewCreateInfo.subresourceRange.layerCount		= 6;
-	imageViewCreateInfo.image							= textureInfo.image;
-
-	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkImageView);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("[IrradianceMapRenderer] Failed to create image view. Error code: {} ({})", result,
-					  vk::to_string(vk::Result(result)));
-		return 1;
-	}
-
-
-	// Define descriptor sets
-
-	descriptorSetArrays.resize(3);
-
-	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eCombinedImageSampler, 0);
-	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-
-	descriptorSetArrays[0].updateImage(0, 0, 0, vkSampler, vkImageView);
-
-
-	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, sizeof(CameraBlock));
-	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
-
-
-	descriptorSetArrays[2].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer,
-												sizeof(glm::vec4) * irradianceMapSampleCount);
-	descriptorSetArrays[2].init(vkDevice, vmaAllocator);
-
-
 	// Update camera block
 
 	CameraBlock cameraBlock;
@@ -105,17 +39,14 @@ int IrradianceMapRenderer::init() {
 		cameraBlock.viewProjectionMatrices[i] = projectionMatrix * viewMatrix;
 	}
 
-	descriptorSetArrays[1].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
-
 
 	// Update samples block
 
 	std::vector<glm::vec4> samples(irradianceMapSampleCount);
 	Generator::fibonacciSphere(samples.data(), samples.size(), 2);
 
-	descriptorSetArrays[2].updateBuffer(0, 0, samples.data(), sizeof(glm::vec4) * irradianceMapSampleCount);
 
-
+	// TODO: move to Engine::Generator
 	// Generate box mesh
 
 	boxMesh = MeshManager::createObject(0, "generated_box");
@@ -144,7 +75,15 @@ int IrradianceMapRenderer::init() {
 	shaderHandle = GraphicsShaderManager::getHandle<IrradianceShader>(boxMesh);
 
 
-	return GraphicsRendererBase::init();
+	if (GraphicsRendererBase::init()) {
+		return 1;
+	}
+
+	descriptorSetArrays[0].updateImage(0, 0, 0, inputVkSamplers[0], inputVkImageViews[0]);
+	descriptorSetArrays[1].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
+	descriptorSetArrays[2].updateBuffer(0, 0, samples.data(), sizeof(glm::vec4) * irradianceMapSampleCount);
+
+	return 0;
 }
 
 
@@ -152,11 +91,7 @@ void IrradianceMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffe
 														  uint layerIndex, double dt) {
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
-	// TODO: move to function
-	for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-										 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
-	}
+	bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
 
 
 	const auto& meshInfo = MeshManager::getMeshInfo(boxMesh);

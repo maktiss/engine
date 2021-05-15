@@ -22,6 +22,7 @@ public:
 		vk::Image image {};
 		vk::ImageView imageView {};
 		
+		vk::Format format {};
 		vk::ImageAspectFlags imageAspect {};
 
 		uint arrayLayers {};

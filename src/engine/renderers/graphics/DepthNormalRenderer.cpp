@@ -13,18 +13,6 @@ int DepthNormalRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
-	descriptorSetArrays.resize(3);
-
-	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 4);
-	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-
-	descriptorSetArrays[1].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 256);
-	descriptorSetArrays[1].init(vkDevice, vmaAllocator);
-
-	descriptorSetArrays[2].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 16);
-	descriptorSetArrays[2].init(vkDevice, vmaAllocator);
-
-
 	return ObjectRendererBase::init();
 }
 
@@ -35,10 +23,7 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 	for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
 		const auto& commandBuffer = pSecondaryCommandBuffers[threadIndex];
 
-		for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-											 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
-		}
+		bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
 
 		const auto textureDescriptorSet = TextureManager::getVkDescriptorSet();
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, 4, 1,

@@ -815,6 +815,9 @@ int RenderingSystem::init() {
 		renderer->setVkDevice(vkDevice);
 		renderer->setVulkanMemoryAllocator(vmaAllocator);
 		renderer->setThreadCount(threadCount);
+
+		renderer->setRendererName(rendererName);
+
 		renderer->init();
 	}
 

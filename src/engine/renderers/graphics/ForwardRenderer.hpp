@@ -67,15 +67,6 @@ private:
 	};
 
 
-private:
-	// TODO: destroy
-	vk::Sampler vkSampler {};
-	vk::Sampler vkShadowSampler {};
-
-	vk::ImageView vkShadowImageView {};
-	vk::ImageView vkIrradianceImageView {};
-
-
 public:
 	ForwardRenderer() : ObjectRendererBase(4, 2) {
 	}
@@ -154,6 +145,65 @@ public:
 		outputInitialLayouts[1] = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
 		return outputInitialLayouts;
+	}
+
+
+	std::vector<vk::SamplerCreateInfo> getInputVkSamplerCreateInfos() override {
+		auto samplerCreateInfos = RendererBase::getInputVkSamplerCreateInfos();
+
+		{
+			auto& samplerCreateInfo		   = samplerCreateInfos[getInputIndex("ShadowMap")];
+			samplerCreateInfo.addressModeU = vk::SamplerAddressMode::eClampToBorder;
+			samplerCreateInfo.addressModeV = vk::SamplerAddressMode::eClampToBorder;
+			samplerCreateInfo.addressModeW = vk::SamplerAddressMode::eClampToBorder;
+			samplerCreateInfo.borderColor  = vk::BorderColor::eFloatOpaqueWhite;
+		}
+
+		return samplerCreateInfos;
+	}
+
+
+	std::vector<vk::ImageViewCreateInfo> getInputVkImageViewCreateInfos() override {
+		auto imageViewCreateInfos = RendererBase::getInputVkImageViewCreateInfos();
+
+		{
+			auto& imageViewCreateInfo	 = imageViewCreateInfos[getInputIndex("ShadowMap")];
+			imageViewCreateInfo.viewType = vk::ImageViewType::e2DArray;
+		}
+
+		{
+			auto& imageViewCreateInfo	 = imageViewCreateInfos[getInputIndex("IrradianceMap")];
+			imageViewCreateInfo.viewType = vk::ImageViewType::eCube;
+		}
+
+		return imageViewCreateInfos;
+	}
+
+
+	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
+		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
+
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, 4 });
+		descriptorSetDescriptions.push_back({ 0, 1, vk::DescriptorType::eCombinedImageSampler });
+		descriptorSetDescriptions.push_back({ 0, 2, vk::DescriptorType::eCombinedImageSampler });
+		descriptorSetDescriptions.push_back({ 0, 3, vk::DescriptorType::eCombinedImageSampler });
+		descriptorSetDescriptions.push_back({ 0, 4, vk::DescriptorType::eCombinedImageSampler });
+		
+		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, 256 });
+
+
+		uint environmentBlockSize =
+			16 + (16 + 16 + 64 * directionalLightCascadeCount) +
+			(2 * sizeof(EnvironmentBlockMap::LightCluster) * clusterCountX * clusterCountY * clusterCountZ);
+
+		uint pointLightsBlockSize = maxVisiblePointLights * sizeof(PointLight);
+		uint spotLightsBlockSize  = maxVisibleSpotLights * sizeof(SpotLight);
+		
+		descriptorSetDescriptions.push_back({ 2, 0, vk::DescriptorType::eUniformBuffer, environmentBlockSize });
+		descriptorSetDescriptions.push_back({ 2, 1, vk::DescriptorType::eStorageBuffer, pointLightsBlockSize });
+		descriptorSetDescriptions.push_back({ 2, 2, vk::DescriptorType::eStorageBuffer, spotLightsBlockSize });
+
+		return descriptorSetDescriptions;
 	}
 
 

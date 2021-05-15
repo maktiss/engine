@@ -9,10 +9,6 @@ private:
 	MeshManager::Handle mesh {};
 	GraphicsShaderManager::Handle shaderHandle {};
 
-	// TODO: destroy
-	vk::Sampler vkSampler {};
-	vk::ImageView vkImageView {};
-
 	bool blurDirection {};
 	uint32_t blurKernelSize = 5;
 
@@ -78,6 +74,28 @@ public:
 		outputInitialLayouts[0] = vk::ImageLayout::eColorAttachmentOptimal;
 
 		return outputInitialLayouts;
+	}
+
+
+	std::vector<vk::ImageViewCreateInfo> getInputVkImageViewCreateInfos() override {
+		auto imageViewCreateInfos = RendererBase::getInputVkImageViewCreateInfos();
+
+		{
+			auto& imageViewCreateInfo	 = imageViewCreateInfos[getInputIndex("ColorBuffer")];
+			imageViewCreateInfo.viewType = vk::ImageViewType::e2DArray;
+		}
+
+		return imageViewCreateInfos;
+	}
+
+
+	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
+		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
+
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, 4 });
+		descriptorSetDescriptions.push_back({ 0, 1, vk::DescriptorType::eCombinedImageSampler });
+
+		return descriptorSetDescriptions;
 	}
 
 

@@ -13,65 +13,7 @@ int SkyboxRenderer::init() {
 	assert(outputSize != vk::Extent2D());
 
 
-	// Create input sampler
-
-	vk::SamplerCreateInfo samplerCreateInfo {};
-	samplerCreateInfo.minFilter				  = vk::Filter::eLinear;
-	samplerCreateInfo.magFilter				  = vk::Filter::eLinear;
-	samplerCreateInfo.addressModeU			  = vk::SamplerAddressMode::eClampToEdge;
-	samplerCreateInfo.addressModeV			  = vk::SamplerAddressMode::eClampToEdge;
-	samplerCreateInfo.addressModeW			  = vk::SamplerAddressMode::eClampToEdge;
-	samplerCreateInfo.anisotropyEnable		  = false;
-	samplerCreateInfo.maxAnisotropy			  = 0.0f;
-	samplerCreateInfo.unnormalizedCoordinates = false;
-	samplerCreateInfo.compareEnable			  = false;
-	samplerCreateInfo.compareOp				  = vk::CompareOp::eAlways;
-	samplerCreateInfo.mipmapMode			  = vk::SamplerMipmapMode::eLinear;
-	samplerCreateInfo.mipLodBias			  = 0.0f;
-	samplerCreateInfo.minLod				  = 0.0f;
-	samplerCreateInfo.maxLod				  = VK_LOD_CLAMP_NONE;
-
-	auto result = vkDevice.createSampler(&samplerCreateInfo, nullptr, &vkSampler);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("[SkyboxRenderer] Failed to create image sampler. Error code: {} ({})", result,
-					  vk::to_string(vk::Result(result)));
-		return 1;
-	}
-
-
-	// Create input imageview
-
-	auto textureInfo = TextureManager::getTextureInfo(inputs[0]);
-	vk::ImageViewCreateInfo imageViewCreateInfo {};
-	imageViewCreateInfo.viewType						= vk::ImageViewType::eCube;
-	imageViewCreateInfo.format							= getInputDescriptions()[0].format;
-	imageViewCreateInfo.subresourceRange.aspectMask		= vk::ImageAspectFlagBits::eColor;
-	imageViewCreateInfo.subresourceRange.baseMipLevel	= 0;
-	imageViewCreateInfo.subresourceRange.levelCount		= textureInfo.mipLevels;
-	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-	imageViewCreateInfo.subresourceRange.layerCount		= 6;
-	imageViewCreateInfo.image							= textureInfo.image;
-
-	result = vkDevice.createImageView(&imageViewCreateInfo, nullptr, &vkImageView);
-	if (result != vk::Result::eSuccess) {
-		spdlog::error("[SkyboxRenderer] Failed to create image view. Error code: {} ({})", result,
-					  vk::to_string(vk::Result(result)));
-		return 1;
-	}
-
-
-	// Define descriptor sets
-
-	descriptorSetArrays.resize(1);
-
-	descriptorSetArrays[0].setBindingCount(2);
-	descriptorSetArrays[0].setBindingLayoutInfo(0, vk::DescriptorType::eUniformBuffer, 64);
-	descriptorSetArrays[0].setBindingLayoutInfo(1, vk::DescriptorType::eCombinedImageSampler, 0);
-	descriptorSetArrays[0].init(vkDevice, vmaAllocator);
-
-	descriptorSetArrays[0].updateImage(0, 1, 0, vkSampler, vkImageView);
-
-
+	// TODO: move to Engine::Generator
 	// Generate skybox mesh
 
 	boxMesh = MeshManager::createObject(0, "generated_box");
@@ -100,7 +42,13 @@ int SkyboxRenderer::init() {
 	shaderHandle = GraphicsShaderManager::getHandle<SkyboxShader>(boxMesh);
 
 
-	return GraphicsRendererBase::init();
+	if (GraphicsRendererBase::init()) {
+		return 1;
+	}
+
+	descriptorSetArrays[0].updateImage(0, 1, 0, inputVkSamplers[0], inputVkImageViews[0]);
+
+	return 0;
 }
 
 
@@ -108,11 +56,7 @@ void SkyboxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 												   double dt) {
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
-	// TODO: move to function
-	for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-										 &descriptorSetArrays[setIndex].getVkDescriptorSet(0), 0, nullptr);
-	}
+	bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
 
 
 	struct CameraBlock {
