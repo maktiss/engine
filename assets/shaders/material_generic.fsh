@@ -1,11 +1,8 @@
 #version 460
 
-// #define DEBUG
+#if defined(RENDER_PASS_FORWARD) || defined(RENDER_PASS_DEPTH_NORMAL) || defined(RENDER_PASS_SHADOW_MAP)
 
-#include "material_common.glsl"
-
-
-#if defined(RENDER_PASS_FORWARD) || defined(RENDER_PASS_DEPTH_NORMAL)
+#include "common.glsl"
 
 
 layout(location = 0) in InData {
@@ -21,7 +18,7 @@ layout(location = 0) in InData {
 inData;
 
 
-layout(set = MATERIAL_BLOCK_SET, binding = 0) uniform MaterialBlock {
+layout(set = MATERIAL_SET_ID, binding = 0) uniform MaterialBlock {
 	vec4 color;
 
 	float metallic;
@@ -34,15 +31,11 @@ layout(set = MATERIAL_BLOCK_SET, binding = 0) uniform MaterialBlock {
 }
 uMaterial;
 
-layout(set = TEXTURE_BLOCK_SET, binding = 0) uniform sampler uSampler;
-layout(set = TEXTURE_BLOCK_SET, binding = 1) uniform texture2D uTextures[1024];
 
-
-#endif
+#endif // defined(RENDER_PASS_FORWARD) || defined(RENDER_PASS_DEPTH_NORMAL) || defined(RENDER_PASS_SHADOW_MAP)
 
 
 #ifdef RENDER_PASS_FORWARD
-
 
 layout(location = 0) out vec4 outColor;
 
@@ -87,7 +80,14 @@ void main() {
 	color += reflectedColor * max(dot(normal, reflectedDir), 0.0);
 
 	if (uEnvironment.useDirectionalLight) {
-		float shadowAmount = calcDirectionalShadow(inData.worldPosition, normalize(inData.worldNormal));
+		float shadowAmount = 1.0;
+
+		for (uint cascade = 0; cascade < DIRECTIONAL_LIGHT_CASCADE_COUNT; cascade++) {
+			mat4 lightSpaceMatrix = uEnvironment.directionalLight.lightSpaceMatrices[cascade];
+
+			shadowAmount *=
+				calcDirectionalShadow(inData.worldPosition, uDirectionalShadowMapBuffer, cascade, lightSpaceMatrix);
+		}
 
 		vec3 lightDir = -uEnvironment.directionalLight.direction;
 
@@ -105,7 +105,6 @@ void main() {
 
 #elif defined(RENDER_PASS_DEPTH_NORMAL)
 
-
 layout(location = 0) out vec4 outNormal;
 
 
@@ -122,7 +121,6 @@ void main() {
 
 
 #elif defined(RENDER_PASS_SHADOW_MAP)
-
 
 layout(location = 0) out vec4 outMoments;
 

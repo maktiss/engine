@@ -25,23 +25,17 @@ int ReflectionRenderer::init() {
 		return 1;
 	}
 
-
-	descriptorSetArrays[0].updateImage(0, 1, 0, inputVkSamplers[0], inputVkImageViews[0]);
-	descriptorSetArrays[0].updateImage(0, 2, 0, inputVkSamplers[1], inputVkImageViews[1]);
-	descriptorSetArrays[0].updateImage(0, 3, 0, inputVkSamplers[2], inputVkImageViews[2]);
-
 	return 0;
 }
 
 
 void ReflectionRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
-													   uint layerIndex, double dt) {
+													   uint layerIndex, uint descriptorSetIndex, double dt) {
+
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
-	bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
 
-
-	ParamBlock paramBlock;
+	CameraBlock cameraBlock;
 
 	EntityManager::forEach<TransformComponent, CameraComponent>([&](auto& transform, auto& camera) {
 		// TODO: Check if active camera
@@ -55,16 +49,12 @@ void ReflectionRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* 
 
 		auto projectionMatrix = camera.getProjectionMatrix();
 
-		paramBlock.invViewMatrix	   = glm::inverse(viewMatrix);
-		paramBlock.invProjectionMatrix = glm::inverse(projectionMatrix);
+		cameraBlock.invViewMatrix		= glm::inverse(viewMatrix);
+		cameraBlock.invProjectionMatrix = glm::inverse(projectionMatrix);
 	});
 
-	// EntityManager::forEach<CameraComponent>([&](const auto& camera) {
-	// 	// FIXME: active camera
-	// 	invProjectionMatrix = glm::inverse(camera.getProjectionMatrix());
-	// });
 
-	descriptorSetArrays[0].updateBuffer(0, 0, &paramBlock, sizeof(paramBlock));
+	descriptorSetArrays[0].updateBuffer(descriptorSetIndex, 0, &cameraBlock, sizeof(cameraBlock));
 
 
 	const auto& meshInfo = MeshManager::getMeshInfo(mesh);

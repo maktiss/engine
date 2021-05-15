@@ -25,18 +25,14 @@ int BoxBlurRenderer::init() {
 		return 1;
 	}
 
-
-	descriptorSetArrays[0].updateImage(0, 1, 0, inputVkSamplers[0], inputVkImageViews[0]);
-
 	return 0;
 }
 
 
 void BoxBlurRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-													double dt) {
-	const auto& commandBuffer = pSecondaryCommandBuffers[0];
+													uint descriptorSetIndex, double dt) {
 
-	bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
+	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
 
 	commandBuffer.pushConstants(vkPipelineLayout, vk::ShaderStageFlagBits::eAll, 0, 4, &layerIndex);

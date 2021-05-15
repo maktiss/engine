@@ -27,7 +27,7 @@ public:
 	int init() override;
 
 	void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-									   double dt) override;
+											   uint descriptorSetIndex, double dt) override;
 
 	const char* getRenderPassName() const override {
 		return "RENDER_PASS_IMGUI";

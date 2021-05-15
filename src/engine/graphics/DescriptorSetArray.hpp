@@ -20,14 +20,14 @@ private:
 	};
 
 	// Buffer for each element for each binding
-	std::vector<BufferInfo> bufferInfos { 1, BufferInfo() };
+	std::vector<BufferInfo> bufferInfos {};
 
 	struct BindingLayoutInfo {
 		vk::DescriptorType descriptorType {};
 		vk::DeviceSize size {};
 		uint32_t descriptorCount = 1;
 	};
-	std::vector<BindingLayoutInfo> bindingLayoutInfos { 1, BindingLayoutInfo() };
+	std::vector<BindingLayoutInfo> bindingLayoutInfos {};
 
 	vk::DescriptorPool vkDescriptorPool {};
 	vk::DescriptorSetLayout vkDescriptorSetLayout {};
@@ -40,6 +40,9 @@ public:
 	int updateBuffer(uint elementIndex, uint bindingIndex, void* pData, uint64_t size);
 	int updateImage(uint elementIndex, uint bindingIndex, uint descriptorIndex, vk::Sampler sampler,
 					vk::ImageView imageView);
+
+	int updateBuffers(uint bindingIndex, void* pData, uint64_t size);
+	int updateImages(uint bindingIndex, uint descriptorIndex, vk::Sampler sampler, vk::ImageView imageView);
 
 	int mapBuffer(uint elementIndex, uint bindingIndex, void*& pData);
 	int unmapBuffer(uint elementIndex, uint bindingIndex);
@@ -89,8 +92,8 @@ public:
 		return vkDescriptorSetLayout;
 	}
 
-	inline const auto& getVkDescriptorSet(uint index) const {
-		return vkDescriptorSets[index];
+	inline const auto& getVkDescriptorSet(uint elementIndex) const {
+		return vkDescriptorSets[elementIndex];
 	}
 };
 } // namespace Engine

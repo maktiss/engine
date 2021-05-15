@@ -32,6 +32,8 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 								 const vk::CommandBuffer* pSecondaryCommandBuffers,
 								 const vk::QueryPool& timestampQueryPool, double dt) {
 
+	currentFrameInFlight = (currentFrameInFlight + 1) % framesInFlightCount;
+
 	for (uint layerIndex = 0; layerIndex < getLayerCount(); layerIndex++) {
 		vk::CommandBufferBeginInfo commandBufferBeginInfo {};
 
@@ -71,16 +73,28 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 
 		auto pSecondaryCommandBuffersForLayer = pSecondaryCommandBuffers + layerIndex * threadCount;
 
+		uint descriptorSetIndex = currentFrameInFlight * getLayerCount() + layerIndex;
+
 		for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
-			result = pSecondaryCommandBuffersForLayer[threadIndex].begin(&commandBufferBeginInfo);
+			auto& secondaryCommandBuffer = pSecondaryCommandBuffersForLayer[threadIndex];
+
+			result = secondaryCommandBuffer.begin(&commandBufferBeginInfo);
 			if (result != vk::Result::eSuccess) {
 				spdlog::error("Failed to record secondary command buffer. Error code: {} ({})", result,
 							  vk::to_string(result));
 				return 1;
 			}
+
+			bindDescriptorSets(secondaryCommandBuffer, vk::PipelineBindPoint::eGraphics, descriptorSetIndex);
+
+			const auto textureDescriptorSet		 = TextureManager::getVkDescriptorSet();
+			const auto textureDescriptorSetIndex = descriptorSetArrays.size();
+
+			secondaryCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout,
+													  textureDescriptorSetIndex, 1, &textureDescriptorSet, 0, nullptr);
 		}
 
-		recordSecondaryCommandBuffers(pSecondaryCommandBuffersForLayer, layerIndex, dt);
+		recordSecondaryCommandBuffers(pSecondaryCommandBuffersForLayer, layerIndex, descriptorSetIndex, dt);
 
 		for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
 			result = pSecondaryCommandBuffersForLayer[threadIndex].end();

@@ -18,25 +18,9 @@ int DepthNormalRenderer::init() {
 
 
 void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
-														uint layerIndex, double dt) {
-	// TODO: move to function
-	for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
-		const auto& commandBuffer = pSecondaryCommandBuffers[threadIndex];
+														uint layerIndex, uint descriptorSetIndex, double dt) {
 
-		bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
-
-		const auto textureDescriptorSet = TextureManager::getVkDescriptorSet();
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, 4, 1,
-										 &textureDescriptorSet, 0, nullptr);
-	}
-
-	struct {
-		glm::mat4 viewMatrix;
-		glm::mat4 projectionMatrix;
-
-		glm::mat4 invViewMatrix;
-		glm::mat4 invProjectionMatrix;
-	} cameraBlock;
+	CameraBlock cameraBlock;
 
 	EntityManager::forEach<TransformComponent, CameraComponent>([&cameraBlock](auto& transform, auto& camera) {
 		glm::vec4 viewVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
@@ -53,7 +37,7 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
 
-	descriptorSetArrays[1].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
+	descriptorSetArrays[0].updateBuffer(descriptorSetIndex, 0, &cameraBlock, sizeof(cameraBlock));
 
 	Frustum frustum { cameraBlock.projectionMatrix * cameraBlock.viewMatrix };
 	drawObjects(pSecondaryCommandBuffers, &frustum, 1);

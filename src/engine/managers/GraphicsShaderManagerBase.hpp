@@ -196,7 +196,7 @@ public:
 				for (uint signature = 0; signature < ShaderType::getSignatureCount(); signature++) {
 					shaderc::CompileOptions options;
 
-					options.SetOptimizationLevel(shaderc_optimization_level_size);
+					options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
 					options.AddMacroDefinition(DerivedManager::getRenderPassStrings()[renderPassIndex]);
 					options.AddMacroDefinition(MeshManager::getMeshTypeString(meshTypeIndex));

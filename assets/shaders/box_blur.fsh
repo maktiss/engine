@@ -3,6 +3,9 @@
 
 #ifdef RENDER_PASS_BOX_BLUR
 
+#define SET_ID_OFFSET 0
+#include "common.glsl"
+
 
 layout(location = 0) in InData {
 	vec2 texCoord;
@@ -22,7 +25,8 @@ layout(push_constant) uniform Params {
 }
 uParams;
 
-layout(set = 0, binding = 1) uniform sampler2DArray uInput;
+
+layout(set = INPUT_TEXTURES_SET_ID, binding = 0) uniform sampler2DArray uInput;
 
 
 void main() {

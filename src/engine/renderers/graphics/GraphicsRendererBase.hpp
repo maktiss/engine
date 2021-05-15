@@ -19,7 +19,7 @@ public:
 
 	// Records secondary command buffers within renderpass
 	virtual void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-											   double dt) = 0;
+											   uint descriptorSetIndex, double dt) = 0;
 
 	virtual const char* getRenderPassName() const = 0;
 
@@ -27,14 +27,6 @@ public:
 	virtual int render(const vk::CommandBuffer* pPrimaryCommandBuffers,
 					   const vk::CommandBuffer* pSecondaryCommandBuffers, const vk::QueryPool& timestampQueryPool,
 					   double dt) override;
-
-
-	virtual std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() override {
-		auto layouts = RendererBase::getVkDescriptorSetLayouts();
-		layouts.push_back(MaterialManager::getVkDescriptorSetLayout());
-		layouts.push_back(TextureManager::getVkDescriptorSetLayout());
-		return layouts;
-	}
 
 
 	uint getColorAttachmentCount() const;

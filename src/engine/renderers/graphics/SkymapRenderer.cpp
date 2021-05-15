@@ -32,19 +32,18 @@ int SkymapRenderer::init() {
 
 
 	CameraBlock cameraBlock;
-
 	Generator::cubeViewMatrices(cameraBlock.viewProjectionMatrices, 0.1f, 1000.0f);
-	descriptorSetArrays[0].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
+
+	descriptorSetArrays[0].updateBuffers(0, &cameraBlock, sizeof(cameraBlock));
 
 	return 0;
 }
 
 
 void SkymapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-												   double dt) {
-	const auto& commandBuffer = pSecondaryCommandBuffers[0];
+												   uint descriptorSetIndex, double dt) {
 
-	bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
+	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
 
 	auto sunDirection = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
@@ -59,7 +58,7 @@ void SkymapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 		}
 	});
 
-	descriptorSetArrays[1].updateBuffer(0, 0, &sunDirection, sizeof(sunDirection));
+	descriptorSetArrays[1].updateBuffer(descriptorSetIndex, 0, &sunDirection, sizeof(sunDirection));
 
 
 	const auto& meshInfo = MeshManager::getMeshInfo(skySphereMesh);

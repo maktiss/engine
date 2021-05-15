@@ -28,7 +28,7 @@ public:
 	int init() override;
 
 	void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-									   double dt) override;
+									   uint descriptorSetIndex, double dt) override;
 
 	const char* getRenderPassName() const override {
 		return "RENDER_PASS_IRRADIANCE_MAP";
@@ -105,10 +105,9 @@ public:
 	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
 		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
 
-		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eCombinedImageSampler });
-		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, sizeof(CameraBlock) });
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, sizeof(CameraBlock) });
 		descriptorSetDescriptions.push_back(
-			{ 2, 0, vk::DescriptorType::eUniformBuffer, sizeof(glm::vec4) * irradianceMapSampleCount });
+			{ 1, 0, vk::DescriptorType::eUniformBuffer, sizeof(glm::vec4) * irradianceMapSampleCount });
 
 		return descriptorSetDescriptions;
 	}

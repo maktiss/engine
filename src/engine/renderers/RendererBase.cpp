@@ -25,10 +25,11 @@ int RendererBase::init() {
 }
 
 
-void RendererBase::bindDescriptorSets(const vk::CommandBuffer& commandBuffer, vk::PipelineBindPoint bindPoint) {
-	for (const auto& [setIndex, descriptorSetArray] : descriptorSetArrays) {
+void RendererBase::bindDescriptorSets(const vk::CommandBuffer& commandBuffer, vk::PipelineBindPoint bindPoint,
+									  uint elementIndex) {
+	for (uint setIndex = 0; setIndex < descriptorSetArrays.size(); setIndex++) {
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout, setIndex, 1,
-										 &descriptorSetArray.getVkDescriptorSet(0), 0, nullptr);
+										 &descriptorSetArrays[setIndex].getVkDescriptorSet(elementIndex), 0, nullptr);
 	}
 }
 
@@ -36,9 +37,16 @@ void RendererBase::bindDescriptorSets(const vk::CommandBuffer& commandBuffer, vk
 int RendererBase::defineDescriptorSets() {
 	auto descriptorSetDescriptions = getDescriptorSetDescriptions();
 
+
+	// Define descriptor sets
+
 	descriptorSetArrays.clear();
 
 	for (const auto& descriptorSetDescription : descriptorSetDescriptions) {
+		if (descriptorSetDescription.setIndex >= descriptorSetArrays.size()) {
+			descriptorSetArrays.resize(descriptorSetDescription.setIndex + 1);
+		}
+
 		auto& descriptorSetArray = descriptorSetArrays[descriptorSetDescription.setIndex];
 
 		descriptorSetArray.setBindingLayoutInfo(descriptorSetDescription.bindingIndex, descriptorSetDescription.type,
@@ -46,7 +54,23 @@ int RendererBase::defineDescriptorSets() {
 												descriptorSetDescription.descriptorCount);
 	}
 
-	for (auto& [setIndex, descriptorSetArray] : descriptorSetArrays) {
+
+	// Define descriptor set for input textures
+
+	const uint inputDescriptorSetIndex = descriptorSetArrays.size();
+
+	DescriptorSetArray inputDescriptorSetArray {};
+
+	for (uint inputIndex = 0; inputIndex < getInputCount(); inputIndex++) {
+		inputDescriptorSetArray.setBindingLayoutInfo(inputIndex, vk::DescriptorType::eCombinedImageSampler, 0, 1);
+	}
+
+	descriptorSetArrays.push_back(inputDescriptorSetArray);
+
+
+	// Init descriptor sets
+
+	for (auto& descriptorSetArray : descriptorSetArrays) {
 		descriptorSetArray.setElementCount(framesInFlightCount * getLayerCount());
 
 		descriptorSetArray.setVkDevice(vkDevice);
@@ -55,6 +79,14 @@ int RendererBase::defineDescriptorSets() {
 		if (descriptorSetArray.init()) {
 			return 1;
 		}
+	}
+
+
+	// Update descriptor set for input textures
+
+	for (uint inputIndex = 0; inputIndex < getInputCount(); inputIndex++) {
+		descriptorSetArrays[inputDescriptorSetIndex].updateImages(inputIndex, 0, inputVkSamplers[inputIndex],
+																  inputVkImageViews[inputIndex]);
 	}
 
 	return 0;
@@ -126,7 +158,7 @@ int RendererBase::createInputVkImageViews() {
 
 
 void RendererBase::dispose() {
-	for (auto& [setIndex, descriptorSetArray] : descriptorSetArrays) {
+	for (auto& descriptorSetArray : descriptorSetArrays) {
 		descriptorSetArray.dispose();
 	}
 	descriptorSetArrays.clear();

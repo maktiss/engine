@@ -6,6 +6,16 @@
 
 namespace Engine {
 class DepthNormalRenderer : public ObjectRendererBase {
+private:
+	struct CameraBlock {
+		glm::mat4 viewMatrix;
+		glm::mat4 projectionMatrix;
+
+		glm::mat4 invViewMatrix;
+		glm::mat4 invProjectionMatrix;
+	};
+
+
 public:
 	DepthNormalRenderer() : ObjectRendererBase(0, 2) {
 	}
@@ -14,7 +24,7 @@ public:
 	int init() override;
 
 	void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-									   double dt) override;
+									   uint descriptorSetIndex, double dt) override;
 
 	const char* getRenderPassName() const override {
 		return "RENDER_PASS_DEPTH_NORMAL";
@@ -67,9 +77,7 @@ public:
 	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
 		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
 
-		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, 4 });
-		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, 256 });
-		descriptorSetDescriptions.push_back({ 2, 0, vk::DescriptorType::eUniformBuffer, 16 });
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, sizeof(CameraBlock) });
 
 		return descriptorSetDescriptions;
 	}

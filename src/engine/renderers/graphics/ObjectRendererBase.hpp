@@ -42,6 +42,8 @@ private:
 
 		uint fragmentIndex;
 		uint fragmentCount;
+
+		uint materialDescriptorSetIndex;
 	};
 	std::vector<DrawObjectsThreadInfo> drawObjectsThreadInfos {};
 

@@ -20,6 +20,15 @@ private:
 	PROPERTY(float, "Graphics", directionalLightCascadeOffset, 0.75f);
 
 
+	struct CameraBlock {
+		glm::mat4 viewMatrix;
+		glm::mat4 projectionMatrix;
+
+		glm::mat4 invViewMatrix;
+		glm::mat4 invProjectionMatrix;
+	};
+
+
 	struct EnvironmentBlockMap {
 		bool* useDirectionalLight {};
 		struct {
@@ -75,7 +84,7 @@ public:
 	int init() override;
 
 	void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-									   double dt) override;
+									   uint descriptorSetIndex, double dt) override;
 
 	const char* getRenderPassName() const override {
 		return "RENDER_PASS_FORWARD";
@@ -183,13 +192,7 @@ public:
 	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
 		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
 
-		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, 4 });
-		descriptorSetDescriptions.push_back({ 0, 1, vk::DescriptorType::eCombinedImageSampler });
-		descriptorSetDescriptions.push_back({ 0, 2, vk::DescriptorType::eCombinedImageSampler });
-		descriptorSetDescriptions.push_back({ 0, 3, vk::DescriptorType::eCombinedImageSampler });
-		descriptorSetDescriptions.push_back({ 0, 4, vk::DescriptorType::eCombinedImageSampler });
-		
-		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, 256 });
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, sizeof(CameraBlock) });
 
 
 		uint environmentBlockSize =
@@ -198,10 +201,10 @@ public:
 
 		uint pointLightsBlockSize = maxVisiblePointLights * sizeof(PointLight);
 		uint spotLightsBlockSize  = maxVisibleSpotLights * sizeof(SpotLight);
-		
-		descriptorSetDescriptions.push_back({ 2, 0, vk::DescriptorType::eUniformBuffer, environmentBlockSize });
-		descriptorSetDescriptions.push_back({ 2, 1, vk::DescriptorType::eStorageBuffer, pointLightsBlockSize });
-		descriptorSetDescriptions.push_back({ 2, 2, vk::DescriptorType::eStorageBuffer, spotLightsBlockSize });
+
+		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, environmentBlockSize });
+		descriptorSetDescriptions.push_back({ 1, 1, vk::DescriptorType::eStorageBuffer, pointLightsBlockSize });
+		descriptorSetDescriptions.push_back({ 1, 2, vk::DescriptorType::eStorageBuffer, spotLightsBlockSize });
 
 		return descriptorSetDescriptions;
 	}
@@ -211,11 +214,11 @@ public:
 		std::vector<SpecializationConstantDescription> specializationConstantDescriptions {};
 		specializationConstantDescriptions.resize(3);
 
-		specializationConstantDescriptions[0] = { 0, (void*)(&directionalLightCascadeCount),
+		specializationConstantDescriptions[0] = { 100, (void*)(&directionalLightCascadeCount),
 												  sizeof(directionalLightCascadeCount) };
-		specializationConstantDescriptions[1] = { 1, (void*)(&directionalLightCascadeBase),
+		specializationConstantDescriptions[1] = { 101, (void*)(&directionalLightCascadeBase),
 												  sizeof(directionalLightCascadeBase) };
-		specializationConstantDescriptions[2] = { 2, (void*)(&directionalLightCascadeOffset),
+		specializationConstantDescriptions[2] = { 102, (void*)(&directionalLightCascadeOffset),
 												  sizeof(directionalLightCascadeOffset) };
 
 		return specializationConstantDescriptions;

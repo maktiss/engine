@@ -32,19 +32,18 @@ int IrradianceMapRenderer::init() {
 	std::vector<glm::vec4> samples(irradianceMapSampleCount);
 	Generator::fibonacciSphere(samples.data(), samples.size(), 2);
 
-	descriptorSetArrays[0].updateImage(0, 0, 0, inputVkSamplers[0], inputVkImageViews[0]);
-	descriptorSetArrays[1].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
-	descriptorSetArrays[2].updateBuffer(0, 0, samples.data(), sizeof(glm::vec4) * irradianceMapSampleCount);
+	// descriptorSetArrays[0].updateImages(0, 0, inputVkSamplers[0], inputVkImageViews[0]);
+	descriptorSetArrays[0].updateBuffers(0, &cameraBlock, sizeof(cameraBlock));
+	descriptorSetArrays[1].updateBuffers(0, samples.data(), sizeof(glm::vec4) * irradianceMapSampleCount);
 
 	return 0;
 }
 
 
 void IrradianceMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
-														  uint layerIndex, double dt) {
-	const auto& commandBuffer = pSecondaryCommandBuffers[0];
+														  uint layerIndex, uint descriptorSetIndex, double dt) {
 
-	bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
+	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
 
 	const auto& meshInfo = MeshManager::getMeshInfo(boxMesh);

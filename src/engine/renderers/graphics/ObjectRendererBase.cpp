@@ -18,14 +18,15 @@ void ObjectRendererBase::drawObjects(const vk::CommandBuffer* pSecondaryCommandB
 									 uint includeFrustumCount, const Frustum* excludeFrustums,
 									 uint excludeFrustumCount) {
 	for (uint i = 0; i < drawObjectsThreadInfos.size(); i++) {
-		drawObjectsThreadInfos[i].renderer				   = this;
-		drawObjectsThreadInfos[i].pSecondaryCommandBuffers = pSecondaryCommandBuffers;
-		drawObjectsThreadInfos[i].includeFrustums		   = includeFrustums;
-		drawObjectsThreadInfos[i].includeFrustumCount	   = includeFrustumCount;
-		drawObjectsThreadInfos[i].excludeFrustums		   = excludeFrustums;
-		drawObjectsThreadInfos[i].excludeFrustumCount	   = excludeFrustumCount;
-		drawObjectsThreadInfos[i].fragmentIndex			   = i;
-		drawObjectsThreadInfos[i].fragmentCount			   = drawObjectsThreadInfos.size();
+		drawObjectsThreadInfos[i].renderer					 = this;
+		drawObjectsThreadInfos[i].pSecondaryCommandBuffers	 = pSecondaryCommandBuffers;
+		drawObjectsThreadInfos[i].includeFrustums			 = includeFrustums;
+		drawObjectsThreadInfos[i].includeFrustumCount		 = includeFrustumCount;
+		drawObjectsThreadInfos[i].excludeFrustums			 = excludeFrustums;
+		drawObjectsThreadInfos[i].excludeFrustumCount		 = excludeFrustumCount;
+		drawObjectsThreadInfos[i].fragmentIndex				 = i;
+		drawObjectsThreadInfos[i].fragmentCount				 = drawObjectsThreadInfos.size();
+		drawObjectsThreadInfos[i].materialDescriptorSetIndex = descriptorSetArrays.size() + 1;
 
 		threadPool.appendData(&drawObjectsThreadInfos[i]);
 	}
@@ -110,6 +111,9 @@ void ObjectRendererBase::drawObjectsThreadFunc(uint threadIndex, void* pData) {
 	vk::Buffer lastVertexBuffer {};
 	vk::DescriptorSet lastMaterial {};
 
+
+	const auto& materialDescriptorSetIndex = drawObjectsThreadInfo.materialDescriptorSetIndex;
+
 	for (const auto& [key, renderInfoIndex] : renderInfoIndices) {
 		const auto& renderInfo = renderInfoCache[renderInfoIndex];
 
@@ -136,8 +140,8 @@ void ObjectRendererBase::drawObjectsThreadFunc(uint threadIndex, void* pData) {
 			lastMaterial = renderInfo.material;
 
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-											 drawObjectsThreadInfo.renderer->vkPipelineLayout, 3, 1,
-											 &renderInfo.material, 0, nullptr);
+											 drawObjectsThreadInfo.renderer->vkPipelineLayout,
+											 materialDescriptorSetIndex, 1, &renderInfo.material, 0, nullptr);
 		}
 
 

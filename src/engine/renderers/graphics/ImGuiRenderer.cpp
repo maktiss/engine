@@ -83,7 +83,8 @@ int ImGuiRenderer::init() {
 
 
 void ImGuiRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-												  double dt) {
+												  uint descriptorSetIndex, double dt) {
+
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);

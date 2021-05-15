@@ -25,22 +25,17 @@ int SkyboxRenderer::init() {
 		return 1;
 	}
 
-	descriptorSetArrays[0].updateImage(0, 1, 0, inputVkSamplers[0], inputVkImageViews[0]);
-
 	return 0;
 }
 
 
 void SkyboxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-												   double dt) {
+												   uint descriptorSetIndex, double dt) {
+
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
-	bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
 
-
-	struct CameraBlock {
-		glm::mat4 viewProjectionMatrix;
-	} cameraBlock;
+	CameraBlock cameraBlock;
 
 
 	EntityManager::forEach<TransformComponent, CameraComponent>([&](auto& transform, auto& camera) {
@@ -57,7 +52,7 @@ void SkyboxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 		cameraBlock.viewProjectionMatrix = camera.getProjectionMatrix() * viewMatrix;
 	});
 
-	descriptorSetArrays[0].updateBuffer(0, 0, &cameraBlock, sizeof(cameraBlock));
+	descriptorSetArrays[0].updateBuffer(descriptorSetIndex, 0, &cameraBlock, sizeof(cameraBlock));
 
 
 	const auto& meshInfo = MeshManager::getMeshInfo(boxMesh);

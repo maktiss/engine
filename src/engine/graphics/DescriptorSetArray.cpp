@@ -154,6 +154,7 @@ int DescriptorSetArray::updateBuffer(uint elementIndex, uint bindingIndex, void*
 
 int DescriptorSetArray::updateImage(uint elementIndex, uint bindingIndex, uint descriptorIndex, vk::Sampler sampler,
 									vk::ImageView imageView) {
+
 	assert(vkDevice != vk::Device());
 
 	vk::DescriptorImageInfo descriptorImageInfo {};
@@ -170,6 +171,29 @@ int DescriptorSetArray::updateImage(uint elementIndex, uint bindingIndex, uint d
 	writeDescriptorSet.pImageInfo	   = &descriptorImageInfo;
 
 	vkDevice.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+	return 0;
+}
+
+
+int DescriptorSetArray::updateBuffers(uint bindingIndex, void* pData, uint64_t size) {
+	for (uint elementIndex = 0; elementIndex < getElementCount(); elementIndex++) {
+		if (updateBuffer(elementIndex, bindingIndex, pData, size)) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int DescriptorSetArray::updateImages(uint bindingIndex, uint descriptorIndex, vk::Sampler sampler,
+									 vk::ImageView imageView) {
+
+	for (uint elementIndex = 0; elementIndex < getElementCount(); elementIndex++) {
+		if (updateImage(elementIndex, bindingIndex, descriptorIndex, sampler, imageView)) {
+			return 1;
+		}
+	}
+
 	return 0;
 }
 

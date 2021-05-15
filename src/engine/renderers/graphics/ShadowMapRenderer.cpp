@@ -20,22 +20,9 @@ int ShadowMapRenderer::init() {
 
 
 void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
-													  uint layerIndex, double dt) {
-	// TODO: move to function
-	for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
-		const auto& commandBuffer = pSecondaryCommandBuffers[threadIndex];
+													  uint layerIndex, uint descriptorSetIndex, double dt) {
 
-		bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
-	}
-
-
-	struct {
-		glm::mat4 viewMatrix;
-		glm::mat4 projectionMatrix;
-
-		glm::mat4 invViewMatrix;
-		glm::mat4 invProjectionMatrix;
-	} cameraBlock;
+	CameraBlock cameraBlock;
 
 	glm::vec3 cameraPos;
 	glm::vec3 cameraViewDir;
@@ -95,7 +82,7 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
 
-	descriptorSetArrays[1].updateBuffer(layerIndex, 0, &cameraBlock, sizeof(cameraBlock));
+	descriptorSetArrays[0].updateBuffer(descriptorSetIndex, 0, &cameraBlock, sizeof(cameraBlock));
 
 
 	Frustum frustum { cameraBlock.projectionMatrix * cameraBlock.viewMatrix };

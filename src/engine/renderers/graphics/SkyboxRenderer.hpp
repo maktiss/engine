@@ -6,6 +6,12 @@
 namespace Engine {
 class SkyboxRenderer : public GraphicsRendererBase {
 private:
+	struct CameraBlock {
+		glm::mat4 viewProjectionMatrix;
+	};
+
+
+private:
 	MeshManager::Handle boxMesh {};
 	GraphicsShaderManager::Handle shaderHandle {};
 
@@ -18,7 +24,7 @@ public:
 	int init() override;
 
 	void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-									   double dt) override;
+									   uint descriptorSetIndex, double dt) override;
 
 	const char* getRenderPassName() const override {
 		return "RENDER_PASS_SKYBOX";
@@ -88,8 +94,7 @@ public:
 	std::vector<DescriptorSetDescription> getDescriptorSetDescriptions() const {
 		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
 
-		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, 64 });
-		descriptorSetDescriptions.push_back({ 0, 1, vk::DescriptorType::eCombinedImageSampler });
+		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, sizeof(CameraBlock) });
 
 		return descriptorSetDescriptions;
 	}

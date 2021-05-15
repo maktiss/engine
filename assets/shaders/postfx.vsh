@@ -7,7 +7,6 @@ layout(location = 1) in vec2 aTexCoord;
 
 #ifdef RENDER_PASS_POSTFX
 
-
 layout(location = 0) out OutData {
 	vec2 texCoord;
 } outData;

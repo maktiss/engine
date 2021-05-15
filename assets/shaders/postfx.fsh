@@ -3,6 +3,9 @@
 
 #ifdef RENDER_PASS_POSTFX
 
+#define SET_ID_OFFSET 0
+#include "common.glsl"
+
 
 layout(location = 0) in InData {
 	vec2 texCoord;
@@ -13,11 +16,7 @@ inData;
 layout(location = 0) out vec4 outColor;
 
 
-layout(set = 0, binding = 0) uniform Params {
-	mat4 viewProjectionMatrix;
-} uParams;
-
-layout(set = 0, binding = 1) uniform sampler2D uInput;
+layout(set = INPUT_TEXTURES_SET_ID, binding = 0) uniform sampler2D uInput;
 
 
 vec3 ACESFilm(vec3 x) {

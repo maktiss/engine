@@ -26,17 +26,16 @@ int PostFxRenderer::init() {
 	}
 
 
-	descriptorSetArrays[0].updateImage(0, 1, 0, inputVkSamplers[0], inputVkImageViews[0]);
+	// descriptorSetArrays[0].updateImages(1, 0, inputVkSamplers[0], inputVkImageViews[0]);
 
 	return 0;
 }
 
 
 void PostFxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-												   double dt) {
-	const auto& commandBuffer = pSecondaryCommandBuffers[0];
+												   uint descriptorSetIndex, double dt) {
 
-	bindDescriptorSets(commandBuffer, vk::PipelineBindPoint::eGraphics);
+	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
 
 	const auto& meshInfo = MeshManager::getMeshInfo(mesh);

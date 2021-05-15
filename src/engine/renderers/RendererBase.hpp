@@ -58,6 +58,8 @@ protected:
 	uint threadCount		 = 1;
 	uint framesInFlightCount = 3;
 
+	uint currentFrameInFlight {};
+
 	// Created and set by rendering system
 	std::vector<TextureManager::Handle> inputs {};
 	std::vector<TextureManager::Handle> outputs {};
@@ -78,7 +80,7 @@ protected:
 	std::vector<vk::Sampler> inputVkSamplers {};
 	std::vector<vk::ImageView> inputVkImageViews {};
 
-	std::unordered_map<uint, DescriptorSetArray> descriptorSetArrays {};
+	std::vector<DescriptorSetArray> descriptorSetArrays {};
 
 
 public:
@@ -300,9 +302,14 @@ protected:
 
 	virtual std::vector<vk::DescriptorSetLayout> getVkDescriptorSetLayouts() {
 		std::vector<vk::DescriptorSetLayout> layouts(descriptorSetArrays.size());
+
 		for (uint i = 0; i < layouts.size(); i++) {
 			layouts[i] = descriptorSetArrays[i].getVkDescriptorSetLayout();
 		}
+
+		layouts.push_back(TextureManager::getVkDescriptorSetLayout());
+		layouts.push_back(MaterialManager::getVkDescriptorSetLayout());
+
 		return layouts;
 	}
 
@@ -317,7 +324,7 @@ protected:
 			if (errorMessage.empty()) {
 				errorMessage = "Vulkan error occured";
 			}
-			spdlog::error(std::string("[") + rendererName + "]" + errorMessage + ". Error code: {} ({})", result,
+			spdlog::error("[{}] {}. Error code: {} ({})", rendererName, errorMessage, result,
 						  vk::to_string(vk::Result(result)));
 			return VkResult(result);
 		}
@@ -325,7 +332,7 @@ protected:
 	}
 
 
-	void bindDescriptorSets(const vk::CommandBuffer& commandBuffer, vk::PipelineBindPoint bindPoint);
+	void bindDescriptorSets(const vk::CommandBuffer& commandBuffer, vk::PipelineBindPoint bindPoint, uint elementIndex);
 
 
 private:

@@ -3,6 +3,11 @@
 
 #ifdef RENDER_PASS_SKYBOX
 
+#define CAMERA_SET_ID 0
+
+#define SET_ID_OFFSET 1
+#include "common.glsl"
+
 
 layout(location = 0) in InData {
 	vec3 texCoord;
@@ -13,7 +18,7 @@ inData;
 layout(location = 0) out vec4 outColor;
 
 
-layout(set = 0, binding = 1) uniform samplerCube uCubeMap;
+layout(set = INPUT_TEXTURES_SET_ID, binding = 0) uniform samplerCube uCubeMap;
 
 
 void main() {
