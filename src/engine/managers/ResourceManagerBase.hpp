@@ -104,7 +104,7 @@ public:
 			// TODO: error: typeIndex out of range
 		}
 
-		objectInfos[id] = { referenceCounts.size(), true, typeIndex, newSize - 1 };
+		objectInfos[id] = { static_cast<uint32_t>(referenceCounts.size()), true, typeIndex, newSize - 1 };
 
 
 		std::string originalName = name;
@@ -126,7 +126,8 @@ public:
 		}
 
 		if (originalName != name) {
-			spdlog::warn("Attempt to create a resource with existing name '{}', using '{}' instead", originalName, name);
+			spdlog::warn("Attempt to create a resource with existing name '{}', using '{}' instead", originalName,
+						 name);
 		}
 
 		objectIdMap[name] = id;
