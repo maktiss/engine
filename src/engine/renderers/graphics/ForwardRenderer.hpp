@@ -20,39 +20,34 @@ private:
 	PROPERTY(float, "Graphics", directionalLightCascadeOffset, 0.75f);
 
 
+private:
 	struct CameraBlock {
 		glm::mat4 viewMatrix;
 		glm::mat4 projectionMatrix;
 
 		glm::mat4 invViewMatrix;
 		glm::mat4 invProjectionMatrix;
+	} uCameraBlock;
+
+
+	struct DirectionalLightBlock {
+		glm::vec3 direction {};
+		bool enabled {};
+
+		glm::vec3 color {};
+		int32_t shadowMapIndex {};
+	} uDirectionalLightBlock;
+
+	std::vector<glm::mat4> uDirectionalLightMatrices { directionalLightCascadeCount };
+
+
+	struct LightCluster {
+		uint32_t start {};
+		uint32_t endShadow {};
+		uint32_t end {};
+
+		uint32_t _padding {};
 	};
-
-
-	struct EnvironmentBlockMap {
-		bool* useDirectionalLight {};
-		struct {
-			glm::vec3* direction {};
-
-			glm::vec3* color {};
-			int32_t* shadowMapIndex {};
-
-			glm::mat4* baseLightSpaceMatrix {};
-			glm::mat4* lightSpaceMatrices {};
-		} directionalLight {};
-
-		struct LightCluster {
-			uint32_t start {};
-			uint32_t endShadow {};
-			uint32_t end {};
-
-			uint32_t _padding {};
-		};
-
-		LightCluster* pointLightClusters {};
-		LightCluster* spotLightClusters {};
-	};
-
 
 	struct PointLight {
 		glm::vec3 position {};
@@ -194,17 +189,18 @@ public:
 
 		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, sizeof(CameraBlock) });
 
+		uint directionalLightMatricesBlockSize = directionalLightCascadeCount * sizeof(glm::mat4);
+		uint pointLightsBlockSize			   = maxVisiblePointLights * sizeof(PointLight);
+		uint spotLightsBlockSize			   = maxVisibleSpotLights * sizeof(SpotLight);
 
-		uint environmentBlockSize =
-			16 + (16 + 16 + 64 * directionalLightCascadeCount) +
-			(2 * sizeof(EnvironmentBlockMap::LightCluster) * clusterCountX * clusterCountY * clusterCountZ);
-
-		uint pointLightsBlockSize = maxVisiblePointLights * sizeof(PointLight);
-		uint spotLightsBlockSize  = maxVisibleSpotLights * sizeof(SpotLight);
-
-		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, environmentBlockSize });
-		descriptorSetDescriptions.push_back({ 1, 1, vk::DescriptorType::eStorageBuffer, pointLightsBlockSize });
-		descriptorSetDescriptions.push_back({ 1, 2, vk::DescriptorType::eStorageBuffer, spotLightsBlockSize });
+		descriptorSetDescriptions.push_back(
+			{ 1, 0, vk::DescriptorType::eUniformBuffer, sizeof(DirectionalLightBlock) });
+		descriptorSetDescriptions.push_back(
+			{ 1, 1, vk::DescriptorType::eUniformBuffer, directionalLightMatricesBlockSize });
+		descriptorSetDescriptions.push_back({ 1, 2, vk::DescriptorType::eUniformBuffer, 4 }); // FIXME
+		descriptorSetDescriptions.push_back({ 1, 3, vk::DescriptorType::eUniformBuffer, 4 }); // FIXME
+		descriptorSetDescriptions.push_back({ 1, 4, vk::DescriptorType::eStorageBuffer, pointLightsBlockSize });
+		descriptorSetDescriptions.push_back({ 1, 5, vk::DescriptorType::eStorageBuffer, spotLightsBlockSize });
 
 		return descriptorSetDescriptions;
 	}

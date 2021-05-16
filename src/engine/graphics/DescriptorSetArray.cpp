@@ -136,6 +136,9 @@ int DescriptorSetArray::init() {
 
 int DescriptorSetArray::updateBuffer(uint elementIndex, uint bindingIndex, void* pData, uint64_t size) {
 	assert(size <= bindingLayoutInfos[bindingIndex].size);
+	if (size == 0) {
+		size = bindingLayoutInfos[bindingIndex].size;
+	}
 
 	const auto& allocation = bufferInfos[getBufferInfoIndex(elementIndex, bindingIndex)].allocation;
 

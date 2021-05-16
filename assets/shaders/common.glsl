@@ -13,6 +13,8 @@ layout(constant_id = 110) const uint CLUSTER_COUNT_X = 1;
 layout(constant_id = 111) const uint CLUSTER_COUNT_Y = 1;
 layout(constant_id = 112) const uint CLUSTER_COUNT_Z = 1;
 
+const uint CLUSTER_COUNT = CLUSTER_COUNT_X * CLUSTER_COUNT_Y * CLUSTER_COUNT_Z;
+
 layout(constant_id = 200) const uint MAX_TEXTURES = 1024;
 
 
@@ -20,12 +22,10 @@ layout(constant_id = 200) const uint MAX_TEXTURES = 1024;
 
 struct DirectionalLight {
 	vec3 direction;
+	bool enabled;
 
 	vec3 color;
 	int shadowMapIndex;
-
-	mat4 baseLightSpaceMatrix;
-	mat4 lightSpaceMatrices[DIRECTIONAL_LIGHT_CASCADE_COUNT];
 };
 
 struct PointLight {
@@ -97,20 +97,27 @@ layout(set = CAMERA_SET_ID, binding = 0) uniform CameraBlock {
 uCamera;
 
 
-layout(set = ENVIRONMENT_SET_ID, binding = 0) uniform EnvironmentBlock {
-	bool useDirectionalLight;
-	DirectionalLight directionalLight;
+layout(set = ENVIRONMENT_SET_ID, binding = 0) uniform DirectionalLightBlock {
+	DirectionalLight uDirectionalLight;
+};
 
-	LightCluster pointLightClusters[CLUSTER_COUNT_X * CLUSTER_COUNT_Y * CLUSTER_COUNT_Z];
-	LightCluster spotLightClusters[CLUSTER_COUNT_X * CLUSTER_COUNT_Y * CLUSTER_COUNT_Z];
-}
-uEnvironment;
+layout(set = ENVIRONMENT_SET_ID, binding = 1) uniform DirectionalLightMatricesBlock {
+	mat4 uDirectionalLightMatrices[DIRECTIONAL_LIGHT_CASCADE_COUNT];
+};
 
-layout(set = ENVIRONMENT_SET_ID, binding = 1) readonly buffer PointLightsBlock {
+layout(set = ENVIRONMENT_SET_ID, binding = 2) uniform PointLightClusterBlock {
+	LightCluster uPointLightClusters[CLUSTER_COUNT];
+};
+
+layout(set = ENVIRONMENT_SET_ID, binding = 3) uniform SpotLightClusterBlock {
+	LightCluster uSpotLightClusters[CLUSTER_COUNT];
+};
+
+layout(set = ENVIRONMENT_SET_ID, binding = 4) readonly buffer PointLightsBlock {
 	PointLight uPointLights[];
 };
 
-layout(set = ENVIRONMENT_SET_ID, binding = 2) readonly buffer SpotLightsBlock {
+layout(set = ENVIRONMENT_SET_ID, binding = 5) readonly buffer SpotLightsBlock {
 	SpotLight uSpotLights[];
 };
 

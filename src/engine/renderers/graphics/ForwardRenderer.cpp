@@ -24,8 +24,6 @@ int ForwardRenderer::init() {
 void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
 													uint descriptorSetIndex, double dt) {
 
-	CameraBlock cameraBlock;
-
 	glm::vec3 cameraPos;
 	glm::vec3 cameraViewDir;
 
@@ -39,48 +37,20 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 		cameraPos	  = transform.position;
 		cameraViewDir = glm::vec3(viewVector);
 
-		cameraBlock.viewMatrix =
+		uCameraBlock.viewMatrix =
 			glm::lookAtLH(transform.position, transform.position + glm::vec3(viewVector.x, viewVector.y, viewVector.z),
 						  glm::vec3(0.0f, 1.0f, 0.0f));
 
-		cameraBlock.projectionMatrix = camera.getProjectionMatrix();
+		uCameraBlock.projectionMatrix = camera.getProjectionMatrix();
 	});
 
-	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
-	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
+	uCameraBlock.invViewMatrix		 = glm::inverse(uCameraBlock.viewMatrix);
+	uCameraBlock.invProjectionMatrix = glm::inverse(uCameraBlock.projectionMatrix);
 
-	descriptorSetArrays[0].updateBuffer(descriptorSetIndex, 0, &cameraBlock, sizeof(cameraBlock));
-
-
-	void* pEnvironmentBlock;
-	descriptorSetArrays[1].mapBuffer(descriptorSetIndex, 0, pEnvironmentBlock);
-
-	EnvironmentBlockMap environmentBlockMap;
-
-	// TODO: better/safer way of block mapping
-	environmentBlockMap.useDirectionalLight = static_cast<bool*>(pEnvironmentBlock);
-
-	environmentBlockMap.directionalLight.direction =
-		reinterpret_cast<glm::vec3*>(reinterpret_cast<uint8_t*>(environmentBlockMap.useDirectionalLight) + 16);
-	environmentBlockMap.directionalLight.color =
-		reinterpret_cast<glm::vec3*>(reinterpret_cast<uint8_t*>(environmentBlockMap.directionalLight.direction) + 16);
-	environmentBlockMap.directionalLight.shadowMapIndex =
-		reinterpret_cast<int32_t*>(reinterpret_cast<uint8_t*>(environmentBlockMap.directionalLight.color) + 12);
-	environmentBlockMap.directionalLight.baseLightSpaceMatrix = reinterpret_cast<glm::mat4*>(
-		reinterpret_cast<uint8_t*>(environmentBlockMap.directionalLight.shadowMapIndex) + 4);
-	environmentBlockMap.directionalLight.lightSpaceMatrices = reinterpret_cast<glm::mat4*>(
-		reinterpret_cast<uint8_t*>(environmentBlockMap.directionalLight.baseLightSpaceMatrix) + 64);
-
-	environmentBlockMap.pointLightClusters = reinterpret_cast<EnvironmentBlockMap::LightCluster*>(
-		reinterpret_cast<uint8_t*>(environmentBlockMap.directionalLight.lightSpaceMatrices) +
-		64 * directionalLightCascadeCount);
-	environmentBlockMap.spotLightClusters = reinterpret_cast<EnvironmentBlockMap::LightCluster*>(
-		reinterpret_cast<uint8_t*>(environmentBlockMap.pointLightClusters) +
-		64 * clusterCountX * clusterCountY * clusterCountZ);
+	descriptorSetArrays[0].updateBuffer(descriptorSetIndex, 0, &uCameraBlock);
 
 
-	*environmentBlockMap.useDirectionalLight = false;
-
+	uDirectionalLightBlock.enabled = false;
 
 	EntityManager::forEach<TransformComponent, LightComponent>([&](const auto& transform, const auto& light) {
 		if (light.type == LightComponent::Type::DIRECTIONAL) {
@@ -89,22 +59,11 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 			lightDirection		= glm::rotate(transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) * lightDirection;
 			lightDirection		= glm::rotate(transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)) * lightDirection;
 
-			*environmentBlockMap.useDirectionalLight			 = true;
-			*environmentBlockMap.directionalLight.direction		 = glm::vec3(cameraBlock.viewMatrix * lightDirection);
-			*environmentBlockMap.directionalLight.color			 = light.color;
-			*environmentBlockMap.directionalLight.shadowMapIndex = light.shadowMapIndex;
+			uDirectionalLightBlock.enabled		  = true;
+			uDirectionalLightBlock.direction	  = glm::vec3(uCameraBlock.viewMatrix * lightDirection);
+			uDirectionalLightBlock.color		  = light.color;
+			uDirectionalLightBlock.shadowMapIndex = light.shadowMapIndex;
 
-
-			float cascadeHalfSize = directionalLightCascadeBase;
-
-			auto lightSpaceMatrix =
-				glm::lookAtLH(cameraPos, cameraPos + glm::vec3(lightDirection), glm::vec3(0.0f, 1.0f, 0.0f));
-
-			lightSpaceMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize, cascadeHalfSize,
-											   -cascadeHalfSize * 4.0f, cascadeHalfSize) *
-							   lightSpaceMatrix;
-
-			*environmentBlockMap.directionalLight.baseLightSpaceMatrix = lightSpaceMatrix;
 
 			for (uint cascadeIndex = 0; cascadeIndex < directionalLightCascadeCount; cascadeIndex++) {
 				float cascadeHalfSize = directionalLightCascadeBase * std::pow(2, cascadeIndex * 2 + 1);
@@ -118,15 +77,16 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 												   -cascadeHalfSize * 4.0f, cascadeHalfSize) *
 								   lightSpaceMatrix;
 
-				environmentBlockMap.directionalLight.lightSpaceMatrices[cascadeIndex] = lightSpaceMatrix;
+				uDirectionalLightMatrices[cascadeIndex] = lightSpaceMatrix;
 			}
 		}
 	});
 
+	descriptorSetArrays[1].updateBuffer(descriptorSetIndex, 0, &uDirectionalLightBlock);
+	descriptorSetArrays[1].updateBuffer(descriptorSetIndex, 1, uDirectionalLightMatrices.data());
 
-	descriptorSetArrays[1].unmapBuffer(descriptorSetIndex, 0);
 
-	Frustum frustum { cameraBlock.projectionMatrix * cameraBlock.viewMatrix };
+	Frustum frustum { uCameraBlock.projectionMatrix * uCameraBlock.viewMatrix };
 	drawObjects(pSecondaryCommandBuffers, &frustum, 1);
 }
 } // namespace Engine

@@ -37,11 +37,11 @@ private:
 public:
 	int init();
 
-	int updateBuffer(uint elementIndex, uint bindingIndex, void* pData, uint64_t size);
+	int updateBuffer(uint elementIndex, uint bindingIndex, void* pData, uint64_t size = 0);
 	int updateImage(uint elementIndex, uint bindingIndex, uint descriptorIndex, vk::Sampler sampler,
 					vk::ImageView imageView);
 
-	int updateBuffers(uint bindingIndex, void* pData, uint64_t size);
+	int updateBuffers(uint bindingIndex, void* pData, uint64_t size = 0);
 	int updateImages(uint bindingIndex, uint descriptorIndex, vk::Sampler sampler, vk::ImageView imageView);
 
 	int mapBuffer(uint elementIndex, uint bindingIndex, void*& pData);

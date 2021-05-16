@@ -79,24 +79,21 @@ void main() {
 	reflectedColor *= calcBRDF(normal, reflectedDir, viewDir, colorAlbedo, metallic, roughness);
 	color += reflectedColor * max(dot(normal, reflectedDir), 0.0);
 
-	if (uEnvironment.useDirectionalLight) {
+	if (uDirectionalLight.enabled) {
 		float shadowAmount = 1.0;
 
 		for (uint cascade = 0; cascade < DIRECTIONAL_LIGHT_CASCADE_COUNT; cascade++) {
-			mat4 lightSpaceMatrix = uEnvironment.directionalLight.lightSpaceMatrices[cascade];
+			mat4 lightSpaceMatrix = uDirectionalLightMatrices[cascade];
 
 			shadowAmount *=
 				calcDirectionalShadow(inData.worldPosition, uDirectionalShadowMapBuffer, cascade, lightSpaceMatrix);
 		}
 
-		vec3 lightDir = -uEnvironment.directionalLight.direction;
+		vec3 lightDir = -uDirectionalLight.direction;
 
 		vec3 lightColor = calcBRDF(normal, lightDir, viewDir, colorAlbedo, metallic, roughness);
 
-		color += shadowAmount * lightColor * 4 * uEnvironment.directionalLight.color * max(dot(normal, lightDir), 0.0);
-
-		// color += shadowAmount * colorAlbedo * uEnvironment.directionalLight.color *
-		// 		 max(dot(-uEnvironment.directionalLight.direction, normal), 0.0);
+		color += shadowAmount * lightColor * 4 * uDirectionalLight.color * max(dot(normal, lightDir), 0.0);
 	}
 
 	outColor = vec4(color, 1.0);
