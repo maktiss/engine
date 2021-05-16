@@ -82,8 +82,7 @@ int ImGuiRenderer::init() {
 }
 
 
-void ImGuiRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-												  uint descriptorSetIndex, double dt) {
+void ImGuiRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
 
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 

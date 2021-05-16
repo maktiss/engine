@@ -29,8 +29,7 @@ int SkyboxRenderer::init() {
 }
 
 
-void SkyboxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-												   uint descriptorSetIndex, double dt) {
+void SkyboxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
 
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
@@ -52,7 +51,7 @@ void SkyboxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 		cameraBlock.viewProjectionMatrix = camera.getProjectionMatrix() * viewMatrix;
 	});
 
-	descriptorSetArrays[0].updateBuffer(descriptorSetIndex, 0, &cameraBlock, sizeof(cameraBlock));
+	updateDescriptorSet(0, 0, &cameraBlock);
 
 
 	const auto& meshInfo = MeshManager::getMeshInfo(boxMesh);

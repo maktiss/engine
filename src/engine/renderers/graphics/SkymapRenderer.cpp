@@ -40,8 +40,7 @@ int SkymapRenderer::init() {
 }
 
 
-void SkymapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-												   uint descriptorSetIndex, double dt) {
+void SkymapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
 
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
@@ -58,7 +57,7 @@ void SkymapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSec
 		}
 	});
 
-	descriptorSetArrays[1].updateBuffer(descriptorSetIndex, 0, &sunDirection, sizeof(sunDirection));
+	updateDescriptorSet(1, 0, &sunDirection);
 
 
 	const auto& meshInfo = MeshManager::getMeshInfo(skySphereMesh);

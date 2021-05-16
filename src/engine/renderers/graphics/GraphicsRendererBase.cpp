@@ -35,6 +35,8 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 	currentFrameInFlight = (currentFrameInFlight + 1) % framesInFlightCount;
 
 	for (uint layerIndex = 0; layerIndex < getLayerCount(); layerIndex++) {
+		currentLayer = layerIndex;
+
 		vk::CommandBufferBeginInfo commandBufferBeginInfo {};
 
 		vk::RenderPassBeginInfo renderPassBeginInfo {};
@@ -73,8 +75,6 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 
 		auto pSecondaryCommandBuffersForLayer = pSecondaryCommandBuffers + layerIndex * threadCount;
 
-		uint descriptorSetIndex = currentFrameInFlight * getLayerCount() + layerIndex;
-
 		for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
 			auto& secondaryCommandBuffer = pSecondaryCommandBuffersForLayer[threadIndex];
 
@@ -85,7 +85,8 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 				return 1;
 			}
 
-			bindDescriptorSets(secondaryCommandBuffer, vk::PipelineBindPoint::eGraphics, descriptorSetIndex);
+			bindDescriptorSets(secondaryCommandBuffer, vk::PipelineBindPoint::eGraphics,
+							   currentFrameInFlight * getLayerCount() + layerIndex);
 
 			const auto textureDescriptorSet		 = TextureManager::getVkDescriptorSet();
 			const auto textureDescriptorSetIndex = descriptorSetArrays.size();
@@ -94,7 +95,7 @@ int GraphicsRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 													  textureDescriptorSetIndex, 1, &textureDescriptorSet, 0, nullptr);
 		}
 
-		recordSecondaryCommandBuffers(pSecondaryCommandBuffersForLayer, layerIndex, descriptorSetIndex, dt);
+		recordSecondaryCommandBuffers(pSecondaryCommandBuffersForLayer, dt);
 
 		for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {
 			result = pSecondaryCommandBuffersForLayer[threadIndex].end();

@@ -18,8 +18,7 @@ public:
 	virtual int init();
 
 	// Records secondary command buffers within renderpass
-	virtual void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-											   uint descriptorSetIndex, double dt) = 0;
+	virtual void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) = 0;
 
 	virtual const char* getRenderPassName() const = 0;
 

@@ -24,8 +24,7 @@ public:
 
 	int init() override;
 
-	void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-									   uint descriptorSetIndex, double dt) override;
+	void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) override;
 
 	const char* getRenderPassName() const override {
 		return "RENDER_PASS_REFLECTION";

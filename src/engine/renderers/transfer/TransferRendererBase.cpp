@@ -11,7 +11,12 @@ int TransferRendererBase::init() {
 int TransferRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers,
 								 const vk::CommandBuffer* pSecondaryCommandBuffers,
 								 const vk::QueryPool& timestampQueryPool, double dt) {
+
+	currentFrameInFlight = (currentFrameInFlight + 1) % framesInFlightCount;
+
 	for (uint layerIndex = 0; layerIndex < getLayerCount(); layerIndex++) {
+		currentLayer = layerIndex;
+
 		vk::CommandBufferBeginInfo commandBufferBeginInfo {};
 
 		auto& commandBuffer = pPrimaryCommandBuffers[layerIndex];
@@ -43,7 +48,7 @@ int TransferRendererBase::render(const vk::CommandBuffer* pPrimaryCommandBuffers
 		}
 
 
-		recordSecondaryCommandBuffers(pSecondaryCommandBuffersForLayer, layerIndex, dt);
+		recordSecondaryCommandBuffers(pSecondaryCommandBuffersForLayer, dt);
 
 
 		for (uint threadIndex = 0; threadIndex < threadCount; threadIndex++) {

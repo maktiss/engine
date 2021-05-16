@@ -12,8 +12,7 @@ public:
 
 	int init() override;
 
-	virtual void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-											   double dt) override;
+	virtual void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) override;
 
 
 	virtual std::vector<std::string> getInputNames() const {

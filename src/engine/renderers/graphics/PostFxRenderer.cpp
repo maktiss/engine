@@ -26,14 +26,11 @@ int PostFxRenderer::init() {
 	}
 
 
-	// descriptorSetArrays[0].updateImages(1, 0, inputVkSamplers[0], inputVkImageViews[0]);
-
 	return 0;
 }
 
 
-void PostFxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-												   uint descriptorSetIndex, double dt) {
+void PostFxRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
 
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 

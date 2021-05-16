@@ -12,8 +12,7 @@ public:
 
 	int init() override;
 
-	virtual void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-											   double dt) = 0;
+	virtual void recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) = 0;
 
 	virtual int render(const vk::CommandBuffer* pPrimaryCommandBuffers,
 					   const vk::CommandBuffer* pSecondaryCommandBuffers, const vk::QueryPool& timestampQueryPool,

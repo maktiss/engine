@@ -19,8 +19,7 @@ int ShadowMapRenderer::init() {
 }
 
 
-void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
-													  uint layerIndex, uint descriptorSetIndex, double dt) {
+void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
 
 	CameraBlock cameraBlock;
 
@@ -63,7 +62,7 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 					auto projectionMatrix = glm::orthoLH_ZO(-cascadeHalfSize, cascadeHalfSize, -cascadeHalfSize,
 															cascadeHalfSize, -cascadeHalfSize * 4.0f, cascadeHalfSize);
 
-					if (cascade == layerIndex) {
+					if (cascade == currentLayer) {
 						cameraBlock.viewMatrix		 = viewMatrix;
 						cameraBlock.projectionMatrix = projectionMatrix;
 						break;
@@ -82,7 +81,7 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
 
-	descriptorSetArrays[0].updateBuffer(descriptorSetIndex, 0, &cameraBlock, sizeof(cameraBlock));
+	updateDescriptorSet(0, 0, &cameraBlock);
 
 
 	Frustum frustum { cameraBlock.projectionMatrix * cameraBlock.viewMatrix };

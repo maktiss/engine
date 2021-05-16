@@ -59,6 +59,7 @@ protected:
 	uint framesInFlightCount = 3;
 
 	uint currentFrameInFlight {};
+	uint currentLayer {};
 
 	// Created and set by rendering system
 	std::vector<TextureManager::Handle> inputs {};
@@ -101,6 +102,8 @@ public:
 	virtual int render(const vk::CommandBuffer* pPrimaryCommandBuffers,
 					   const vk::CommandBuffer* pSecondaryCommandBuffers, const vk::QueryPool& timestampQueryPool,
 					   double dt) = 0;
+
+	void dispose();
 
 
 	inline uint getInputCount() const {
@@ -242,10 +245,16 @@ public:
 	}
 
 
-	void dispose();
-
-
 protected:
+	void bindDescriptorSets(const vk::CommandBuffer& commandBuffer, vk::PipelineBindPoint bindPoint, uint elementIndex);
+
+
+	inline void updateDescriptorSet(uint setId, uint bindingId, void* pData, uint size = 0) {
+		uint elementIndex = currentFrameInFlight * getLayerCount() + currentLayer;
+		descriptorSetArrays[setId].updateBuffer(elementIndex, bindingId, pData, size);
+	}
+
+
 	inline virtual std::vector<vk::SamplerCreateInfo> getInputVkSamplerCreateInfos() {
 		std::vector<vk::SamplerCreateInfo> samplerCreateInfos {};
 
@@ -330,9 +339,6 @@ protected:
 		}
 		return 0;
 	}
-
-
-	void bindDescriptorSets(const vk::CommandBuffer& commandBuffer, vk::PipelineBindPoint bindPoint, uint elementIndex);
 
 
 private:

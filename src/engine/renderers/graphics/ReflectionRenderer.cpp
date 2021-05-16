@@ -29,8 +29,7 @@ int ReflectionRenderer::init() {
 }
 
 
-void ReflectionRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
-													   uint layerIndex, uint descriptorSetIndex, double dt) {
+void ReflectionRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
 
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
@@ -54,7 +53,7 @@ void ReflectionRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* 
 	});
 
 
-	descriptorSetArrays[0].updateBuffer(descriptorSetIndex, 0, &cameraBlock, sizeof(cameraBlock));
+	updateDescriptorSet(0, 0, &cameraBlock);
 
 
 	const auto& meshInfo = MeshManager::getMeshInfo(mesh);

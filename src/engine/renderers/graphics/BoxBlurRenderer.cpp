@@ -29,13 +29,12 @@ int BoxBlurRenderer::init() {
 }
 
 
-void BoxBlurRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-													uint descriptorSetIndex, double dt) {
+void BoxBlurRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
 
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
 
-	commandBuffer.pushConstants(vkPipelineLayout, vk::ShaderStageFlagBits::eAll, 0, 4, &layerIndex);
+	commandBuffer.pushConstants(vkPipelineLayout, vk::ShaderStageFlagBits::eAll, 0, 4, &currentLayer);
 
 	const auto& meshInfo = MeshManager::getMeshInfo(mesh);
 

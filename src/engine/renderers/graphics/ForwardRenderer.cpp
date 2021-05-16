@@ -21,8 +21,7 @@ int ForwardRenderer::init() {
 }
 
 
-void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-													uint descriptorSetIndex, double dt) {
+void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
 
 	glm::vec3 cameraPos;
 	glm::vec3 cameraViewDir;
@@ -47,7 +46,7 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 	uCameraBlock.invViewMatrix		 = glm::inverse(uCameraBlock.viewMatrix);
 	uCameraBlock.invProjectionMatrix = glm::inverse(uCameraBlock.projectionMatrix);
 
-	descriptorSetArrays[0].updateBuffer(descriptorSetIndex, 0, &uCameraBlock);
+	updateDescriptorSet(0, 0, &uCameraBlock);
 
 
 	uDirectionalLightBlock.enabled = false;
@@ -82,8 +81,8 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 		}
 	});
 
-	descriptorSetArrays[1].updateBuffer(descriptorSetIndex, 0, &uDirectionalLightBlock);
-	descriptorSetArrays[1].updateBuffer(descriptorSetIndex, 1, uDirectionalLightMatrices.data());
+	updateDescriptorSet(1, 0, &uDirectionalLightBlock);
+	updateDescriptorSet(1, 1, uDirectionalLightMatrices.data());
 
 
 	Frustum frustum { uCameraBlock.projectionMatrix * uCameraBlock.viewMatrix };

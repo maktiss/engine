@@ -8,8 +8,7 @@ int MipMapRenderer::init() {
 	return TransferRendererBase::init();
 }
 
-void MipMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, uint layerIndex,
-												   double dt) {
+void MipMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
 	auto initialLayout = vkOutputInitialLayouts[0];

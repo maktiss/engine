@@ -17,8 +17,7 @@ int DepthNormalRenderer::init() {
 }
 
 
-void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
-														uint layerIndex, uint descriptorSetIndex, double dt) {
+void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers, double dt) {
 
 	CameraBlock cameraBlock;
 
@@ -37,7 +36,7 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 	cameraBlock.invViewMatrix		= glm::inverse(cameraBlock.viewMatrix);
 	cameraBlock.invProjectionMatrix = glm::inverse(cameraBlock.projectionMatrix);
 
-	descriptorSetArrays[0].updateBuffer(descriptorSetIndex, 0, &cameraBlock, sizeof(cameraBlock));
+	updateDescriptorSet(0, 0, &cameraBlock);
 
 	Frustum frustum { cameraBlock.projectionMatrix * cameraBlock.viewMatrix };
 	drawObjects(pSecondaryCommandBuffers, &frustum, 1);

@@ -32,7 +32,7 @@ int IrradianceMapRenderer::init() {
 	std::vector<glm::vec4> samples(irradianceMapSampleCount);
 	Generator::fibonacciSphere(samples.data(), samples.size(), 2);
 
-	// descriptorSetArrays[0].updateImages(0, 0, inputVkSamplers[0], inputVkImageViews[0]);
+
 	descriptorSetArrays[0].updateBuffers(0, &cameraBlock, sizeof(cameraBlock));
 	descriptorSetArrays[1].updateBuffers(0, samples.data(), sizeof(glm::vec4) * irradianceMapSampleCount);
 
@@ -41,7 +41,7 @@ int IrradianceMapRenderer::init() {
 
 
 void IrradianceMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSecondaryCommandBuffers,
-														  uint layerIndex, uint descriptorSetIndex, double dt) {
+														  double dt) {
 
 	const auto& commandBuffer = pSecondaryCommandBuffers[0];
 
