@@ -14,8 +14,12 @@ int ShadowMapRenderer::init() {
 
 	excludeFrustums.resize(getLayerCount() - 1);
 
+	objectRenderer.setThreadCount(threadCount);
+	objectRenderer.init();
 
-	return ObjectRendererBase::init();
+	terrainRenderer.init();
+
+	return GraphicsRendererBase::init();
 }
 
 
@@ -84,7 +88,25 @@ void ShadowMapRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* p
 	updateDescriptorSet(0, 0, &cameraBlock);
 
 
+	const auto& terrainState = GlobalStateManager::get<TerrainState>();
+
+	uTerrainBlock.size		= terrainState.size;
+	uTerrainBlock.maxHeight = terrainState.maxHeight;
+	uTerrainBlock.texelSize = 1.0f / terrainState.size;
+
+	uTerrainBlock.textureHeight = terrainState.heightMapHandle.getIndex();
+	uTerrainBlock.textureNormal = terrainState.normalMapHandle.getIndex();
+
+	updateDescriptorSet(1, 0, &uTerrainBlock);
+
+
+	const uint materialDescriptorSetId = descriptorSetArrays.size() + 1;
 	Frustum frustum { cameraBlock.projectionMatrix * cameraBlock.viewMatrix };
-	drawObjects(pSecondaryCommandBuffers, &frustum, 1, excludeFrustums.data(), excludeFrustumCount);
+
+	objectRenderer.drawObjects(vkPipelineLayout, vkPipelines.data(), pSecondaryCommandBuffers, materialDescriptorSetId,
+							   &frustum, 1, excludeFrustums.data(), excludeFrustumCount);
+
+	terrainRenderer.drawTerrain(vkPipelineLayout, vkPipelines.data(), pSecondaryCommandBuffers, materialDescriptorSetId,
+								glm::vec2(cameraPos.x, cameraPos.z), frustum);
 }
 } // namespace Engine

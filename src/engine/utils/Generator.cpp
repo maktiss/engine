@@ -129,8 +129,31 @@ void Generator::skySphereMesh(MeshManager::Handle& meshHandle, uint verticalVert
 }
 
 
-void Generator::screenTriangle(MeshManager::Handle& meshHandle) {
+void Generator::quad(MeshManager::Handle& meshHandle) {
 	meshHandle.apply([](auto& mesh) {
+		auto& vertexBuffer = mesh.getVertexBuffer();
+		vertexBuffer.resize(8);
+
+		std::get<0>(vertexBuffer[0]) = glm::vec3(-0.5f, 0.0f, -0.5f);
+		std::get<0>(vertexBuffer[1]) = glm::vec3(-0.5f, 0.0f, 0.5f);
+		std::get<0>(vertexBuffer[2]) = glm::vec3(0.5f, 0.0f, 0.5f);
+		std::get<0>(vertexBuffer[3]) = glm::vec3(0.5f, 0.0f, -0.5f);
+
+		auto& indexBuffer = mesh.getIndexBuffer();
+
+		indexBuffer = {
+			0,
+			3,
+			2,
+			1,
+		};
+	});
+	meshHandle.update();
+}
+
+
+void Generator::screenTriangle(MeshManager::Handle& meshHandle) {
+	meshHandle.apply<StaticMesh>([](auto& mesh) {
 		auto& vertexBuffer = mesh.getVertexBuffer();
 		vertexBuffer.resize(8);
 
@@ -192,5 +215,62 @@ void Generator::fibonacciSphere(glm::vec4* pData, uint sampleCount, uint fractio
 
 		pData[i] = { x, y, z, 0.0 };
 	}
+}
+
+
+void Generator::normalMapFromHeight(TextureManager::Handle& heightTextureHandle,
+									TextureManager::Handle& normalTextureHandle, uint maxHeight) {
+	// TODO: 8 bit support
+	uint16_t* pHeightData;
+	int width;
+	int height;
+
+	heightTextureHandle.apply([&](auto& texture) {
+		pHeightData = reinterpret_cast<uint16_t*>(texture.getPixelData().data());
+
+		width  = texture.size.width;
+		height = texture.size.height;
+	});
+
+
+	normalTextureHandle.apply([&](auto& texture) {
+		texture.size = vk::Extent3D(width, height, 1);
+
+		texture.format		= vk::Format::eR8G8B8A8Unorm;
+		texture.usage		= vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
+		texture.imageAspect = vk::ImageAspectFlagBits::eColor;
+
+		texture.useMipMapping = true;
+
+		auto& data = texture.getPixelData();
+		data.resize(width * height * 4);
+
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				// glm::ivec2 offsetX = { std::max(0, x - 1), std::min(width - 1, x + 1) };
+				// glm::ivec2 offsetY = { std::max(0, y - 1), std::min(height - 1, y + 1) };
+
+				glm::ivec2 offsetX = glm::clamp(glm::ivec2(x - 1, x + 1), 0, width - 1);
+				glm::ivec2 offsetY = glm::clamp(glm::ivec2(y - 1, y + 1), 0, height - 1);
+
+				float s01 = (pHeightData[y * width + offsetX.x] / 65535.0f) * maxHeight;
+				float s21 = (pHeightData[y * width + offsetX.y] / 65535.0f) * maxHeight;
+				float s10 = (pHeightData[offsetY.x * width + x] / 65535.0f) * maxHeight;
+				float s12 = (pHeightData[offsetY.y * width + x] / 65535.0f) * maxHeight;
+
+				glm::vec3 tangent	= glm::normalize(glm::vec3(2.0, s21 - s01, 0.0));
+				glm::vec3 bitangent = glm::normalize(glm::vec3(0.0, s12 - s10, 2.0));
+				glm::vec3 normal	= glm::cross(bitangent, tangent);
+
+				uint index = (y * width + x) * 4;
+
+				data[index + 0] = std::clamp(static_cast<int>(255 * (normal.x * 0.5f + 0.5f)), 0, 255);
+				data[index + 1] = std::clamp(static_cast<int>(255 * (normal.y * 0.5f + 0.5f)), 0, 255);
+				data[index + 2] = std::clamp(static_cast<int>(255 * (normal.z * 0.5f + 0.5f)), 0, 255);
+				data[index + 3] = 255;
+			}
+		}
+	});
+	normalTextureHandle.update();
 }
 } // namespace Engine

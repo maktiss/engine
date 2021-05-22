@@ -38,6 +38,7 @@ add_executable(
 	src/engine/graphics/meshes/MeshBase.hpp
 	src/engine/graphics/meshes/Meshes.hpp
 	src/engine/graphics/meshes/StaticMesh.hpp
+	src/engine/graphics/meshes/TerrainMesh.hpp
 	src/engine/graphics/shaders/GraphicsShaderBase.hpp
 	src/engine/graphics/shaders/IrradianceShader.hpp
 	src/engine/graphics/shaders/PostFxShader.hpp
@@ -85,8 +86,8 @@ add_executable(
 	src/engine/renderers/graphics/ImGuiRenderer.hpp
 	src/engine/renderers/graphics/IrradianceMapRenderer.cpp
 	src/engine/renderers/graphics/IrradianceMapRenderer.hpp
-	src/engine/renderers/graphics/ObjectRendererBase.cpp
-	src/engine/renderers/graphics/ObjectRendererBase.hpp
+	src/engine/renderers/graphics/ObjectRenderer.cpp
+	src/engine/renderers/graphics/ObjectRenderer.hpp
 	src/engine/renderers/graphics/PostFxRenderer.cpp
 	src/engine/renderers/graphics/PostFxRenderer.hpp
 	src/engine/renderers/graphics/ReflectionRenderer.cpp
@@ -97,6 +98,8 @@ add_executable(
 	src/engine/renderers/graphics/SkyboxRenderer.hpp
 	src/engine/renderers/graphics/SkymapRenderer.cpp
 	src/engine/renderers/graphics/SkymapRenderer.hpp
+	src/engine/renderers/graphics/TerrainRenderer.cpp
+	src/engine/renderers/graphics/TerrainRenderer.hpp
 	src/engine/renderers/transfer/MipMapRenderer.cpp
 	src/engine/renderers/transfer/MipMapRenderer.hpp
 	src/engine/renderers/transfer/TransferRendererBase.cpp
@@ -115,6 +118,7 @@ add_executable(
 	src/engine/states/DebugState.hpp
 	src/engine/states/ImGuiState.hpp
 	src/engine/states/States.hpp
+	src/engine/states/TerrainState.hpp
 	src/engine/systems/ImGuiSystem.cpp
 	src/engine/systems/ImGuiSystem.hpp
 	src/engine/systems/InputSystem.cpp

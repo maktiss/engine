@@ -6,5 +6,5 @@
 
 
 namespace Engine {
-class GlobalStateManager : public GlobalStateManagerBase<DebugState, ImGuiState> {};
+class GlobalStateManager : public GlobalStateManagerBase<DebugState, ImGuiState, TerrainState> {};
 } // namespace Engine

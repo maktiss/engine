@@ -71,12 +71,15 @@ struct LightCluster {
 
 #define CAMERA_SET_ID	   0
 #define ENVIRONMENT_SET_ID 1
+#define TERRAIN_SET_ID	   2
 
-#define SET_ID_OFFSET 2
+#define SET_ID_OFFSET 3
 
 
 layout(push_constant) uniform ModelBlock {
 	mat4 transformMatrix;
+	vec4 terrainTessFactors;
+	uint lod;
 }
 uModel;
 
@@ -127,13 +130,16 @@ layout(set = ENVIRONMENT_SET_ID, binding = 5) readonly buffer SpotLightsBlock {
 
 #if defined(RENDER_PASS_DEPTH_NORMAL) | defined(RENDER_PASS_SHADOW_MAP)
 
-#define CAMERA_SET_ID 0
+#define CAMERA_SET_ID  0
+#define TERRAIN_SET_ID 1
 
-#define SET_ID_OFFSET 1
+#define SET_ID_OFFSET 2
 
 
 layout(push_constant) uniform ModelBlock {
 	mat4 transformMatrix;
+	vec4 terrainTessFactors;
+	uint lod;
 }
 uModel;
 
@@ -160,6 +166,20 @@ uCamera;
 
 layout(set = TEXTURES_SET_ID, binding = 0) uniform sampler uSampler;
 layout(set = TEXTURES_SET_ID, binding = 1) uniform texture2D uTextures[MAX_TEXTURES];
+
+
+#ifdef TERRAIN_SET_ID
+layout(set = TERRAIN_SET_ID, binding = 0) uniform TerrainBlock {
+	uint size;
+	uint maxHeight;
+
+	uint textureHeight;
+	uint textureNormal;
+
+	float texelSize;
+}
+uTerrain;
+#endif // TERRAIN_SET_ID
 
 
 // ====================================

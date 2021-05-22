@@ -1,13 +1,14 @@
 #pragma once
 
 #include "GraphicsRendererBase.hpp"
-#include "ObjectRendererBase.hpp"
+#include "ObjectRenderer.hpp"
+#include "TerrainRenderer.hpp"
 
 #include <map>
 
 
 namespace Engine {
-class ShadowMapRenderer : public ObjectRendererBase {
+class ShadowMapRenderer : public GraphicsRendererBase {
 private:
 	PROPERTY(float, "Graphics", directionalLightCascadeBase, 2.0f);
 	PROPERTY(float, "Graphics", directionalLightCascadeOffset, 0.75f);
@@ -22,13 +23,26 @@ private:
 		glm::mat4 invProjectionMatrix;
 	};
 
+	struct TerrainBlock {
+		uint size;
+		uint maxHeight;
+
+		uint textureHeight;
+		uint textureNormal;
+
+		float texelSize;
+	} uTerrainBlock;
+
 
 private:
+	ObjectRenderer objectRenderer {};
+	TerrainRenderer terrainRenderer {};
+
 	std::vector<Frustum> excludeFrustums {};
 
 
 public:
-	ShadowMapRenderer() : ObjectRendererBase(0, 2) {
+	ShadowMapRenderer() : GraphicsRendererBase(0, 2) {
 	}
 
 
@@ -88,6 +102,8 @@ public:
 		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
 
 		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, sizeof(CameraBlock) });
+
+		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, sizeof(TerrainBlock) });
 
 		return descriptorSetDescriptions;
 	}

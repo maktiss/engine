@@ -52,6 +52,9 @@ int CameraScript::onUpdate(EntityManager::Handle handle, double dt) {
 	if (InputManager::isKeyActionStatePressed(InputManager::KeyAction::CAMERA_BOOST)) {
 		speed *= speedMultiplier;
 	}
+	if (InputManager::isKeyActionStatePressed(InputManager::KeyAction::CAMERA_BOOST_ALT)) {
+		speed *= speedMultiplier;
+	}
 
 	transform.position += glm::vec3(movementDir.x, movementDir.y, movementDir.z) * speed * static_cast<float>(dt);
 

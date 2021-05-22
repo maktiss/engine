@@ -97,6 +97,9 @@ void main() {
 	}
 
 	outColor = vec4(color, 1.0);
+
+	// outColor = vec4(max(vec3(0.0), normal), 1.0);
+	// outColor = vec4(1.0, 0.0, 0.0, 1.0);
 }
 
 
@@ -106,11 +109,29 @@ layout(location = 0) out vec4 outNormal;
 
 
 void main() {
+	mat3 normalSpaceMatrix = inData.tangentMatrix;
+
+#ifdef MESH_TYPE_TERRAIN
+
+	if (uModel.lod > 1) {
+		vec2 terrainNormalTexCoord = vec2(inData.worldPosition.xz / uTerrain.size + 0.5);
+
+		vec3 terrainNormal = texture(sampler2D(uTextures[uTerrain.textureNormal], uSampler), terrainNormalTexCoord).rgb;
+		terrainNormal	   = (uCamera.viewMatrix * vec4(terrainNormal * 2.0 - 1.0, 0.0)).xyz;
+
+		normalSpaceMatrix[2] = normalize(terrainNormal);
+		normalSpaceMatrix[1] = normalize(cross(normalSpaceMatrix[0], normalSpaceMatrix[2]));
+		normalSpaceMatrix[0] = normalize(cross(normalSpaceMatrix[2], normalSpaceMatrix[1]));
+	}
+#endif
+
 #ifdef USE_TEXTURE_NORMAL
-	vec3 normal = inData.tangentMatrix *
+
+	vec3 normal = normalSpaceMatrix *
 				  (texture(sampler2D(uTextures[uMaterial.textureNormal], uSampler), inData.texCoord).rgb * 2.0 - 1.0);
 #else
-	vec3 normal = inData.tangentMatrix[2];
+
+	vec3 normal = normalSpaceMatrix[2];
 #endif
 
 	outNormal = vec4(normalize(normal), 1.0);

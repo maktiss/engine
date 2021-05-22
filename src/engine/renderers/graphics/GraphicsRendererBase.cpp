@@ -314,13 +314,13 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 
 	auto renderPassIndex = GraphicsShaderManager::getRenderPassIndex(getRenderPassName());
 
-	const auto& pipelineInputAssemblyStateCreateInfo = getVkPipelineInputAssemblyStateCreateInfo();
-	const auto& viewport							 = getVkViewport();
-	const auto& scissor								 = getVkScissor();
-	const auto& pipelineRasterizationStateCreateInfo = getVkPipelineRasterizationStateCreateInfo();
-	const auto& pipelineMultisampleStateCreateInfo	 = getVkPipelineMultisampleStateCreateInfo();
-	const auto& pipelineDepthStencilStateCreateInfo	 = getVkPipelineDepthStencilStateCreateInfo();
-	const auto& pipelineColorBlendAttachmentStates	 = getVkPipelineColorBlendAttachmentStates();
+	// const auto pipelineInputAssemblyStateCreateInfo = getVkPipelineInputAssemblyStateCreateInfo();
+	const auto viewport								= getVkViewport();
+	const auto scissor								= getVkScissor();
+	const auto pipelineRasterizationStateCreateInfo = getVkPipelineRasterizationStateCreateInfo();
+	const auto pipelineMultisampleStateCreateInfo	= getVkPipelineMultisampleStateCreateInfo();
+	const auto pipelineDepthStencilStateCreateInfo	= getVkPipelineDepthStencilStateCreateInfo();
+	const auto pipelineColorBlendAttachmentStates	= getVkPipelineColorBlendAttachmentStates();
 
 	vk::PipelineViewportStateCreateInfo pipelineViewportStateCreateInfo {};
 	pipelineViewportStateCreateInfo.viewportCount = 1;
@@ -371,9 +371,12 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 	specializationInfo.mapEntryCount = specializationMapEntries.size();
 	specializationInfo.pMapEntries	 = specializationMapEntries.data();
 
+	vk::PipelineTessellationStateCreateInfo pipelineTessellationStateCreateInfo {};
+	pipelineTessellationStateCreateInfo.patchControlPoints = 4;
 
 	for (uint shaderTypeIndex = 0; shaderTypeIndex < shaderTypeCount; shaderTypeIndex++) {
 		for (uint meshTypeIndex = 0; meshTypeIndex < meshTypeCount; meshTypeIndex++) {
+
 			vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {};
 
 			auto vertexAttributeDescriptions = MeshManager::getVertexInputAttributeDescriptions(meshTypeIndex);
@@ -393,12 +396,18 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 				auto shaderInfo =
 					GraphicsShaderManager::getShaderInfo(renderPassIndex, shaderTypeIndex, meshTypeIndex, signature);
 
+				bool useTessellation = false;
+
 				for (uint shaderStageIndex = 0; shaderStageIndex < 6; shaderStageIndex++) {
 					auto& pipelineShaderStageCreateInfo = pipelineShaderStageCreateInfos[shaderStageCount];
 
 					auto& shaderModule = shaderInfo.shaderModules[shaderStageIndex];
 
 					if (shaderModule != vk::ShaderModule()) {
+						if ((shaderStageIndex == 2) || (shaderStageIndex == 3)) {
+							useTessellation = true;
+						}
+
 						pipelineShaderStageCreateInfo.stage = shaderStages[shaderStageIndex];
 
 						pipelineShaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
@@ -408,6 +417,13 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 
 						shaderStageCount++;
 					}
+				}
+
+				vk::PipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo {};
+				if (useTessellation) {
+					pipelineInputAssemblyStateCreateInfo.topology = vk::PrimitiveTopology::ePatchList;
+				} else {
+					pipelineInputAssemblyStateCreateInfo.topology = vk::PrimitiveTopology::eTriangleList;
 				}
 
 				vk::GraphicsPipelineCreateInfo graphicsPipelineCreateInfo {};
@@ -422,6 +438,10 @@ int GraphicsRendererBase::createGraphicsPipelines() {
 				graphicsPipelineCreateInfo.pDepthStencilState  = &pipelineDepthStencilStateCreateInfo;
 				graphicsPipelineCreateInfo.pColorBlendState	   = &pipelineColorBlendStateCreateInfo;
 				graphicsPipelineCreateInfo.pDynamicState	   = nullptr;
+
+				if (useTessellation) {
+					graphicsPipelineCreateInfo.pTessellationState = &pipelineTessellationStateCreateInfo;
+				}
 
 				graphicsPipelineCreateInfo.layout = vkPipelineLayout;
 

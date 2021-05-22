@@ -12,8 +12,13 @@ int ForwardRenderer::init() {
 	assert(vkDevice != vk::Device());
 	assert(outputSize != vk::Extent2D());
 
+	objectRenderer.setThreadCount(threadCount);
+	objectRenderer.init();
 
-	if (ObjectRendererBase::init()) {
+	terrainRenderer.init();
+
+
+	if (GraphicsRendererBase::init()) {
 		return 1;
 	}
 
@@ -85,7 +90,25 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 	updateDescriptorSet(1, 1, uDirectionalLightMatrices.data());
 
 
+	const auto& terrainState = GlobalStateManager::get<TerrainState>();
+
+	uTerrainBlock.size		= terrainState.size;
+	uTerrainBlock.maxHeight = terrainState.maxHeight;
+	uTerrainBlock.texelSize = 1.0f / terrainState.size;
+
+	uTerrainBlock.textureHeight = terrainState.heightMapHandle.getIndex();
+	uTerrainBlock.textureNormal = terrainState.normalMapHandle.getIndex();
+
+	updateDescriptorSet(2, 0, &uTerrainBlock);
+
+
+	const uint materialDescriptorSetId = descriptorSetArrays.size() + 1;
 	Frustum frustum { uCameraBlock.projectionMatrix * uCameraBlock.viewMatrix };
-	drawObjects(pSecondaryCommandBuffers, &frustum, 1);
+
+	objectRenderer.drawObjects(vkPipelineLayout, vkPipelines.data(), pSecondaryCommandBuffers, materialDescriptorSetId,
+							   &frustum, 1);
+
+	terrainRenderer.drawTerrain(vkPipelineLayout, vkPipelines.data(), pSecondaryCommandBuffers, materialDescriptorSetId,
+								glm::vec2(cameraPos.x, cameraPos.z), frustum);
 }
 } // namespace Engine

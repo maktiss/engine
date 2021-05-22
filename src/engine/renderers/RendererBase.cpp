@@ -100,7 +100,7 @@ int RendererBase::createVkPipelineLayout() {
 	vk::PushConstantRange pushConstantRange {};
 	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eAll;
 	pushConstantRange.offset	 = 0;
-	pushConstantRange.size		 = 64;
+	pushConstantRange.size		 = 128;
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {};
 	pipelineLayoutCreateInfo.setLayoutCount = descriptorSetLayouts.size();

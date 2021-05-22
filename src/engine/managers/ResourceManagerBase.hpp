@@ -40,11 +40,16 @@ public:
 		}
 
 		template <typename Func>
-		void apply(Func&& func) {
+		inline void apply(Func&& func) {
 			ResourceManagerBase::apply(*this, func);
 		}
 
-		void update() {
+		template <typename Type, typename Func>
+		inline void apply(Func&& func) {
+			ResourceManagerBase::apply<Type>(*this, func);
+		}
+
+		inline void update() {
 			ResourceManagerBase::update(*this);
 		}
 	};
@@ -160,8 +165,19 @@ public:
 	}
 
 	template <typename Func>
-	static void apply(const Handle& handle, Func&& func) {
+	static inline void apply(const Handle& handle, Func&& func) {
 		applyImpl(objectInfos[handle.getId()], func, std::make_index_sequence<getTypeCount()>());
+	}
+
+	template <typename Type, typename Func>
+	static inline void apply(const Handle& handle, Func&& func) {
+		const auto& objectInfo = objectInfos[handle.getId()];
+
+		if (objectInfo.typeIndex != getTypeIndex<Type>()) {
+			spdlog::error("Called apply() on a resource with mismatching type");
+		} else {
+			func(std::get<std::vector<Type>>(objects)[objectInfo.localIndex]);
+		}
 	}
 
 	static constexpr auto getTypeTuple() {

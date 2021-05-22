@@ -36,6 +36,11 @@ public:
 
 
 public:
+	virtual inline bool usesTessellation() {
+		return false;
+	}
+
+
 	inline auto& getVertexBuffer() {
 		return static_cast<MeshType*>(this)->vertexBuffer;
 	}
@@ -80,6 +85,7 @@ public:
 	static constexpr auto getVertexInputAttributeDescriptions() {
 		return getVertexInputAttributeDescriptionsImpl(std::make_index_sequence<getNumAttributes()>());
 	}
+
 
 private:
 	template <std::size_t... Indices>

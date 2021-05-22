@@ -33,7 +33,7 @@ int Importer::importMesh(std::string filename, std::vector<MeshManager::Handle>&
 		auto& meshHandle = meshHandles[i];
 		meshHandle		 = MeshManager::createObject(0, assimpMesh->mName.C_Str());
 
-		meshHandle.apply([&assimpMesh](auto& mesh) {
+		meshHandle.apply<StaticMesh>([&assimpMesh](auto& mesh) {
 			for (int i = 0; i < 8; i++) {
 				mesh.boundingBox.points[i].x = i & 1 ? assimpMesh->mAABB.mMax.x : assimpMesh->mAABB.mMin.x;
 				mesh.boundingBox.points[i].y = i & 2 ? assimpMesh->mAABB.mMax.y : assimpMesh->mAABB.mMin.y;
@@ -86,28 +86,41 @@ int Importer::importMesh(std::string filename, std::vector<MeshManager::Handle>&
 	return 0;
 }
 
-int Importer::importTexture(std::string filename, TextureManager::Handle& textureHandle, bool srgb) {
+int Importer::importTexture(std::string filename, TextureManager::Handle& textureHandle, uint channels,
+							uint channelWidth, vk::Format format) {
 	spdlog::info("Importing texture '{}'...", filename);
-	int width;
-	int height;
-	int channels;
+	int readWidth;
+	int readHeight;
+	int readChannels;
 
-	auto image = stbi_load(filename.c_str(), &width, &height, &channels, 4);
+	void* image;
+
+	switch (channelWidth) {
+	case 8:
+		image = stbi_load(filename.c_str(), &readWidth, &readHeight, &readChannels, channels);
+		break;
+
+	case 16:
+		image = stbi_load_16(filename.c_str(), &readWidth, &readHeight, &readChannels, channels);
+		break;
+
+	default:
+		spdlog::error("{} bit channel width is not supported", channelWidth);
+		return 1;
+		break;
+	}
+
 	if (image == nullptr) {
 		spdlog::error("Failed to import '{}'", filename);
 		return 1;
 	}
 
-	textureHandle.apply([image, width, height, srgb](auto& texture) {
-		texture.size = vk::Extent3D(width, height, 1);
+	textureHandle.apply([&](auto& texture) {
+		texture.size = vk::Extent3D(readWidth, readHeight, 1);
 
-		texture.setPixelData(image, width * height * 4);
+		texture.setPixelData(image, readWidth * readHeight * channels * (channelWidth / 8));
 
-		if (srgb) {
-			texture.format = vk::Format::eR8G8B8A8Srgb;
-		} else {
-			texture.format = vk::Format::eR8G8B8A8Unorm;
-		}
+		texture.format		= format;
 		texture.usage		= vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
 		texture.imageAspect = vk::ImageAspectFlagBits::eColor;
 

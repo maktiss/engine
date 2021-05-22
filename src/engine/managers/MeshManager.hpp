@@ -16,7 +16,7 @@
 
 
 namespace Engine {
-class MeshManager : public ResourceManagerBase<MeshManager, StaticMesh> {
+class MeshManager : public ResourceManagerBase<MeshManager, StaticMesh, TerrainMesh> {
 public:
 	// info required for rendering
 	struct MeshInfo {
@@ -92,12 +92,29 @@ public:
 	static inline std::string getMeshTypeStringImpl(uint32_t typeIndex, std::index_sequence<Indices...>) {
 		std::string meshTypeString;
 
-		// FIXME bug
-		((meshTypeString = Indices == typeIndex ? std::get<Indices>(getTypeTuple()).getMeshTypeString() : ""), ...);
+		((meshTypeString =
+			  Indices == typeIndex ? std::get<Indices>(getTypeTuple()).getMeshTypeString() : meshTypeString),
+		 ...);
 
 		assert(!meshTypeString.empty());
 
 		return meshTypeString;
+	}
+
+
+	static inline bool getMeshTessellationUsage(uint32_t typeIndex) {
+		return getMeshTessellationUsageImpl(typeIndex, std::make_index_sequence<getTypeCount()>());
+	}
+
+	template <std::size_t... Indices>
+	static inline bool getMeshTessellationUsageImpl(uint32_t typeIndex, std::index_sequence<Indices...>) {
+		bool useTessellation;
+
+		((useTessellation =
+			  Indices == typeIndex ? std::get<Indices>(getTypeTuple()).usesTessellation() : useTessellation),
+		 ...);
+
+		return useTessellation;
 	}
 
 

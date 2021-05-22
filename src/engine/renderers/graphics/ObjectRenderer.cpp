@@ -1,8 +1,14 @@
-#include "ObjectRendererBase.hpp"
+#include "ObjectRenderer.hpp"
+
+#include "engine/managers/EntityManager.hpp"
+#include "engine/managers/MaterialManager.hpp"
+#include "engine/managers/MeshManager.hpp"
 
 
 namespace Engine {
-int ObjectRendererBase::init() {
+int ObjectRenderer::init() {
+	assert(threadCount > 0);
+
 	renderInfoCachePerThread.resize(threadCount);
 	renderInfoIndicesPerThread.resize(threadCount);
 
@@ -10,35 +16,44 @@ int ObjectRendererBase::init() {
 
 	drawObjectsThreadInfos.resize(threadCount * 2);
 
-	return GraphicsRendererBase::init();
+	return 0;
 }
 
 
-void ObjectRendererBase::drawObjects(const vk::CommandBuffer* pSecondaryCommandBuffers, const Frustum* includeFrustums,
-									 uint includeFrustumCount, const Frustum* excludeFrustums,
-									 uint excludeFrustumCount) {
+void ObjectRenderer::drawObjects(const vk::PipelineLayout pipelineLayout, const vk::Pipeline* pPipelines,
+								 const vk::CommandBuffer* pSecondaryCommandBuffers, const uint materialDescriptorSetId,
+								 const Frustum* includeFrustums, uint includeFrustumCount,
+								 const Frustum* excludeFrustums, uint excludeFrustumCount) {
+
 	for (uint i = 0; i < drawObjectsThreadInfos.size(); i++) {
-		drawObjectsThreadInfos[i].renderer					 = this;
-		drawObjectsThreadInfos[i].pSecondaryCommandBuffers	 = pSecondaryCommandBuffers;
-		drawObjectsThreadInfos[i].includeFrustums			 = includeFrustums;
-		drawObjectsThreadInfos[i].includeFrustumCount		 = includeFrustumCount;
-		drawObjectsThreadInfos[i].excludeFrustums			 = excludeFrustums;
-		drawObjectsThreadInfos[i].excludeFrustumCount		 = excludeFrustumCount;
-		drawObjectsThreadInfos[i].fragmentIndex				 = i;
-		drawObjectsThreadInfos[i].fragmentCount				 = drawObjectsThreadInfos.size();
-		drawObjectsThreadInfos[i].materialDescriptorSetIndex = descriptorSetArrays.size() + 1;
+		drawObjectsThreadInfos[i].renderer = this;
+
+		drawObjectsThreadInfos[i].vkPipelineLayout		   = pipelineLayout;
+		drawObjectsThreadInfos[i].pVkPipelines			   = pPipelines;
+		drawObjectsThreadInfos[i].pSecondaryCommandBuffers = pSecondaryCommandBuffers;
+
+		drawObjectsThreadInfos[i].includeFrustums	  = includeFrustums;
+		drawObjectsThreadInfos[i].includeFrustumCount = includeFrustumCount;
+		drawObjectsThreadInfos[i].excludeFrustums	  = excludeFrustums;
+		drawObjectsThreadInfos[i].excludeFrustumCount = excludeFrustumCount;
+
+		drawObjectsThreadInfos[i].fragmentIndex = i;
+		drawObjectsThreadInfos[i].fragmentCount = drawObjectsThreadInfos.size();
+
+		drawObjectsThreadInfos[i].materialDescriptorSetIndex = materialDescriptorSetId;
 
 		threadPool.appendData(&drawObjectsThreadInfos[i]);
 	}
-
-	// drawObjectsThreadFunc(0, &drawObjectsThreadInfo);
 
 	threadPool.waitForAll();
 }
 
 
-void ObjectRendererBase::drawObjectsThreadFunc(uint threadIndex, void* pData) {
+void ObjectRenderer::drawObjectsThreadFunc(uint threadIndex, void* pData) {
 	DrawObjectsThreadInfo drawObjectsThreadInfo = *static_cast<DrawObjectsThreadInfo*>(pData);
+
+	const auto& vkPipelineLayout = drawObjectsThreadInfo.vkPipelineLayout;
+	const auto& pVkPipelines	 = drawObjectsThreadInfo.pVkPipelines;
 
 	const auto& commandBuffer = drawObjectsThreadInfo.pSecondaryCommandBuffers[threadIndex];
 
@@ -119,12 +134,11 @@ void ObjectRendererBase::drawObjectsThreadFunc(uint threadIndex, void* pData) {
 
 		if (lastPipelineIndex != renderInfo.pipelineIndex) {
 			lastPipelineIndex = renderInfo.pipelineIndex;
-			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics,
-									   drawObjectsThreadInfo.renderer->vkPipelines[renderInfo.pipelineIndex]);
+			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pVkPipelines[renderInfo.pipelineIndex]);
 		}
 
-		commandBuffer.pushConstants(drawObjectsThreadInfo.renderer->vkPipelineLayout, vk::ShaderStageFlagBits::eAll, 0,
-									64, &renderInfo.transformMatrix);
+		commandBuffer.pushConstants(vkPipelineLayout, vk::ShaderStageFlagBits::eAll, 0, 64,
+									&renderInfo.transformMatrix);
 
 
 		if (lastVertexBuffer != renderInfo.vertexBuffer) {
@@ -139,8 +153,7 @@ void ObjectRendererBase::drawObjectsThreadFunc(uint threadIndex, void* pData) {
 		if (lastMaterial != renderInfo.material) {
 			lastMaterial = renderInfo.material;
 
-			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-											 drawObjectsThreadInfo.renderer->vkPipelineLayout,
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkPipelineLayout,
 											 materialDescriptorSetIndex, 1, &renderInfo.material, 0, nullptr);
 		}
 

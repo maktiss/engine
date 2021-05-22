@@ -90,6 +90,19 @@ public:
 		return Handle(index);
 	}
 
+	template <typename MeshType>
+	static Handle getHandle(MaterialManager::Handle& materialHandle) {
+		auto meshTypeIndex	 = MeshManager::getTypeIndex<MeshType>();
+		auto shaderTypeIndex = getCompatibleShaderTypeIndex(materialHandle);
+
+		uint32_t signature = 0;
+		MaterialManager::apply(materialHandle, [&signature](auto& material) {
+			signature = material.getSignature();
+		});
+
+		return getHandle(meshTypeIndex, shaderTypeIndex, signature);
+	}
+
 	static Handle getHandle(MeshManager::Handle& meshHandle, MaterialManager::Handle& materialHandle) {
 		auto meshTypeIndex	 = MeshManager::getTypeIndex(meshHandle);
 		auto shaderTypeIndex = getCompatibleShaderTypeIndex(materialHandle);
@@ -193,6 +206,8 @@ public:
 
 		for (uint renderPassIndex = 0; renderPassIndex < getRenderPassStringCount(); renderPassIndex++) {
 			for (uint meshTypeIndex = 0; meshTypeIndex < MeshManager::getTypeCount(); meshTypeIndex++) {
+				bool useTessellation = MeshManager::getMeshTessellationUsage(meshTypeIndex);
+
 				for (uint signature = 0; signature < ShaderType::getSignatureCount(); signature++) {
 					shaderc::CompileOptions options;
 
@@ -210,6 +225,9 @@ public:
 					uint32_t index = getShaderIndex<ShaderType>(renderPassIndex, meshTypeIndex, signature);
 
 					for (uint shaderStageIndex = 0; shaderStageIndex < 6; shaderStageIndex++) {
+						if ((shaderStageIndex == 2 || shaderStageIndex == 3) && !useTessellation) {
+							continue;
+						}
 						if (!glslSources[shaderStageIndex].empty()) {
 							shaderc_shader_kind kind = shaderStages[shaderStageIndex];
 

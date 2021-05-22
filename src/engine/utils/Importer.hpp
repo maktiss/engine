@@ -17,6 +17,7 @@ private:
 public:
 	[[nodiscard]] static int importMesh(std::string filename, std::vector<MeshManager::Handle>& meshHandles);
 
-	[[nodiscard]] static int importTexture(std::string filename, TextureManager::Handle& textureHandle, bool srgb);
+	[[nodiscard]] static int importTexture(std::string filename, TextureManager::Handle& textureHandle, uint channels,
+										   uint channelWidth, vk::Format format);
 };
 } // namespace Engine

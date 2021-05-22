@@ -23,6 +23,7 @@ int InputSystem::init() {
 	keyMap[GLFW_KEY_E] = InputManager::KeyAction::CAMERA_MOVE_UP;
 
 	keyMap[GLFW_KEY_LEFT_SHIFT] = InputManager::KeyAction::CAMERA_BOOST;
+	keyMap[GLFW_KEY_LEFT_ALT]	= InputManager::KeyAction::CAMERA_BOOST_ALT;
 
 	keyMap[GLFW_KEY_F1] = InputManager::KeyAction::IMGUI_TOGGLE;
 

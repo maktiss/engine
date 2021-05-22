@@ -99,7 +99,8 @@ int RenderingSystem::init() {
 	GraphicsShaderManager::init();
 
 	if (GraphicsShaderManager::importShaderSources<SimpleShader>(std::array<std::string, 6> {
-			"assets/shaders/material_generic.vsh", "", "", "", "assets/shaders/material_generic.fsh", "" })) {
+			"assets/shaders/material_generic.vsh", "", "assets/shaders/material_generic.tcsh",
+			"assets/shaders/material_generic.tesh", "assets/shaders/material_generic.fsh", "" })) {
 		return 1;
 	}
 
@@ -1394,7 +1395,8 @@ int RenderingSystem::createLogicalDevice() {
 	}
 
 	vk::PhysicalDeviceFeatures physicalDeviceFeatures {};
-	physicalDeviceFeatures.samplerAnisotropy = true;
+	physicalDeviceFeatures.samplerAnisotropy  = true;
+	physicalDeviceFeatures.tessellationShader = true;
 
 	vk::DeviceCreateInfo deviceCreateInfo {};
 	deviceCreateInfo.queueCreateInfoCount = deviceQueueCreateInfos.size();

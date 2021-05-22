@@ -1,0 +1,113 @@
+#version 460
+
+layout(quads, equal_spacing, ccw) in;
+
+#if defined(RENDER_PASS_FORWARD) || defined(RENDER_PASS_DEPTH_NORMAL) || defined(RENDER_PASS_SHADOW_MAP)
+
+#include "common.glsl"
+#line 9
+
+layout(location = 0) out OutData {
+	vec3 position;
+	vec2 texCoord;
+
+	vec3 worldPosition;
+	vec3 worldNormal;
+	vec4 screenPosition;
+
+	mat3 tangentMatrix;
+}
+outData;
+
+
+vec4 tessInterpolate(vec4 v0, vec4 v1, vec4 v2) {
+	return v0 * gl_TessCoord.x + v1 * gl_TessCoord.y + v2 * gl_TessCoord.z;
+}
+
+vec4 tessInterpolate(vec4 v0, vec4 v1, vec4 v2, vec4 v3) {
+	return mix(mix(v1, v0, gl_TessCoord.x), mix(v2, v3, gl_TessCoord.x), gl_TessCoord.y);
+}
+
+
+const mat4 bSplineMatrix = mat4(-0.1666666667, 0.5, -0.5, 0.1666666667, 0.5, -1, 0.5, 0, -0.5, 0, 0.5, 0, 0.1666666667,
+								0.6666666667, 0.1666666667, 0);
+
+vec2 calcHeightSlope(vec4 heights, float factor) {
+	vec4 coeffs = heights * bSplineMatrix;
+
+	float factor2 = factor * factor;
+	vec4 factors  = vec4(factor2 * factor, factor2, factor, 1.0);
+
+	float height = dot(coeffs, factors);
+
+	factors = vec4(3.0 * factor2, 2.0 * factor, 1.0, 0.0);
+
+	float slope = dot(coeffs, factors);
+
+	return vec2(height, slope);
+}
+
+
+void main() {
+	vec4 position =
+		tessInterpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position);
+
+	position = uModel.transformMatrix * position;
+
+	vec2 texCoord = position.xz / uTerrain.size + 0.5;
+
+	vec2 factor = fract(texCoord * uTerrain.size - 0.5);
+
+	vec2 offsets = vec2(-uTerrain.texelSize, uTerrain.texelSize);
+
+	vec4 heights00 = textureGather(sampler2D(uTextures[uTerrain.textureHeight], uSampler), texCoord + offsets.xx);
+	vec4 heights10 = textureGather(sampler2D(uTextures[uTerrain.textureHeight], uSampler), texCoord + offsets.yx);
+	vec4 heights01 = textureGather(sampler2D(uTextures[uTerrain.textureHeight], uSampler), texCoord + offsets.xy);
+	vec4 heights11 = textureGather(sampler2D(uTextures[uTerrain.textureHeight], uSampler), texCoord + offsets.yy);
+
+
+	vec2 heightSlopeX0 = calcHeightSlope(vec4(heights00.w, heights00.z, heights10.w, heights10.z), factor.x);
+	vec2 heightSlopeX1 = calcHeightSlope(vec4(heights00.x, heights00.y, heights10.x, heights10.y), factor.x);
+	vec2 heightSlopeX2 = calcHeightSlope(vec4(heights01.w, heights01.z, heights11.w, heights11.z), factor.x);
+	vec2 heightSlopeX3 = calcHeightSlope(vec4(heights01.x, heights01.y, heights11.x, heights11.y), factor.x);
+
+	vec2 heightSlopeY0 = calcHeightSlope(vec4(heights00.w, heights00.x, heights01.w, heights01.x), factor.y);
+	vec2 heightSlopeY1 = calcHeightSlope(vec4(heights00.z, heights00.y, heights01.z, heights01.y), factor.y);
+	vec2 heightSlopeY2 = calcHeightSlope(vec4(heights10.w, heights10.x, heights11.w, heights11.x), factor.y);
+	vec2 heightSlopeY3 = calcHeightSlope(vec4(heights10.z, heights10.y, heights11.z, heights11.y), factor.y);
+
+	position.y = calcHeightSlope(vec4(heightSlopeX0.x, heightSlopeX1.x, heightSlopeX2.x, heightSlopeX3.x), factor.y).x *
+				 uTerrain.maxHeight;
+
+	float dx = calcHeightSlope(vec4(heightSlopeX0.y, heightSlopeX1.y, heightSlopeX2.y, heightSlopeX3.y), factor.x).x *
+			   uTerrain.maxHeight;
+	float dy = calcHeightSlope(vec4(heightSlopeY0.y, heightSlopeY1.y, heightSlopeY2.y, heightSlopeY3.y), factor.y).x *
+			   uTerrain.maxHeight;
+
+	vec3 tangent   = normalize(vec3(1.0, dx, 0.0));
+	vec3 bitangent = normalize(vec3(0.0, dy, 1.0));
+
+	vec3 normal = normalize(cross(bitangent, tangent));
+
+
+	outData.worldPosition = position.xyz;
+	outData.texCoord	  = position.xz * 0.5;
+
+	position = uCamera.viewMatrix * position;
+
+	outData.position = position.xyz;
+
+	outData.tangentMatrix = mat3(uCamera.viewMatrix) * mat3(uModel.transformMatrix) * mat3(tangent, bitangent, normal);
+
+	position = uCamera.projectionMatrix * position;
+
+	outData.screenPosition = position;
+
+	gl_Position = position;
+}
+
+
+#else
+void main() {
+}
+#endif

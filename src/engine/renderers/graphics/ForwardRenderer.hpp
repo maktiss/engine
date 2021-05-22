@@ -1,11 +1,13 @@
 #pragma once
 
 #include "GraphicsRendererBase.hpp"
-#include "ObjectRendererBase.hpp"
+
+#include "ObjectRenderer.hpp"
+#include "TerrainRenderer.hpp"
 
 
 namespace Engine {
-class ForwardRenderer : public ObjectRendererBase {
+class ForwardRenderer : public GraphicsRendererBase {
 private:
 	PROPERTY(uint, "Graphics", clusterCountX, 1);
 	PROPERTY(uint, "Graphics", clusterCountY, 1);
@@ -40,6 +42,16 @@ private:
 
 	std::vector<glm::mat4> uDirectionalLightMatrices { directionalLightCascadeCount };
 
+	struct TerrainBlock {
+		uint size;
+		uint maxHeight;
+
+		uint textureHeight;
+		uint textureNormal;
+
+		float texelSize;
+	} uTerrainBlock;
+
 
 	struct LightCluster {
 		uint32_t start {};
@@ -71,8 +83,13 @@ private:
 	};
 
 
+private:
+	ObjectRenderer objectRenderer {};
+	TerrainRenderer terrainRenderer {};
+
+
 public:
-	ForwardRenderer() : ObjectRendererBase(4, 2) {
+	ForwardRenderer() : GraphicsRendererBase(4, 2) {
 	}
 
 
@@ -201,6 +218,8 @@ public:
 		descriptorSetDescriptions.push_back({ 1, 4, vk::DescriptorType::eStorageBuffer, pointLightsBlockSize });
 		descriptorSetDescriptions.push_back({ 1, 5, vk::DescriptorType::eStorageBuffer, spotLightsBlockSize });
 
+		descriptorSetDescriptions.push_back({ 2, 0, vk::DescriptorType::eUniformBuffer, sizeof(TerrainBlock) });
+
 		return descriptorSetDescriptions;
 	}
 
@@ -253,6 +272,20 @@ public:
 
 		return attachmentDescriptions;
 	}
+
+
+	// vk::PipelineRasterizationStateCreateInfo getVkPipelineRasterizationStateCreateInfo() const {
+	// 	vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {};
+	// 	pipelineRasterizationStateCreateInfo.depthClampEnable		 = false;
+	// 	pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;
+	// 	pipelineRasterizationStateCreateInfo.polygonMode			 = vk::PolygonMode::eLine;
+	// 	pipelineRasterizationStateCreateInfo.cullMode				 = vk::CullModeFlagBits::eNone;
+	// 	pipelineRasterizationStateCreateInfo.frontFace				 = vk::FrontFace::eCounterClockwise;
+	// 	pipelineRasterizationStateCreateInfo.depthBiasEnable		 = false;
+	// 	pipelineRasterizationStateCreateInfo.lineWidth				 = 1.0f;
+
+	// 	return pipelineRasterizationStateCreateInfo;
+	// }
 
 
 	inline vk::PipelineDepthStencilStateCreateInfo getVkPipelineDepthStencilStateCreateInfo() const override {

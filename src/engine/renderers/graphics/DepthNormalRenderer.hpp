@@ -1,11 +1,13 @@
 #pragma once
 
 #include "GraphicsRendererBase.hpp"
-#include "ObjectRendererBase.hpp"
+
+#include "ObjectRenderer.hpp"
+#include "TerrainRenderer.hpp"
 
 
 namespace Engine {
-class DepthNormalRenderer : public ObjectRendererBase {
+class DepthNormalRenderer : public GraphicsRendererBase {
 private:
 	struct CameraBlock {
 		glm::mat4 viewMatrix;
@@ -15,9 +17,24 @@ private:
 		glm::mat4 invProjectionMatrix;
 	};
 
+	struct TerrainBlock {
+		uint size;
+		uint maxHeight;
+
+		uint textureHeight;
+		uint textureNormal;
+
+		float texelSize;
+	} uTerrainBlock;
+
+
+private:
+	ObjectRenderer objectRenderer {};
+	TerrainRenderer terrainRenderer {};
+
 
 public:
-	DepthNormalRenderer() : ObjectRendererBase(0, 2) {
+	DepthNormalRenderer() : GraphicsRendererBase(0, 2) {
 	}
 
 
@@ -77,6 +94,8 @@ public:
 		std::vector<DescriptorSetDescription> descriptorSetDescriptions {};
 
 		descriptorSetDescriptions.push_back({ 0, 0, vk::DescriptorType::eUniformBuffer, sizeof(CameraBlock) });
+
+		descriptorSetDescriptions.push_back({ 1, 0, vk::DescriptorType::eUniformBuffer, sizeof(TerrainBlock) });
 
 		return descriptorSetDescriptions;
 	}

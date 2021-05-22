@@ -8,6 +8,7 @@
 #include "engine/systems/ScriptingSystem.hpp"
 
 #include "engine/utils/CPUTimer.hpp"
+#include "engine/utils/Generator.hpp"
 #include "engine/utils/Importer.hpp"
 
 // #include "thirdparty/imgui/imgui_impl_glfw.h"
@@ -115,15 +116,18 @@ int Core::init(int argc, char** argv) {
 	modelEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
 
 	auto albedoTextureHandle = TextureManager::createObject<Texture2D>("rock_moss_diffuse");
-	if (Importer::importTexture("assets/textures/Rock Moss_diffuse.png", albedoTextureHandle, true)) {
+	if (Importer::importTexture("assets/textures/Rock Moss_diffuse.png", albedoTextureHandle, 4, 8,
+								vk::Format::eR8G8B8A8Srgb)) {
 		return 1;
 	}
 	auto normalTextureHandle = TextureManager::createObject<Texture2D>("rock_moss_normal");
-	if (Importer::importTexture("assets/textures/Rock Moss_normal.png", normalTextureHandle, false)) {
+	if (Importer::importTexture("assets/textures/Rock Moss_normal.png", normalTextureHandle, 4, 8,
+								vk::Format::eR8G8B8A8Unorm)) {
 		return 1;
 	}
 	auto mraTextureHandle = TextureManager::createObject<Texture2D>("rock_moss_mra");
-	if (Importer::importTexture("assets/textures/Rock Moss_mra.jpg", mraTextureHandle, true)) {
+	if (Importer::importTexture("assets/textures/Rock Moss_mra.jpg", mraTextureHandle, 4, 8,
+								vk::Format::eR8G8B8A8Srgb)) {
 		return 1;
 	}
 
@@ -170,24 +174,27 @@ int Core::init(int argc, char** argv) {
 		ScriptManager::getScriptHandle("script_sun_movement");
 
 
-	auto tileEntity = EntityManager::createEntity<TransformComponent, ModelComponent>("tile");
+	// auto tileEntity = EntityManager::createEntity<TransformComponent, ModelComponent>("tile");
 	// std::vector<MeshManager::Handle> meshHandles {};
 	if (Importer::importMesh("assets/models/tile.fbx", meshHandles)) {
 		return 1;
 	}
-	tileEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
+	// tileEntity.getComponent<ModelComponent>().meshHandles[0] = meshHandles[0];
 
 
 	albedoTextureHandle = TextureManager::createObject<Texture2D>("mud_with_vegetation_albedo");
-	if (Importer::importTexture("assets/textures/mud_with_vegetation_albedo.png", albedoTextureHandle, true)) {
+	if (Importer::importTexture("assets/textures/mud_with_vegetation_albedo.png", albedoTextureHandle, 4, 8,
+								vk::Format::eR8G8B8A8Srgb)) {
 		return 1;
 	}
 	normalTextureHandle = TextureManager::createObject<Texture2D>("mud_with_vegetation_normal");
-	if (Importer::importTexture("assets/textures/mud_with_vegetation_normal.png", normalTextureHandle, false)) {
+	if (Importer::importTexture("assets/textures/mud_with_vegetation_normal.png", normalTextureHandle, 4, 8,
+								vk::Format::eR8G8B8A8Unorm)) {
 		return 1;
 	}
 	mraTextureHandle = TextureManager::createObject<Texture2D>("mud_with_vegetation_mra");
-	if (Importer::importTexture("assets/textures/mud_with_vegetation_mra.png", mraTextureHandle, true)) {
+	if (Importer::importTexture("assets/textures/mud_with_vegetation_mra.png", mraTextureHandle, 4, 8,
+								vk::Format::eR8G8B8A8Srgb)) {
 		return 1;
 	}
 
@@ -201,33 +208,49 @@ int Core::init(int argc, char** argv) {
 	materialHandle.update();
 
 
-	tileEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
-	tileEntity.getComponent<ModelComponent>().shaderHandles[0] =
-		GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
+	// tileEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
+	// tileEntity.getComponent<ModelComponent>().shaderHandles[0] =
+	// 	GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
 
 
-	uint index = 0;
-	for (int x = -100; x <= 100; x++) {
-		for (int z = -100; z <= 100; z++) {
-			index++;
-			tileEntity =
-				EntityManager::createEntity<TransformComponent, ModelComponent>("tile_" + std::to_string(index));
-			tileEntity.getComponent<ModelComponent>().meshHandles[0]	 = meshHandles[0];
-			tileEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
-			tileEntity.getComponent<ModelComponent>().shaderHandles[0] =
-				GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
+	// uint index = 0;
+	// for (int x = -100; x <= 100; x++) {
+	// 	for (int z = -100; z <= 100; z++) {
+	// 		index++;
+	// 		tileEntity =
+	// 			EntityManager::createEntity<TransformComponent, ModelComponent>("tile_" + std::to_string(index));
+	// 		tileEntity.getComponent<ModelComponent>().meshHandles[0]	 = meshHandles[0];
+	// 		tileEntity.getComponent<ModelComponent>().materialHandles[0] = materialHandle;
+	// 		tileEntity.getComponent<ModelComponent>().shaderHandles[0] =
+	// 			GraphicsShaderManager::getHandle(meshHandles[0], materialHandle);
 
-			tileEntity.apply<TransformComponent>([=](auto& transform) {
-				transform.position.x = x * 11;
-				transform.position.z = z * 11;
+	// 		tileEntity.apply<TransformComponent>([=](auto& transform) {
+	// 			transform.position.x = x * 11;
+	// 			transform.position.z = z * 11;
 
-				transform.position.y = glm::length(glm::vec2(x, z)) * 0.5;
+	// 			transform.position.y = glm::length(glm::vec2(x, z)) * 0.5;
 
-				transform.rotation.x = -z * 0.1;
-				transform.rotation.z = x * 0.1;
-			});
-		}
+	// 			transform.rotation.x = -z * 0.1;
+	// 			transform.rotation.z = x * 0.1;
+	// 		});
+	// 	}
+	// }
+
+
+	auto& terrainState = GlobalStateManager::getWritable<TerrainState>();
+
+	terrainState.size				= 4096;
+	terrainState.maxHeight			= 512;
+	terrainState.materialHandles[0] = materialHandle;
+	terrainState.shaderHandles[0]	= GraphicsShaderManager::getHandle<TerrainMesh>(materialHandle);
+	terrainState.heightMapHandle	= TextureManager::createObject<Texture2D>("terrain_height");
+	if (Importer::importTexture("assets/textures/terrain_05_height.png", terrainState.heightMapHandle, 1, 16,
+								vk::Format::eR16Unorm)) {
+		return 1;
 	}
+
+	terrainState.normalMapHandle = TextureManager::createObject<Texture2D>("terrain_normal");
+	Generator::normalMapFromHeight(terrainState.heightMapHandle, terrainState.normalMapHandle, terrainState.maxHeight);
 
 
 	spdlog::info("Initialization completed successfully");
