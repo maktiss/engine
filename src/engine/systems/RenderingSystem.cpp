@@ -134,6 +134,11 @@ int RenderingSystem::init() {
 		return 1;
 	}
 
+	if (GraphicsShaderManager::importShaderSources<VolumetricLightShader>(std::array<std::string, 6> {
+			"assets/shaders/volumetric_light.vsh", "", "", "", "assets/shaders/volumetric_light.fsh", "" })) {
+		return 1;
+	}
+
 
 	TextureManager::setVkDevice(vkDevice);
 	TextureManager::setVkCommandPool(vkCommandPools[0]);
@@ -211,27 +216,51 @@ int RenderingSystem::init() {
 	shadowBlurXRenderer->setDirection(false);
 	shadowBlurXRenderer->setKernelSize(shadowBlurKernelSize);
 	shadowBlurXRenderer->setLayerCount(directionalLightCascadeCount);
+	shadowBlurXRenderer->setOutputFormat(vk::Format::eR32G32Sfloat);
 
 	auto shadowBlurYRenderer = std::make_shared<BoxBlurRenderer>();
 	shadowBlurYRenderer->setOutputSize({ shadowMapSize, shadowMapSize });
 	shadowBlurYRenderer->setDirection(true);
 	shadowBlurYRenderer->setKernelSize(shadowBlurKernelSize);
 	shadowBlurYRenderer->setLayerCount(directionalLightCascadeCount);
+	shadowBlurYRenderer->setOutputFormat(vk::Format::eR32G32Sfloat);
 
 
-	renderers["DepthNormalRenderer"]   = depthNormalRenderer;
-	renderers["ForwardRenderer"]	   = forwardRenderer;
-	renderers["ShadowMapRenderer"]	   = shadowMapRenderer;
-	renderers["SkyboxRenderer"]		   = skyboxRenderer;
-	renderers["SkymapRenderer"]		   = skymapRenderer;
-	renderers["ImGuiRenderer"]		   = imGuiRenderer;
-	renderers["PostFxRenderer"]		   = postFxRenderer;
-	renderers["ReflectionRenderer"]	   = reflectionRenderer;
-	renderers["SkyMipMapRenderer"]	   = skyMipMapRenderer;
-	renderers["IrradianceMapRenderer"] = irradianceMapRenderer;
-	renderers["ShadowMipMapRenderer"]  = shadowMipMapRenderer;
-	renderers["ShadowBlurXRenderer"]   = shadowBlurXRenderer;
-	renderers["ShadowBlurYRenderer"]   = shadowBlurYRenderer;
+	auto volumetricLightRenderer = std::make_shared<VolumetricLightRenderer>();
+	volumetricLightRenderer->setOutputSize(
+		{ windowWidth * volumetricLightResolutionScale, windowHeight * volumetricLightResolutionScale });
+
+	auto volumetricLightBlurXRenderer = std::make_shared<BoxBlurRenderer>();
+	volumetricLightBlurXRenderer->setOutputSize(
+		{ windowWidth * volumetricLightResolutionScale, windowHeight * volumetricLightResolutionScale });
+	volumetricLightBlurXRenderer->setDirection(false);
+	volumetricLightBlurXRenderer->setKernelSize(3);
+	volumetricLightBlurXRenderer->setOutputFormat(vk::Format::eR16G16B16A16Sfloat);
+
+	auto volumetricLightBlurYRenderer = std::make_shared<BoxBlurRenderer>();
+	volumetricLightBlurYRenderer->setOutputSize(
+		{ windowWidth * volumetricLightResolutionScale, windowHeight * volumetricLightResolutionScale });
+	volumetricLightBlurYRenderer->setDirection(true);
+	volumetricLightBlurYRenderer->setKernelSize(3);
+	volumetricLightBlurYRenderer->setOutputFormat(vk::Format::eR16G16B16A16Sfloat);
+
+
+	renderers["DepthNormalRenderer"]		  = depthNormalRenderer;
+	renderers["ForwardRenderer"]			  = forwardRenderer;
+	renderers["ShadowMapRenderer"]			  = shadowMapRenderer;
+	renderers["SkyboxRenderer"]				  = skyboxRenderer;
+	renderers["SkymapRenderer"]				  = skymapRenderer;
+	renderers["ImGuiRenderer"]				  = imGuiRenderer;
+	renderers["PostFxRenderer"]				  = postFxRenderer;
+	renderers["ReflectionRenderer"]			  = reflectionRenderer;
+	renderers["SkyMipMapRenderer"]			  = skyMipMapRenderer;
+	renderers["IrradianceMapRenderer"]		  = irradianceMapRenderer;
+	renderers["ShadowMipMapRenderer"]		  = shadowMipMapRenderer;
+	renderers["ShadowBlurXRenderer"]		  = shadowBlurXRenderer;
+	renderers["ShadowBlurYRenderer"]		  = shadowBlurYRenderer;
+	renderers["VolumetricLightRenderer"]	  = volumetricLightRenderer;
+	renderers["VolumetricLightBlurXRenderer"] = volumetricLightBlurXRenderer;
+	renderers["VolumetricLightBlurYRenderer"] = volumetricLightBlurYRenderer;
 
 
 	renderGraph.addOutputConnection("SkymapRenderer", "SkyMap", "SkyMipMapRenderer", "Buffer");
@@ -248,6 +277,14 @@ int RenderingSystem::init() {
 	renderGraph.addInputConnection("DepthNormalRenderer", "NormalBuffer", "ReflectionRenderer", "NormalBuffer");
 	renderGraph.addInputConnection("SkyMipMapRenderer", "Buffer", "ReflectionRenderer", "EnvironmentMap");
 
+	renderGraph.addInputConnection("DepthNormalRenderer", "DepthBuffer", "VolumetricLightRenderer", "DepthBuffer");
+	renderGraph.addInputConnection("ShadowMipMapRenderer", "Buffer", "VolumetricLightRenderer", "ShadowMap");
+
+	renderGraph.addInputConnection("VolumetricLightRenderer", "VolumetricLightBuffer", "VolumetricLightBlurXRenderer",
+								   "ColorBuffer");
+	renderGraph.addInputConnection("VolumetricLightBlurXRenderer", "ColorBuffer", "VolumetricLightBlurYRenderer",
+								   "ColorBuffer");
+
 	// renderGraph.addInputConnection("ShadowMapRenderer", "ShadowMap", "ForwardRenderer", "ShadowMap");
 
 	renderGraph.addInputConnection("ShadowMapRenderer", "ShadowMap", "ShadowBlurXRenderer", "ColorBuffer");
@@ -260,6 +297,11 @@ int RenderingSystem::init() {
 	renderGraph.addInputConnection("DepthNormalRenderer", "NormalBuffer", "ForwardRenderer", "NormalBuffer");
 	renderGraph.addInputConnection("ReflectionRenderer", "ReflectionBuffer", "ForwardRenderer", "ReflectionBuffer");
 	renderGraph.addInputConnection("IrradianceMapRenderer", "IrradianceMap", "ForwardRenderer", "IrradianceMap");
+	// renderGraph.addInputConnection("VolumetricLightRenderer", "VolumetricLightBuffer", "ForwardRenderer",
+	// 							   "VolumetricLightBuffer");
+	renderGraph.addInputConnection("VolumetricLightBlurYRenderer", "ColorBuffer", "ForwardRenderer",
+								   "VolumetricLightBuffer");
+
 
 	renderGraph.addOutputConnection("SkyboxRenderer", "ColorBuffer", "ForwardRenderer", "ColorBuffer");
 	renderGraph.addOutputConnection("DepthNormalRenderer", "DepthBuffer", "ForwardRenderer", "DepthBuffer");

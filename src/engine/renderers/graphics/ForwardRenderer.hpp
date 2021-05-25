@@ -89,7 +89,7 @@ private:
 
 
 public:
-	ForwardRenderer() : GraphicsRendererBase(4, 2) {
+	ForwardRenderer() : GraphicsRendererBase(5, 2) {
 	}
 
 
@@ -103,7 +103,7 @@ public:
 
 
 	virtual std::vector<std::string> getInputNames() const {
-		return { "ShadowMap", "NormalBuffer", "ReflectionBuffer", "IrradianceMap" };
+		return { "ShadowMap", "NormalBuffer", "ReflectionBuffer", "IrradianceMap", "VolumetricLightBuffer" };
 	}
 
 	virtual std::vector<std::string> getOutputNames() const {
@@ -113,7 +113,7 @@ public:
 
 	std::vector<AttachmentDescription> getInputDescriptions() const {
 		std::vector<AttachmentDescription> inputDescriptions {};
-		inputDescriptions.resize(4);
+		inputDescriptions.resize(5);
 
 		inputDescriptions[0].format = vk::Format::eR32G32Sfloat;
 		inputDescriptions[0].usage	= vk::ImageUsageFlagBits::eSampled;
@@ -127,6 +127,9 @@ public:
 		inputDescriptions[3].format = vk::Format::eR16G16B16A16Sfloat;
 		inputDescriptions[3].usage	= vk::ImageUsageFlagBits::eSampled;
 		inputDescriptions[3].flags	= vk::ImageCreateFlagBits::eCubeCompatible;
+
+		inputDescriptions[4].format = vk::Format::eR16G16B16A16Sfloat;
+		inputDescriptions[4].usage	= vk::ImageUsageFlagBits::eSampled;
 
 		return inputDescriptions;
 	}
@@ -147,12 +150,13 @@ public:
 
 	std::vector<vk::ImageLayout> getInputInitialLayouts() const {
 		std::vector<vk::ImageLayout> initialLayouts {};
-		initialLayouts.resize(4);
+		initialLayouts.resize(5);
 
 		initialLayouts[0] = vk::ImageLayout::eShaderReadOnlyOptimal;
 		initialLayouts[1] = vk::ImageLayout::eShaderReadOnlyOptimal;
 		initialLayouts[2] = vk::ImageLayout::eShaderReadOnlyOptimal;
 		initialLayouts[3] = vk::ImageLayout::eShaderReadOnlyOptimal;
+		initialLayouts[4] = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 		return initialLayouts;
 	}

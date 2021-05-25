@@ -10,5 +10,6 @@
 #include "graphics/ShadowMapRenderer.hpp"
 #include "graphics/SkyboxRenderer.hpp"
 #include "graphics/SkymapRenderer.hpp"
+#include "graphics/VolumetricLightRenderer.hpp"
 
 #include "transfer/MipMapRenderer.hpp"

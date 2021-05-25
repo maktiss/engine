@@ -20,7 +20,7 @@ layout(location = 0) out vec4 outColor;
 
 
 const vec3 uBetaR = vec3(0.0000068, 0.0000114, 0.0000237);
-const vec3 uBetaM = vec3(0.0000021, 0.0000021, 0.0000021);
+const vec3 uBetaM = vec3(0.0000021, 0.0000021, 0.0000021) * 10;
 
 const float uAbsorptionM = 1.1;
 
@@ -32,7 +32,7 @@ const float uSunIntensity = 20.0;
 const float uScaleR = 8400.0;
 const float uScaleM = 1500.0;
 
-const float uG = 0.9;
+const float uG = 0.6;
 const float uG2 = uG * uG;
 
 

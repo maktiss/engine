@@ -6,7 +6,7 @@
 // ====================================
 
 layout(constant_id = 100) const uint DIRECTIONAL_LIGHT_CASCADE_COUNT   = 3;
-layout(constant_id = 101) const float DIRECTIONAL_LIGHT_CASCADE_BASE   = 2.0;
+layout(constant_id = 101) const float DIRECTIONAL_LIGHT_CASCADE_BASE   = 64.0;
 layout(constant_id = 102) const float DIRECTIONAL_LIGHT_CASCADE_OFFSET = 0.75;
 
 layout(constant_id = 110) const uint CLUSTER_COUNT_X = 1;
@@ -88,6 +88,7 @@ layout(set = INPUT_TEXTURES_SET_ID, binding = 0) uniform sampler2DArray uDirecti
 layout(set = INPUT_TEXTURES_SET_ID, binding = 1) uniform sampler2D uNormalBuffer;
 layout(set = INPUT_TEXTURES_SET_ID, binding = 2) uniform sampler2D uReflectionBuffer;
 layout(set = INPUT_TEXTURES_SET_ID, binding = 3) uniform samplerCube uIrradianceMap;
+layout(set = INPUT_TEXTURES_SET_ID, binding = 4) uniform sampler2D uVolumetricLightBuffer;
 
 
 layout(set = CAMERA_SET_ID, binding = 0) uniform CameraBlock {

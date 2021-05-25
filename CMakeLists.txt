@@ -48,6 +48,7 @@ add_executable(
 	src/engine/graphics/shaders/SimpleShader.hpp
 	src/engine/graphics/shaders/SkyboxShader.hpp
 	src/engine/graphics/shaders/SkymapShader.hpp
+	src/engine/graphics/shaders/VolumetricLightShader.hpp
 	src/engine/graphics/textures/Texture2D.hpp
 	src/engine/graphics/textures/TextureBase.hpp
 	src/engine/managers/ConfigManager.cpp
@@ -100,6 +101,8 @@ add_executable(
 	src/engine/renderers/graphics/SkymapRenderer.hpp
 	src/engine/renderers/graphics/TerrainRenderer.cpp
 	src/engine/renderers/graphics/TerrainRenderer.hpp
+	src/engine/renderers/graphics/VolumetricLightRenderer.cpp
+	src/engine/renderers/graphics/VolumetricLightRenderer.hpp
 	src/engine/renderers/transfer/MipMapRenderer.cpp
 	src/engine/renderers/transfer/MipMapRenderer.hpp
 	src/engine/renderers/transfer/TransferRendererBase.cpp

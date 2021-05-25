@@ -48,15 +48,20 @@ void main() {
 
 	vec3 colorAlbedo = uMaterial.color.rgb;
 
+
 #ifdef USE_TEXTURE_ALBEDO
 	colorAlbedo *= texture(sampler2D(uTextures[uMaterial.textureAlbedo], uSampler), inData.texCoord).rgb;
 #endif
 
-	vec3 normal = texture(uNormalBuffer, screenCoord).xyz;
+
+	vec3 normal = normalize(texture(uNormalBuffer, screenCoord).xyz);
 
 	float metallic		   = uMaterial.metallic;
 	float roughness		   = uMaterial.roughness;
 	float ambientOcclusion = uMaterial.ambientOcclusion;
+
+	vec3 volumetricLightColor = texture(uVolumetricLightBuffer, screenCoord).xyz;
+
 
 #ifdef USE_TEXTURE_MRA
 	vec3 mra = texture(sampler2D(uTextures[uMaterial.textureMRA], uSampler), inData.texCoord).rgb;
@@ -66,7 +71,7 @@ void main() {
 	ambientOcclusion *= mra.b;
 #endif
 
-	normal			 = normalize(normal);
+
 	vec3 worldNormal = vec3(uCamera.invViewMatrix * vec4(normal, 0.0));
 
 	vec3 irradiance = texture(uIrradianceMap, worldNormal).rgb;
@@ -95,6 +100,8 @@ void main() {
 
 		color += shadowAmount * lightColor * 4 * uDirectionalLight.color * max(dot(normal, lightDir), 0.0);
 	}
+
+	color += volumetricLightColor;
 
 	outColor = vec4(color, 1.0);
 

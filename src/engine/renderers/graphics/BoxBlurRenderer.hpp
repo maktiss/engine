@@ -12,6 +12,8 @@ private:
 	bool blurDirection {};
 	uint32_t blurKernelSize = 5;
 
+	vk::Format outputFormat {};
+
 
 public:
 	BoxBlurRenderer() : GraphicsRendererBase(1, 1) {
@@ -50,7 +52,7 @@ public:
 		std::vector<AttachmentDescription> outputDescriptions {};
 		outputDescriptions.resize(1);
 
-		outputDescriptions[0].format = vk::Format::eR32G32Sfloat;
+		outputDescriptions[0].format = outputFormat;
 		outputDescriptions[0].usage	 = vk::ImageUsageFlagBits::eColorAttachment;
 
 		return outputDescriptions;
@@ -129,6 +131,10 @@ public:
 
 	inline void setKernelSize(uint32_t kernelSize) {
 		blurKernelSize = kernelSize;
+	}
+
+	inline void setOutputFormat(vk::Format format) {
+		outputFormat = format;
 	}
 };
 } // namespace Engine

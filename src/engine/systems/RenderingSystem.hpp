@@ -117,6 +117,8 @@ private:
 	PROPERTY(uint, "Graphics", directionalLightCascadeCount, 3);
 	PROPERTY(uint, "Graphics", shadowBlurKernelSize, 5);
 
+	PROPERTY(float, "Graphics", volumetricLightResolutionScale, 0.5);
+
 	PROPERTY(uint, "Debug", enableValidationLayers, 0);
 
 

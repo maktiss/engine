@@ -7,3 +7,4 @@
 #include "SimpleShader.hpp"
 #include "SkyboxShader.hpp"
 #include "SkymapShader.hpp"
+#include "VolumetricLightShader.hpp"
