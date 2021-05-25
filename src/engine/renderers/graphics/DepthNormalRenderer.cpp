@@ -52,10 +52,12 @@ void DepthNormalRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer*
 
 	uTerrainBlock.size		= terrainState.size;
 	uTerrainBlock.maxHeight = terrainState.maxHeight;
-	uTerrainBlock.texelSize = 1.0f / terrainState.size;
 
 	uTerrainBlock.textureHeight = terrainState.heightMapHandle.getIndex();
 	uTerrainBlock.textureNormal = terrainState.normalMapHandle.getIndex();
+
+	uTerrainBlock.texelSize		= 1.0f / terrainState.size;
+	uTerrainBlock.baseTessLevel = 16.0f;
 
 	updateDescriptorSet(1, 0, &uTerrainBlock);
 

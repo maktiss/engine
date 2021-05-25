@@ -94,10 +94,12 @@ void ForwardRenderer::recordSecondaryCommandBuffers(const vk::CommandBuffer* pSe
 
 	uTerrainBlock.size		= terrainState.size;
 	uTerrainBlock.maxHeight = terrainState.maxHeight;
-	uTerrainBlock.texelSize = 1.0f / terrainState.size;
 
 	uTerrainBlock.textureHeight = terrainState.heightMapHandle.getIndex();
 	uTerrainBlock.textureNormal = terrainState.normalMapHandle.getIndex();
+
+	uTerrainBlock.texelSize		= 1.0f / terrainState.size;
+	uTerrainBlock.baseTessLevel = 16.0f;
 
 	updateDescriptorSet(2, 0, &uTerrainBlock);
 

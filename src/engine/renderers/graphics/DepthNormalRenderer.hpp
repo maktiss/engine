@@ -25,6 +25,7 @@ private:
 		uint textureNormal;
 
 		float texelSize;
+		float baseTessLevel;
 	} uTerrainBlock;
 
 

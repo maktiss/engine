@@ -178,6 +178,7 @@ layout(set = TERRAIN_SET_ID, binding = 0) uniform TerrainBlock {
 	uint textureNormal;
 
 	float texelSize;
+	float baseTessLevel;
 }
 uTerrain;
 #endif // TERRAIN_SET_ID

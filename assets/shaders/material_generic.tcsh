@@ -9,13 +9,13 @@ layout(vertices = 4) out;
 
 void main() {
 	if (gl_InvocationID == 0) {
-		gl_TessLevelInner[0] = 16.0;
-		gl_TessLevelInner[1] = 16.0;
+		gl_TessLevelInner[0] = uTerrain.baseTessLevel;
+		gl_TessLevelInner[1] = uTerrain.baseTessLevel;
 
-		gl_TessLevelOuter[0] = 16.0 * uModel.terrainTessFactors.x; // right
-		gl_TessLevelOuter[1] = 16.0 * uModel.terrainTessFactors.y; // bottom
-		gl_TessLevelOuter[2] = 16.0 * uModel.terrainTessFactors.z; // left
-		gl_TessLevelOuter[3] = 16.0 * uModel.terrainTessFactors.w; // top
+		gl_TessLevelOuter[0] = uTerrain.baseTessLevel * uModel.terrainTessFactors.x; // right
+		gl_TessLevelOuter[1] = uTerrain.baseTessLevel * uModel.terrainTessFactors.y; // bottom
+		gl_TessLevelOuter[2] = uTerrain.baseTessLevel * uModel.terrainTessFactors.z; // left
+		gl_TessLevelOuter[3] = uTerrain.baseTessLevel * uModel.terrainTessFactors.w; // top
 	}
 
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
