@@ -37,7 +37,7 @@ layout(set = INPUT_TEXTURES_SET_ID, binding = 0) uniform sampler2D uDepthBuffer;
 layout(set = INPUT_TEXTURES_SET_ID, binding = 1) uniform sampler2DArray uDirectionalShadowMap;
 
 
-#define NUM_SAMPLES		64
+layout(constant_id = 0) const uint NUM_SAMPLES = 32;
 #define INV_NUM_SAMPLES 1.0 / NUM_SAMPLES
 
 #define NUM_SAMPLES_LIGHT	  1

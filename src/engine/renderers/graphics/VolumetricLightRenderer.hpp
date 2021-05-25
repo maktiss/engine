@@ -143,6 +143,16 @@ public:
 	}
 
 
+	std::vector<SpecializationConstantDescription> getSpecializationConstantDescriptions() const override {
+		std::vector<SpecializationConstantDescription> specializationConstantDescriptions {};
+
+		specializationConstantDescriptions.push_back(
+			{ 0, (void*)(&volumetricLightSampleCount), sizeof(volumetricLightSampleCount) });
+
+		return specializationConstantDescriptions;
+	}
+
+
 	inline std::vector<vk::AttachmentDescription> getVkAttachmentDescriptions() const override {
 		std::vector<vk::AttachmentDescription> attachmentDescriptions {};
 		attachmentDescriptions.resize(1);
